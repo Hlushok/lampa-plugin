@@ -2,7 +2,7 @@
     "use strict"; 
     var PLUGIN_NAME = "movieTV"; 
     var START_PAGE_VALUE = "movieTV"; 
-    var JSON_URL = "https://Rugaroo888.github.io/movietv-plugin/base.json"; 
+    var JSON_URL = "https://raw.githubusercontent.com/Hlushok/lampa-plugin/refs/heads/main/base.json"; 
     var CACHE_SIZE = 100; 
     var CACHE_TIME = 1000 * 60 * 60 * 22; 
     
