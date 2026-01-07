@@ -1,7 +1,7 @@
 (function () {
     'use strict';
 
-    var PLUGIN_NAME = 'movieTV';
+    var PLUGIN_NAME = 'MymovieTV';
     var JSON_URL = 'https://raw.githubusercontent.com/Hlushok/lampa-plugin/main/base.json';
 
     function CategorizedService() {
