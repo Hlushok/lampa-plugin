@@ -342,7 +342,7 @@
         for (var i = 0; i < cinemas.length; i++) {
             if (enabled[cinemas[i].networkId]) filtered.push(cinemas[i]);
         }
-        var titleText = type === 'ru' ? 'Русские онлайн кинотеатры' : type === 'en' ? 'Иностранные онлайн кинотеатры' : 'Украинские онлайн кинотеатры';
+        var titleText = type === 'ru' ? 'Російські онлайн кінотеатри' : type === 'en' ? 'Іноземні онлайн кінотеатри' : 'Українські онлайн кінотеатри';
         var svgIcon = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#00dbde" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="#fc00ff"/></svg>';
         var $header = $('<div class="cinemabywolf-modal-header"></div>');
         $header.append(svgIcon);
@@ -498,7 +498,7 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
             })(RU_CINEMAS[i], i);
         }
         Lampa.Modal.open({
-            title: 'Включение RU Кинотеатров',
+            title: 'Включення RU Кінотеатрів',
             html: $container,
             size: 'small',
             onBack: function() {
@@ -568,7 +568,7 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
             })(EN_CINEMAS[i], i);
         }
         Lampa.Modal.open({
-            title: 'Включение EN Кинотеатров',
+            title: 'Включення EN Кінотеатрів',
             html: $container,
             size: 'medium',
             onBack: function() {
@@ -638,7 +638,7 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
             })(UA_CINEMAS[i], i);
         }
         Lampa.Modal.open({
-            title: 'Включение UA Кинотеатров',
+            title: 'Включення UA Кінотеатрів',
             html: $container,
             size: 'small',
             onBack: function() {
@@ -689,24 +689,24 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
     function addSettingsComponent() {
         Lampa.SettingsApi.addComponent({
             component: 'cinemabywolf',
-            name: 'Онлайн кинотеатры',
+            name: 'Онлайн кінотеатри',
             icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="currentColor"/></svg>'
         });
         // О плагине
         Lampa.SettingsApi.addParam({
             component: 'cinemabywolf',
             param: { type: 'button', component: 'about' },
-            field: { name: 'О плагине', description: 'Информация и поддержка' },
+            field: { name: 'О плагине', description: 'Інформація і підтримка' },
             onChange: showAbout
         });
         // Показывать RU Кинотеатры на главной
         Lampa.SettingsApi.addParam({
             component: 'cinemabywolf',
             param: { name: 'show_ru', type: 'trigger', default: CinemaByWolf.settings.show_ru },
-            field: { name: 'Показывать RU Кинотеатры на главной' },
+            field: { name: 'Показувати RU на головній' },
             onChange: function(val) {
                 if (CinemaByWolf.debug) {
-                    console.log('cinemabywolf: show_ru изменено на', val);
+                    console.log('cinemabywolf: show_ru змінено на', val);
                 }
                 CinemaByWolf.settings.show_ru = val;
                 saveSettings();
@@ -717,10 +717,10 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
         Lampa.SettingsApi.addParam({
             component: 'cinemabywolf',
             param: { name: 'show_en', type: 'trigger', default: CinemaByWolf.settings.show_en },
-            field: { name: 'Показывать EN Кинотеатры на главной' },
+            field: { name: 'Показувати EN на головній' },
             onChange: function(val) {
                 if (CinemaByWolf.debug) {
-                    console.log('cinemabywolf: show_en изменено на', val);
+                    console.log('cinemabywolf: show_en змінено на', val);
                 }
                 CinemaByWolf.settings.show_en = val;
                 saveSettings();
@@ -731,10 +731,10 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
         Lampa.SettingsApi.addParam({
             component: 'cinemabywolf',
             param: { name: 'show_ua', type: 'trigger', default: CinemaByWolf.settings.show_ua },
-            field: { name: 'Показывать UA Кинотеатры на главной' },
+            field: { name: 'Показувати UA на головній' },
             onChange: function(val) {
                 if (CinemaByWolf.debug) {
-                    console.log('cinemabywolf: show_ua изменено на', val);
+                    console.log('cinemabywolf: show_ua змінено на', val);
                 }
                 CinemaByWolf.settings.show_ua = val;
                 saveSettings();
@@ -745,21 +745,21 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
         Lampa.SettingsApi.addParam({
             component: 'cinemabywolf',
             param: { type: 'button', component: 'ru_cinemas_list' },
-            field: { name: 'Включение RU Кинотеатров', description: 'Выбрать какие RU сервисы показывать' },
+            field: { name: 'Включення RU Кінотеатрів', description: 'Вибрати які RU сервіси показувати' },
             onChange: showRuCinemasSettings
         });
         // Кнопка для отдельного меню EN
         Lampa.SettingsApi.addParam({
             component: 'cinemabywolf',
             param: { type: 'button', component: 'en_cinemas_list' },
-            field: { name: 'Включение EN Кинотеатров', description: 'Выбрать какие EN сервисы показывать' },
+            field: { name: 'Включення EN Кінотеатрів', description: 'Вибрати які EN сервіси показувати' },
             onChange: showEnCinemasSettings
         });
         // Кнопка для отдельного меню UA
         Lampa.SettingsApi.addParam({
             component: 'cinemabywolf',
             param: { type: 'button', component: 'ua_cinemas_list' },
-            field: { name: 'Включение UA Кинотеатров', description: 'Выбрать какие UA сервисы показывать' },
+            field: { name: 'Включення UA Кінотеатрів', description: 'Вибрати які UA сервіси показувати' },
             onChange: showUaCinemasSettings
         });
         // Режим сортировки
@@ -771,7 +771,7 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
                 values: SORT_MODES,
                 default: CinemaByWolf.settings.sort_mode
             },
-            field: { name: 'Режим сортировки' },
+            field: { name: 'Режим сортування' },
             onChange: function(val) {
                 CinemaByWolf.settings.sort_mode = val;
                 saveSettings();
@@ -792,7 +792,7 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
         addStyles();
         addSettingsComponent();
         if (CinemaByWolf.debug) {
-            console.log('cinemabywolf: настройки загружены', CinemaByWolf.settings);
+            console.log('cinemabywolf: налаштування завантажені', CinemaByWolf.settings);
         }
         Lampa.Listener.follow('app', function (e) {
             if (e.type === 'ready') {
@@ -811,7 +811,7 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
             }
         });
         if (CinemaByWolf.debug) {
-            console.log('cinemabywolf: плагин инициализирован');
+            console.log('cinemabywolf: плагін ініціалізований');
         }
     }
 
