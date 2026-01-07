@@ -81,17 +81,28 @@
     function openCinemaCatalog(networkId, name) {
         Lampa.Select.show({
             title: name,
-            items: [{ title: 'Фільми', type: 'movie' }, { title: 'Серіали', type: 'tv' }],
+            items: [
+                { title: 'Фільми', type: 'movie' }, 
+                { title: 'Серіали', type: 'tv' }
+            ],
             onSelect: function (item) {
-                Lampa.Activity.push({
+                var params = {
                     url: 'discover/' + item.type,
-                    title: name,
-                    networks: networkId,
+                    title: name + ' — ' + (item.type === 'tv' ? 'Серіали' : 'Фільми'),
                     component: 'category_full',
                     source: 'tmdb',
                     card_type: true,
                     page: 1
-                });
+                };
+
+                // Для серіалів використовуємо мережі, для фільмів - компанії
+                if (item.type === 'tv') {
+                    params.networks = networkId;
+                } else {
+                    params.with_companies = networkId;
+                }
+
+                Lampa.Activity.push(params);
             }
         });
     }
