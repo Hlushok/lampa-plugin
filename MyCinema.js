@@ -8,7 +8,7 @@
         debug: true,
         settings: {
             enabled: true,
-            show_ru: true, // Можна змінити на false, щоб приховати за замовчуванням
+            show_ru: false, // Можна змінити на false, щоб приховати за замовчуванням
             show_en: true,
             show_ua: true
         }
@@ -26,20 +26,41 @@
     ];
 
     var EN_CINEMAS = [
-        { name: 'Netflix', networkId: '213' },
-        { name: 'Apple TV+', networkId: '2552' },
-        { name: 'HBO', networkId: '49' },
-        { name: 'Disney+', networkId: '2739' },
-        { name: 'Amazon Prime', networkId: '1024' }
+// Глобальні стрімінги (Originals)
+    { name: 'Netflix', networkId: '213' },
+    { name: 'Apple TV+', networkId: '2552' },
+    { name: 'Disney+', networkId: '2739' },
+    { name: 'HBO Max', networkId: '3186' },
+    { name: 'Amazon Prime', networkId: '1024' },
+    
+    // Фантастика та жанрове кіно
+    { name: 'SYFY', networkId: '77' },        // Головний канал фантастики
+    { name: 'AMC', networkId: '174' },       // Ходячі мерці, Інтерв'ю з вампіром
+    { name: 'Paramount+', networkId: '4330' }, // Star Trek (Зоряний шлях)
+    { name: 'Peacock', networkId: '3353' },
+    { name: 'Hulu', networkId: '453' },
+
+    // Британське кіно та серіали (UK)
+    { name: 'BBC One', networkId: '4' },      // Доктор Хто, Шерлок
+    { name: 'ITV1', networkId: '9' },         // Класичні британські серіали
+    { name: 'Channel 4', networkId: '45' },   // Чорне дзеркало (початкові сезони), Утопія
+    { name: 'Sky Sci-Fi', networkId: '5647' } // Спеціалізований канал фантастики Sky
     ];
 
     var UA_CINEMAS = [
-        { name: 'Megogo', networkId: '4454' },
-        { name: 'Sweet.tv', networkId: '5444' },
-        { name: 'Kyivstar TV', networkId: '5625' },
-        { name: '1+1', networkId: '1254' },
-        { name: 'ICTV', networkId: '1166' },
-        { name: 'СТБ', networkId: '1206' }
+    { name: 'Megogo', networkId: '4454' },
+    { name: 'Sweet.tv', networkId: '5444' },
+    { name: 'Kyivstar TV', networkId: '5625' },
+    { name: 'Takflix', networkId: '5413' },
+    { name: '1+1', networkId: '1254' },
+    { name: 'ICTV', networkId: '1166' },
+    { name: 'СТБ', networkId: '1206' },
+    { name: 'Новий канал', networkId: '1211' },
+    { name: 'Інтер', networkId: '1157' },
+    { name: '2+2', networkId: '1259' },
+    { name: 'ТЕТ', networkId: '1215' },
+    { name: 'НТН', networkId: '1161' },
+    { name: 'UA: Перший', networkId: '1264' }
     ];
 
     // Функція збереження налаштувань (замість обфускованого коду)
