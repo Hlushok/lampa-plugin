@@ -1,14 +1,14 @@
 !function() { 
     "use strict"; 
     var PLUGIN_NAME = "movieTV"; 
-    // Використовуємо CDN для надійності завантаження JSON
+    // Використовуємо CDN для надійності завантаження вашого файлу
     var JSON_URL = "https://cdn.jsdelivr.net/gh/Hlushok/lampa-plugin@main/base.json"; 
     
     function CategorizedService() {
         var self = this;
         var network = new Lampa.Reguest();
 
-        // Ця функція виправляє помилку "category is not a function"
+        // ЦЕЙ МЕТОД ВИПРАВЛЯЄ ПОМИЛКУ "category is not a function"
         self.category = function(params, onSuccess, onError) {
             network.silent(JSON_URL, function(json) {
                 var items = [];
@@ -17,6 +17,7 @@
                         items.push({
                             title: cat.title,
                             items: cat.items.map(function(item) {
+                                // Якщо є 'ti' (title), то це movie, інакше tv
                                 item.type = item.ti ? 'movie' : 'tv';
                                 item.title = item.ti || item.n;
                                 return item;
@@ -26,7 +27,7 @@
                 }
                 onSuccess(items);
             }, function() {
-                // Якщо JSON не завантажився, спробуємо через raw-посилання
+                // Резервний варіант, якщо CDN підведе
                 network.silent("https://raw.githubusercontent.com/Hlushok/lampa-plugin/main/base.json", function(json) {
                     self.category({json: json}, onSuccess, onError);
                 }, onError);
