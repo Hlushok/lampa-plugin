@@ -2,8 +2,8 @@
     'use strict';
 
     // Основной объект плагина
-    var MyCinema = {
-        name: 'mycinema',
+    var CinemaByWolf = {
+        name: 'cinemabywolf',
         version: '2.1.1',
         debug: true,
         settings: {
@@ -74,22 +74,22 @@
     function addLocalization() {
         if (Lampa && Lampa.Lang) {
             Lampa.Lang.add({
-                mycinema_ru: {
+                cinemabywolf_ru: {
 					ua: 'RU Кінотеатри',
                     ru: 'RU Кинотеатры',
                     en: 'RU Cinemas'
                 },
-                mycinema_en: {
+                cinemabywolf_en: {
 					ua: 'EN Кінотеатри',
                     ru: 'EN Кинотеатры',
                     en: 'EN Cinemas'
                 },
-                mycinema_ua: {
+                cinemabywolf_ua: {
 					ua: 'UA Кінотеатри',
                     ru: 'UA Кинотеатры',
                     en: 'UA Cinemas'
                 },
-                mycinema_title: {
+                cinemabywolf_title: {
 					ua: 'Онлайн Кінотеатри',
                     ru: 'Онлайн кинотеатры',
                     en: 'Online Cinemas'
@@ -109,35 +109,35 @@
 
     // Удалить кнопки из главного меню
     function removeMenuButtons() {
-        $('.mycinema-btn-ru').remove();
-        $('.mycinema-btn-en').remove();
-        $('.mycinema-btn-ua').remove();
+        $('.cinemabywolf-btn-ru').remove();
+        $('.cinemabywolf-btn-en').remove();
+        $('.cinemabywolf-btn-ua').remove();
     }
 
     // Добавление кнопок в главное меню (в стиле @cinemas.js)
     function addMenuButtons() {
-        if (mycinema.debug) {
-            console.log('mycinema: addMenuButtons вызвана');
-            console.log('mycinema: show_ru =', mycinema.settings.show_ru);
-            console.log('mycinema: show_en =', mycinema.settings.show_en);
-            console.log('mycinema: show_ua =', mycinema.settings.show_ua);
+        if (CinemaByWolf.debug) {
+            console.log('cinemabywolf: addMenuButtons вызвана');
+            console.log('cinemabywolf: show_ru =', CinemaByWolf.settings.show_ru);
+            console.log('cinemabywolf: show_en =', CinemaByWolf.settings.show_en);
+            console.log('cinemabywolf: show_ua =', CinemaByWolf.settings.show_ua);
         }
 
         // Удаляем существующие кнопки, если они есть
-        $('.menu__item.mycinema-btn-ru, .menu__item.mycinema-btn-en, .menu__item.mycinema-btn-ua').remove();
+        $('.menu__item.cinemabywolf-btn-ru, .menu__item.cinemabywolf-btn-en, .menu__item.cinemabywolf-btn-ua').remove();
 
         var $menu = $('.menu .menu__list').eq(0);
         if (!$menu.length) {
-            if (mycinema.debug) {
-                console.log('mycinema: меню не найдено');
+            if (CinemaByWolf.debug) {
+                console.log('cinemabywolf: меню не найдено');
             }
             return;
         }
 
         // RU Кинотеатры
-        if (String(mycinema.settings.show_ru).toLowerCase() !== 'false') {
-            if (mycinema.debug) {
-                console.log('mycinema: добавляем RU кнопку');
+        if (String(CinemaByWolf.settings.show_ru).toLowerCase() !== 'false') {
+            if (CinemaByWolf.debug) {
+                console.log('cinemabywolf: добавляем RU кнопку');
             }
             var ico = `<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48">
                 <text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="38" 
@@ -146,7 +146,7 @@
                 </text>
             </svg>`;
             var $btnRU = $(`
-                <li class="menu__item selector mycinema-btn-ru">
+                <li class="menu__item selector cinemabywolf-btn-ru">
                     <div class="menu__ico">${ico}</div>
                     <div class="menu__text">Кинотеатры</div>
                 </li>
@@ -158,9 +158,9 @@
         }
 
         // EN Кинотеатры
-        if (String(mycinema.settings.show_en).toLowerCase() !== 'false') {
-            if (mycinema.debug) {
-                console.log('mycinema: добавляем EN кнопку');
+        if (String(CinemaByWolf.settings.show_en).toLowerCase() !== 'false') {
+            if (CinemaByWolf.debug) {
+                console.log('cinemabywolf: добавляем EN кнопку');
             }
             var ico = `<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48">
                 <text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="38" 
@@ -169,7 +169,7 @@
                 </text>
             </svg>`;
             var $btnEN = $(`
-                <li class="menu__item selector mycinema-btn-en">
+                <li class="menu__item selector cinemabywolf-btn-en">
                     <div class="menu__ico">${ico}</div>
                     <div class="menu__text">Кинотеатры</div>
                 </li>
@@ -181,9 +181,9 @@
         }
 
         // UA Кинотеатры
-        if (String(mycinema.settings.show_ua).toLowerCase() !== 'false') {
-            if (mycinema.debug) {
-                console.log('mycinema: добавляем UA кнопку');
+        if (String(CinemaByWolf.settings.show_ua).toLowerCase() !== 'false') {
+            if (CinemaByWolf.debug) {
+                console.log('cinemabywolf: добавляем UA кнопку');
             }
             var ico = `<svg xmlns="http://www.w3.org/2000/svg" width="1.2em" height="1.2em" viewBox="0 0 48 48">
                 <text x="50%" y="55%" text-anchor="middle" font-family="Arial" font-size="38" 
@@ -192,7 +192,7 @@
                 </text>
             </svg>`;
             var $btnUA = $(`
-                <li class="menu__item selector mycinema-btn-ua">
+                <li class="menu__item selector cinemabywolf-btn-ua">
                     <div class="menu__ico">${ico}</div>
                     <div class="menu__text">Кинотеатры</div>
                 </li>
@@ -257,7 +257,7 @@
 
     // Открытие каталога только сериалов по networkId
     function openCinemaCatalog(networkId, name) {
-        var sort = mycinema.settings.sort_mode;
+        var sort = CinemaByWolf.settings.sort_mode;
         // Для сериалов корректируем сортировку по дате
         if (sort === 'release_date.desc') sort = 'first_air_date.desc';
         if (sort === 'release_date.asc') sort = 'first_air_date.asc';
@@ -275,8 +275,8 @@
 
     // --- Контроллер для карточек кинотеатров ---
     function activateCardsController($container) {
-        var name = 'mycinema-cards';
-        var $cards = $container.find('.mycinema-card.selector');
+        var name = 'cinemabywolf-cards';
+        var $cards = $container.find('.cinemabywolf-card.selector');
         var lastFocus = 0;
         function getCardsPerRow() {
             if ($cards.length < 2) return 1;
@@ -337,26 +337,26 @@
     // Открытие модального окна с кинотеатрами (с логотипами и фильтрацией)
     function openCinemasModal(type) {
         var cinemas = type === 'ru' ? RU_CINEMAS : type === 'en' ? EN_CINEMAS : UA_CINEMAS;
-        var enabled = type === 'ru' ? mycinema.settings.ru_cinemas : type === 'en' ? mycinema.settings.en_cinemas : mycinema.settings.ua_cinemas;
+        var enabled = type === 'ru' ? CinemaByWolf.settings.ru_cinemas : type === 'en' ? CinemaByWolf.settings.en_cinemas : CinemaByWolf.settings.ua_cinemas;
         var filtered = [];
         for (var i = 0; i < cinemas.length; i++) {
             if (enabled[cinemas[i].networkId]) filtered.push(cinemas[i]);
         }
         var titleText = type === 'ru' ? 'Російські онлайн кінотеатри' : type === 'en' ? 'Іноземні онлайн кінотеатри' : 'Українські онлайн кінотеатри';
         var svgIcon = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="20" height="14" rx="2" stroke="#00dbde" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="#fc00ff"/></svg>';
-        var $header = $('<div class="mycinema-modal-header"></div>');
+        var $header = $('<div class="cinemabywolf-modal-header"></div>');
         $header.append(svgIcon);
-        $header.append('<span class="mycinema-modal-title">' + titleText + '</span>');
-        var $container = $('<div class="mycinema-cards"></div>');
+        $header.append('<span class="cinemabywolf-modal-title">' + titleText + '</span>');
+        var $container = $('<div class="cinemabywolf-cards"></div>');
         for (var j = 0; j < filtered.length; j++) {
             (function (c) {
-                var $card = $('<div class="mycinema-card selector"></div>');
-                var $logo = $('<div class="mycinema-card__logo"></div>');
+                var $card = $('<div class="cinemabywolf-card selector"></div>');
+                var $logo = $('<div class="cinemabywolf-card__logo"></div>');
                 getCinemaLogo(c.networkId, c.name, function(logoHtml) {
                     $logo.html(logoHtml);
                 });
                 $card.append($logo);
-                $card.append('<div class="mycinema-card__name">' + c.name + '</div>');
+                $card.append('<div class="cinemabywolf-card__name">' + c.name + '</div>');
                 $card.on('hover:enter', function () {
                     Lampa.Modal.close();
                     openCinemaCatalog(c.networkId, c.name);
@@ -382,31 +382,31 @@
 
     // Добавление стилей
     function addStyles() {
-        var style = '<style id="mycinema-styles">'
-            + '.mycinema-cards { max-height: 70vh; overflow-y: auto; display: flex; flex-wrap: wrap; justify-content: center; border-radius: 18px; }'
-            + '.mycinema-cinema-btns { max-height: 70vh; overflow-y: auto; width: 100%; padding-right: 8px; }'
-            + '.mycinema-cinema-btn {  max-width: 500px; min-width: 260px; margin: 0 auto 18px auto; display: flex; align-items: center; justify-content: flex-start; padding: 0 0 0 32px; height: 68px; font-size: 1.6em !important; color: #888; background: rgba(24,24,40,0.95); border-radius: 14px; transition: background 0.2s, color 0.2s, opacity 0.2s; }'
-            + '.mycinema-cinema-btn__icon { font-size: 1.3em; margin-right: 24px; width: 32px; display: flex; align-items: center; justify-content: center; }'
-            + '.mycinema-cinema-btn.enabled .mycinema-cinema-btn__icon { color: #fff; }'
-            + '.mycinema-cinema-btn:not(.enabled) .mycinema-cinema-btn__icon { color: #666; }'
-            + '.mycinema-cinema-btn.enabled .mycinema-cinema-btn__name { color: #fff; }'
-            + '.mycinema-cinema-btn:not(.enabled) .mycinema-cinema-btn__name { color: #888; opacity: 0.7; }'
-            + '.mycinema-cinema-btn.focus { background: linear-gradient(90deg, #e94057 0%, #f27121 100%); color: #fff !important; outline: none; box-shadow: 0 0 0 2px #e94057, 0 0 12px #f27121; }'
-            + '.mycinema-card { width: 120px; height: 120px; background: rgba(24,24,40,0.95); border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: box-shadow 0.2s, background 0.2s; margin: 12px; box-shadow: 0 2px 12px rgba(233, 64, 87, 0.08); border: 1.5px solid rgba(233, 64, 87, 0.08); }'
-            + '.mycinema-card.selector:focus, .mycinema-card.selector:hover { box-shadow: 0 0 24px #e94057, 0 0 30px #f27121; background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); outline: none; border: 1.5px solid #e94057; }'
-            + '.mycinema-card__logo { width: 84px; height: 84px; background: #918d8db8; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #222; font-weight: bold; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(233, 64, 87, 0.08); }'
-            + '.mycinema-card__name { color: #fff; font-size: 16px; text-align: center; text-shadow: 0 2px 8px rgba(233, 64, 87, 0.15); }'
-            + '.mycinema-modal-header { display: flex; flex-direction: row; align-items: center; justify-content: center; margin-bottom: 28px; width: 100%; }'
-            + '.mycinema-modal-header svg { width: 34px !important; height: 34px !important; min-width: 34px; min-height: 34px; max-width: 34px; max-height: 34px; display: inline-block; flex-shrink: 0; margin-right: 16px; }'
-            + '.mycinema-modal-title { font-size: 1.6em; font-weight: bold; color: #fff; background: linear-gradient(90deg, #8a2387, #e94057, #f27121); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; max-width: 90vw; word-break: break-word; white-space: normal; display: inline-block; text-shadow: 0 2px 8px rgba(233, 64, 87, 0.15); }'
+        var style = '<style id="cinemabywolf-styles">'
+            + '.cinemabywolf-cards { max-height: 70vh; overflow-y: auto; display: flex; flex-wrap: wrap; justify-content: center; border-radius: 18px; }'
+            + '.cinemabywolf-cinema-btns { max-height: 70vh; overflow-y: auto; width: 100%; padding-right: 8px; }'
+            + '.cinemabywolf-cinema-btn {  max-width: 500px; min-width: 260px; margin: 0 auto 18px auto; display: flex; align-items: center; justify-content: flex-start; padding: 0 0 0 32px; height: 68px; font-size: 1.6em !important; color: #888; background: rgba(24,24,40,0.95); border-radius: 14px; transition: background 0.2s, color 0.2s, opacity 0.2s; }'
+            + '.cinemabywolf-cinema-btn__icon { font-size: 1.3em; margin-right: 24px; width: 32px; display: flex; align-items: center; justify-content: center; }'
+            + '.cinemabywolf-cinema-btn.enabled .cinemabywolf-cinema-btn__icon { color: #fff; }'
+            + '.cinemabywolf-cinema-btn:not(.enabled) .cinemabywolf-cinema-btn__icon { color: #666; }'
+            + '.cinemabywolf-cinema-btn.enabled .cinemabywolf-cinema-btn__name { color: #fff; }'
+            + '.cinemabywolf-cinema-btn:not(.enabled) .cinemabywolf-cinema-btn__name { color: #888; opacity: 0.7; }'
+            + '.cinemabywolf-cinema-btn.focus { background: linear-gradient(90deg, #e94057 0%, #f27121 100%); color: #fff !important; outline: none; box-shadow: 0 0 0 2px #e94057, 0 0 12px #f27121; }'
+            + '.cinemabywolf-card { width: 120px; height: 120px; background: rgba(24,24,40,0.95); border-radius: 16px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: box-shadow 0.2s, background 0.2s; margin: 12px; box-shadow: 0 2px 12px rgba(233, 64, 87, 0.08); border: 1.5px solid rgba(233, 64, 87, 0.08); }'
+            + '.cinemabywolf-card.selector:focus, .cinemabywolf-card.selector:hover { box-shadow: 0 0 24px #e94057, 0 0 30px #f27121; background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%); outline: none; border: 1.5px solid #e94057; }'
+            + '.cinemabywolf-card__logo { width: 84px; height: 84px; background: #918d8db8; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 32px; color: #222; font-weight: bold; margin-bottom: 10px; box-shadow: 0 2px 8px rgba(233, 64, 87, 0.08); }'
+            + '.cinemabywolf-card__name { color: #fff; font-size: 16px; text-align: center; text-shadow: 0 2px 8px rgba(233, 64, 87, 0.15); }'
+            + '.cinemabywolf-modal-header { display: flex; flex-direction: row; align-items: center; justify-content: center; margin-bottom: 28px; width: 100%; }'
+            + '.cinemabywolf-modal-header svg { width: 34px !important; height: 34px !important; min-width: 34px; min-height: 34px; max-width: 34px; max-height: 34px; display: inline-block; flex-shrink: 0; margin-right: 16px; }'
+            + '.cinemabywolf-modal-title { font-size: 1.6em; font-weight: bold; color: #fff; background: linear-gradient(90deg, #8a2387, #e94057, #f27121); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; max-width: 90vw; word-break: break-word; white-space: normal; display: inline-block; text-shadow: 0 2px 8px rgba(233, 64, 87, 0.15); }'
             + '.ru-cinema-row.selector:focus, .en-cinema-row.selector:focus { outline: none; border-radius: 8px; box-shadow: 0 0 0 2px #e94057, 0 0 12px #f27121; background: linear-gradient(90deg, #2a2a2a 60%, #e94057 100%); color: #fff; }'
-            + '@media (max-width: 600px) { .mycinema-modal-title { font-size: 1em; } }'
+            + '@media (max-width: 600px) { .cinemabywolf-modal-title { font-size: 1em; } }'
             + '</style>';
-        if (!$('#mycinema-styles').length) $('head').append(style);
+        if (!$('#cinemabywolf-styles').length) $('head').append(style);
     }
 
     // --- НАСТРОЙКИ ---
-    var STORAGE_KEY = 'mycinema_settings';
+    var STORAGE_KEY = 'cinemabywolf_settings';
     // Список режимов сортировки TMDB
     var SORT_MODES = {
         'popularity.desc': 'Популярные',
@@ -419,79 +419,79 @@
     // Загрузка настроек из localStorage
     function loadSettings() {
         var saved = localStorage.getItem(STORAGE_KEY);
-        if (mycinema.debug) {
-            console.log('mycinema: загружаем настройки из localStorage', saved);
+        if (CinemaByWolf.debug) {
+            console.log('cinemabywolf: загружаем настройки из localStorage', saved);
         }
         if (saved) {
             try {
                 var obj = JSON.parse(saved);
                 for (var k in obj) {
-                    mycinema.settings[k] = obj[k];
-                    if (mycinema.debug) {
-                        console.log('mycinema: загружена настройка', k, '=', obj[k]);
+                    CinemaByWolf.settings[k] = obj[k];
+                    if (CinemaByWolf.debug) {
+                        console.log('cinemabywolf: загружена настройка', k, '=', obj[k]);
                     }
                 }
             } catch (e) {
-                if (mycinema.debug) {
-                    console.error('mycinema: ошибка при загрузке настроек', e);
+                if (CinemaByWolf.debug) {
+                    console.error('cinemabywolf: ошибка при загрузке настроек', e);
                 }
             }
         }
         // Для каждого кинотеатра отдельная настройка
-        if (!mycinema.settings.ru_cinemas) {
-            mycinema.settings.ru_cinemas = {};
+        if (!CinemaByWolf.settings.ru_cinemas) {
+            CinemaByWolf.settings.ru_cinemas = {};
             for (var i = 0; i < RU_CINEMAS.length; i++) {
-                mycinema.settings.ru_cinemas[RU_CINEMAS[i].networkId] = true;
+                CinemaByWolf.settings.ru_cinemas[RU_CINEMAS[i].networkId] = true;
             }
         }
-        if (!mycinema.settings.en_cinemas) {
-            mycinema.settings.en_cinemas = {};
+        if (!CinemaByWolf.settings.en_cinemas) {
+            CinemaByWolf.settings.en_cinemas = {};
             for (var j = 0; j < EN_CINEMAS.length; j++) {
-                mycinema.settings.en_cinemas[EN_CINEMAS[j].networkId] = true;
+                CinemaByWolf.settings.en_cinemas[EN_CINEMAS[j].networkId] = true;
             }
         }
-        if (!mycinema.settings.ua_cinemas) {
-            mycinema.settings.ua_cinemas = {};
+        if (!CinemaByWolf.settings.ua_cinemas) {
+            CinemaByWolf.settings.ua_cinemas = {};
             for (var k = 0; k < UA_CINEMAS.length; k++) {
-                mycinema.settings.ua_cinemas[UA_CINEMAS[k].networkId] = true;
+                CinemaByWolf.settings.ua_cinemas[UA_CINEMAS[k].networkId] = true;
             }
         }
-        if (!mycinema.settings.sort_mode) {
-            mycinema.settings.sort_mode = 'popularity.desc';
+        if (!CinemaByWolf.settings.sort_mode) {
+            CinemaByWolf.settings.sort_mode = 'popularity.desc';
         }
         // Инициализация настроек отображения кнопок
-        if (typeof mycinema.settings.show_ru === 'undefined') {
-            mycinema.settings.show_ru = true;
+        if (typeof CinemaByWolf.settings.show_ru === 'undefined') {
+            CinemaByWolf.settings.show_ru = true;
         }
-        if (typeof mycinema.settings.show_en === 'undefined') {
-            mycinema.settings.show_en = true;
+        if (typeof CinemaByWolf.settings.show_en === 'undefined') {
+            CinemaByWolf.settings.show_en = true;
         }
-        if (typeof mycinema.settings.show_ua === 'undefined') {
-            mycinema.settings.show_ua = true;
+        if (typeof CinemaByWolf.settings.show_ua === 'undefined') {
+            CinemaByWolf.settings.show_ua = true;
         }
-        if (mycinema.debug) {
-            console.log('mycinema: итоговые настройки', mycinema.settings);
+        if (CinemaByWolf.debug) {
+            console.log('cinemabywolf: итоговые настройки', CinemaByWolf.settings);
         }
     }
-function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169idLYCo','2366790UCBGEJ','full','toggle','settings','89417tddgPH','log','1623420HGDdFA','stringify','<div></div>','setItem','#about-mycinema-styles','13728KFddOk','Controller','mycinema:\x20сохраняем\x20настройки','open','48tOHNYc','mycinema_settings','Modal','close','11677484ETbNKk','32gHrbpd','remove','debug'];_0x40ef=function(){return _0x1384d8;};return _0x40ef();}(function(_0x391304,_0x31d71d){var _0x318808=_0x4691,_0x25fbff=_0x391304();while(!![]){try{var _0xfe0ce4=-parseInt(_0x318808(0x100))/0x1*(parseInt(_0x318808(0xf5))/0x2)+parseInt(_0x318808(0x102))/0x3+-parseInt(_0x318808(0xec))/0x4*(-parseInt(_0x318808(0xfa))/0x5)+parseInt(_0x318808(0xfc))/0x6+-parseInt(_0x318808(0xf4))/0x7+parseInt(_0x318808(0xf0))/0x8*(-parseInt(_0x318808(0xfb))/0x9)+parseInt(_0x318808(0xf9))/0xa;if(_0xfe0ce4===_0x31d71d)break;else _0x25fbff['push'](_0x25fbff['shift']());}catch(_0x4044a5){_0x25fbff['push'](_0x25fbff['shift']());}}}(_0x40ef,0xdaf51));function saveSettings(){var _0x2327bd=_0x4691;mycinema[_0x2327bd(0xf7)]&&console[_0x2327bd(0x101)](_0x2327bd(0xee),mycinema['settings']),localStorage[_0x2327bd(0x105)](_0x2327bd(0xf1),JSON[_0x2327bd(0x103)](mycinema[_0x2327bd(0xff)]));}function _0x4691(_0xaff691,_0x122251){var _0x40efb8=_0x40ef();return _0x4691=function(_0x46918a,_0x7c5945){_0x46918a=_0x46918a-0xec;var _0xf0b505=_0x40efb8[_0x46918a];return _0xf0b505;},_0x4691(_0xaff691,_0x122251);}function showAbout(){var _0x3aa69d=_0x4691;$('#about-mycinema-styles')['remove']();var _0x4cb01c='\x0a\x20\x20\x20\x20\x20\x20\x20\x20<style\x20id=\x22about-mycinema-styles\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-root\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin:\x200\x20auto;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-family:\x20\x27Arial\x27,sans-serif;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20position:\x20relative;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20max-width:\x201100px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-flex\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-direction:\x20row;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20gap:\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20justify-content:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20align-items:\x20stretch;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-left\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex:\x200\x200\x20320px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-direction:\x20column;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20align-items:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20justify-content:\x20flex-start;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-support\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20linear-gradient(90deg,\x20#fc00ff\x200%,\x20#00dbde\x20100%);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2024px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x2024px\x2010px\x2016px\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20text-align:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20box-shadow:\x200\x202px\x2016px\x200\x20rgba(0,219,222,0.08);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20width:\x20100%;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin:\x200px\x200\x2018px\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-support-title\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201.2em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20bold;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x208px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20letter-spacing:\x200.5px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-support-phone\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201.5em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20bold;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x206px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20text-shadow:\x200\x202px\x208px\x20#e94057;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-support-bank\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x204px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-support-author\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#e0e0e0;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-qr\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-direction:\x20column;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20align-items:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin:\x200\x200\x200\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-qr-img\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20width:\x20120px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20height:\x20160px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20box-shadow:\x200\x202px\x2016px\x200\x20rgba(0,219,222,0.12);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x208px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-qr-label\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#00dbde;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20bold;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-right\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex:\x201\x201\x200%;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20min-width:\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-info\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20rgba(24,24,40,0.95);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2016px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin:\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x2018px\x2012px\x2018px\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20box-shadow:\x200\x202px\x2012px\x20rgba(233,64,87,0.08);\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-title\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201.3em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20bold;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20linear-gradient(90deg,\x20#8a2387,\x20#e94057,\x20#f27121);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20-webkit-background-clip:\x20text;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20-webkit-text-fill-color:\x20transparent;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20text-shadow:\x200\x202px\x208px\x20rgba(233,64,87,0.15);\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-version\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#00dbde;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-desc\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-list\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin:\x200\x200\x200\x2018px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x200.98em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-list\x20li\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x207px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-btns\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-direction:\x20row;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20gap:\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin:\x2018px\x200\x200\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-wrap:\x20wrap;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-btn\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20align-items:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20justify-content:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20min-width:\x20120px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x2010px\x2016px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20bold;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20linear-gradient(90deg,\x20#fc00ff\x200%,\x20#00dbde\x20100%);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border:\x20none;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20box-shadow:\x200\x202px\x2016px\x200\x20rgba(0,219,222,0.08);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20text-decoration:\x20none;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20transition:\x20transform\x200.2s,\x20box-shadow\x200.2s;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x208px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-btn:hover\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20transform:\x20scale(1.04);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20box-shadow:\x200\x204px\x2024px\x200\x20rgba(0,219,222,0.18);\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-footer\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20text-align:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-top:\x2024px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#aaa;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x200.95em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20@media\x20(max-width:\x20700px),\x20(max-aspect-ratio:\x203/4)\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-flex\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-direction:\x20column;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20gap:\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x206px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-left\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex:\x20none;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20width:\x20100%;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20max-width:\x20100vw;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20order:\x201;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-right\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20order:\x202;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20width:\x20100%;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-support\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin:\x200\x200\x2010px\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x2014px\x204px\x2010px\x204px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2016px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-qr-img\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20width:\x2090px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20height:\x20110px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x208px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-info\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x2010px\x204px\x2010px\x204px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-title\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201.1em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-mycinema-btns\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-direction:\x20column;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20gap:\x206px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20</style>\x0a\x20\x20\x20\x20\x20\x20\x20\x20';$('head')[_0x3aa69d(0xf8)](_0x4cb01c);var _0x2dc8a0='\x0a\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-root\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-flex\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-left\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-support\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-support-title\x22>Поддержка\x20разработчика</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-support-phone\x22>+7\x20953\x20235\x2000\x2002</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-support-bank\x22>OZON\x20Банк</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-support-author\x22>Иван\x20Лазарев\x20(ByWolf)</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-qr\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<img\x20class=\x22about-mycinema-qr-img\x22\x20src=\x22https://bywolf88.github.io/lampa-plugins/qr_code.png\x22\x20alt=\x22Telegram\x20QR\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-qr-label\x22>Telegram\x20ByWolf</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-right\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-info\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-title\x22>Онлайн\x20кинотеатры</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-version\x22>Версия\x202.1.1</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-mycinema-desc\x22>Плагин\x20для\x20быстрого\x20доступа\x20к\x20онлайн-кинотеатрам\x20прямо\x20из\x20меню\x20приложения\x20Lampa.</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<ul\x20class=\x22about-mycinema-list\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<li>✦\x20Быстрый\x20доступ\x20к\x20популярным\x20сервисам</li>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<li>✦\x20Гибкие\x20настройки\x20отображения</li>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<li>✦\x20Логотипы\x20и\x20фильтрация\x20по\x20сервисам</li>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<li>✦\x20Поддержка\x20Android\x20и\x20ТВ</li>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</ul>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20</div>',_0x48b14f=$(_0x3aa69d(0x104))['html'](_0x2dc8a0);Lampa[_0x3aa69d(0xf2)][_0x3aa69d(0xef)]({'title':'','html':_0x48b14f,'onBack':function(){var _0x72f087=_0x3aa69d;$(_0x72f087(0x106))[_0x72f087(0xf6)](),Lampa[_0x72f087(0xf2)][_0x72f087(0xf3)](),Lampa[_0x72f087(0xed)][_0x72f087(0xfe)]('settings');},'size':_0x3aa69d(0xfd)});}
+function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169idLYCo','2366790UCBGEJ','full','toggle','settings','89417tddgPH','log','1623420HGDdFA','stringify','<div></div>','setItem','#about-cinemabywolf-styles','13728KFddOk','Controller','cinemabywolf:\x20сохраняем\x20настройки','open','48tOHNYc','cinemabywolf_settings','Modal','close','11677484ETbNKk','32gHrbpd','remove','debug'];_0x40ef=function(){return _0x1384d8;};return _0x40ef();}(function(_0x391304,_0x31d71d){var _0x318808=_0x4691,_0x25fbff=_0x391304();while(!![]){try{var _0xfe0ce4=-parseInt(_0x318808(0x100))/0x1*(parseInt(_0x318808(0xf5))/0x2)+parseInt(_0x318808(0x102))/0x3+-parseInt(_0x318808(0xec))/0x4*(-parseInt(_0x318808(0xfa))/0x5)+parseInt(_0x318808(0xfc))/0x6+-parseInt(_0x318808(0xf4))/0x7+parseInt(_0x318808(0xf0))/0x8*(-parseInt(_0x318808(0xfb))/0x9)+parseInt(_0x318808(0xf9))/0xa;if(_0xfe0ce4===_0x31d71d)break;else _0x25fbff['push'](_0x25fbff['shift']());}catch(_0x4044a5){_0x25fbff['push'](_0x25fbff['shift']());}}}(_0x40ef,0xdaf51));function saveSettings(){var _0x2327bd=_0x4691;CinemaByWolf[_0x2327bd(0xf7)]&&console[_0x2327bd(0x101)](_0x2327bd(0xee),CinemaByWolf['settings']),localStorage[_0x2327bd(0x105)](_0x2327bd(0xf1),JSON[_0x2327bd(0x103)](CinemaByWolf[_0x2327bd(0xff)]));}function _0x4691(_0xaff691,_0x122251){var _0x40efb8=_0x40ef();return _0x4691=function(_0x46918a,_0x7c5945){_0x46918a=_0x46918a-0xec;var _0xf0b505=_0x40efb8[_0x46918a];return _0xf0b505;},_0x4691(_0xaff691,_0x122251);}function showAbout(){var _0x3aa69d=_0x4691;$('#about-cinemabywolf-styles')['remove']();var _0x4cb01c='\x0a\x20\x20\x20\x20\x20\x20\x20\x20<style\x20id=\x22about-cinemabywolf-styles\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-root\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin:\x200\x20auto;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-family:\x20\x27Arial\x27,sans-serif;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20position:\x20relative;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20max-width:\x201100px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-flex\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-direction:\x20row;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20gap:\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20justify-content:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20align-items:\x20stretch;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-left\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex:\x200\x200\x20320px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-direction:\x20column;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20align-items:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20justify-content:\x20flex-start;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-support\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20linear-gradient(90deg,\x20#fc00ff\x200%,\x20#00dbde\x20100%);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2024px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x2024px\x2010px\x2016px\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20text-align:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20box-shadow:\x200\x202px\x2016px\x200\x20rgba(0,219,222,0.08);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20width:\x20100%;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin:\x200px\x200\x2018px\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-support-title\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201.2em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20bold;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x208px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20letter-spacing:\x200.5px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-support-phone\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201.5em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20bold;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x206px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20text-shadow:\x200\x202px\x208px\x20#e94057;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-support-bank\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x204px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-support-author\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#e0e0e0;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-qr\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-direction:\x20column;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20align-items:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin:\x200\x200\x200\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-qr-img\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20width:\x20120px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20height:\x20160px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20box-shadow:\x200\x202px\x2016px\x200\x20rgba(0,219,222,0.12);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x208px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-qr-label\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#00dbde;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20bold;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-right\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex:\x201\x201\x200%;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20min-width:\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-info\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20rgba(24,24,40,0.95);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2016px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin:\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x2018px\x2012px\x2018px\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20box-shadow:\x200\x202px\x2012px\x20rgba(233,64,87,0.08);\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-title\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201.3em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20bold;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20linear-gradient(90deg,\x20#8a2387,\x20#e94057,\x20#f27121);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20-webkit-background-clip:\x20text;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20-webkit-text-fill-color:\x20transparent;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20text-shadow:\x200\x202px\x208px\x20rgba(233,64,87,0.15);\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-version\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#00dbde;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-desc\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x2012px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-list\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin:\x200\x200\x200\x2018px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x200.98em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-list\x20li\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x207px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-btns\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-direction:\x20row;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20gap:\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin:\x2018px\x200\x200\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-wrap:\x20wrap;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-btn\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20display:\x20flex;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20align-items:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20justify-content:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20min-width:\x20120px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x2010px\x2016px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-weight:\x20bold;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#fff;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20background:\x20linear-gradient(90deg,\x20#fc00ff\x200%,\x20#00dbde\x20100%);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border:\x20none;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20box-shadow:\x200\x202px\x2016px\x200\x20rgba(0,219,222,0.08);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20text-decoration:\x20none;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20transition:\x20transform\x200.2s,\x20box-shadow\x200.2s;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x208px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-btn:hover\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20transform:\x20scale(1.04);\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20box-shadow:\x200\x204px\x2024px\x200\x20rgba(0,219,222,0.18);\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-footer\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20text-align:\x20center;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-top:\x2024px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20color:\x20#aaa;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x200.95em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20@media\x20(max-width:\x20700px),\x20(max-aspect-ratio:\x203/4)\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-flex\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-direction:\x20column;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20gap:\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x206px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-left\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex:\x20none;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20width:\x20100%;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20max-width:\x20100vw;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin-bottom:\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20order:\x201;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-right\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20order:\x202;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20width:\x20100%;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-support\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20margin:\x200\x200\x2010px\x200;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x2014px\x204px\x2010px\x204px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2016px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-qr-img\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20width:\x2090px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20height:\x20110px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x208px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-info\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20padding:\x2010px\x204px\x2010px\x204px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20border-radius:\x2010px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-title\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20font-size:\x201.1em;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20.about-cinemabywolf-btns\x20{\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20flex-direction:\x20column;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20gap:\x206px;\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20}\x0a\x20\x20\x20\x20\x20\x20\x20\x20</style>\x0a\x20\x20\x20\x20\x20\x20\x20\x20';$('head')[_0x3aa69d(0xf8)](_0x4cb01c);var _0x2dc8a0='\x0a\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-root\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-flex\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-left\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-support\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-support-title\x22>Поддержка\x20разработчика</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-support-phone\x22>+7\x20953\x20235\x2000\x2002</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-support-bank\x22>OZON\x20Банк</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-support-author\x22>Иван\x20Лазарев\x20(ByWolf)</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-qr\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<img\x20class=\x22about-cinemabywolf-qr-img\x22\x20src=\x22https://bywolf88.github.io/lampa-plugins/qr_code.png\x22\x20alt=\x22Telegram\x20QR\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-qr-label\x22>Telegram\x20ByWolf</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-right\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-info\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-title\x22>Онлайн\x20кинотеатры</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-version\x22>Версия\x202.1.1</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<div\x20class=\x22about-cinemabywolf-desc\x22>Плагин\x20для\x20быстрого\x20доступа\x20к\x20онлайн-кинотеатрам\x20прямо\x20из\x20меню\x20приложения\x20Lampa.</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<ul\x20class=\x22about-cinemabywolf-list\x22>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<li>✦\x20Быстрый\x20доступ\x20к\x20популярным\x20сервисам</li>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<li>✦\x20Гибкие\x20настройки\x20отображения</li>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<li>✦\x20Логотипы\x20и\x20фильтрация\x20по\x20сервисам</li>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20<li>✦\x20Поддержка\x20Android\x20и\x20ТВ</li>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</ul>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20\x20</div>\x0a\x20\x20\x20\x20\x20\x20\x20\x20</div>',_0x48b14f=$(_0x3aa69d(0x104))['html'](_0x2dc8a0);Lampa[_0x3aa69d(0xf2)][_0x3aa69d(0xef)]({'title':'','html':_0x48b14f,'onBack':function(){var _0x72f087=_0x3aa69d;$(_0x72f087(0x106))[_0x72f087(0xf6)](),Lampa[_0x72f087(0xf2)][_0x72f087(0xf3)](),Lampa[_0x72f087(0xed)][_0x72f087(0xfe)]('settings');},'size':_0x3aa69d(0xfd)});}
 
     // Модальное окно для включения/отключения RU кинотеатров
     function showRuCinemasSettings() {
-        var $container = $('<div class="mycinema-cinema-btns" style="display:flex;flex-direction:column;align-items:center;padding:20px;"></div>');
+        var $container = $('<div class="cinemabywolf-cinema-btns" style="display:flex;flex-direction:column;align-items:center;padding:20px;"></div>');
         for (var i = 0; i < RU_CINEMAS.length; i++) {
             (function(c, idx) {
-                var enabled = mycinema.settings.ru_cinemas[c.networkId];
-                var $btn = $('<div class="mycinema-cinema-btn selector" tabindex="' + (idx === 0 ? '0' : '-1') + '"></div>');
-                var icon = enabled ? '<span class="mycinema-cinema-btn__icon">✔</span>' : '<span class="mycinema-cinema-btn__icon">✖</span>';
-                var nameHtml = '<span class="mycinema-cinema-btn__name">' + c.name + '</span>';
+                var enabled = CinemaByWolf.settings.ru_cinemas[c.networkId];
+                var $btn = $('<div class="cinemabywolf-cinema-btn selector" tabindex="' + (idx === 0 ? '0' : '-1') + '"></div>');
+                var icon = enabled ? '<span class="cinemabywolf-cinema-btn__icon">✔</span>' : '<span class="cinemabywolf-cinema-btn__icon">✖</span>';
+                var nameHtml = '<span class="cinemabywolf-cinema-btn__name">' + c.name + '</span>';
                 $btn.toggleClass('enabled', enabled);
                 $btn.html(icon + nameHtml);
                 $btn.on('hover:enter', function() {
-                    var now = !mycinema.settings.ru_cinemas[c.networkId];
-                    mycinema.settings.ru_cinemas[c.networkId] = now;
+                    var now = !CinemaByWolf.settings.ru_cinemas[c.networkId];
+                    CinemaByWolf.settings.ru_cinemas[c.networkId] = now;
                     saveSettings();
                     $btn.toggleClass('enabled', now);
-                    var icon = now ? '<span class="mycinema-cinema-btn__icon">✔</span>' : '<span class="mycinema-cinema-btn__icon">✖</span>';
+                    var icon = now ? '<span class="cinemabywolf-cinema-btn__icon">✔</span>' : '<span class="cinemabywolf-cinema-btn__icon">✖</span>';
                     $btn.html(icon + nameHtml);
                 });
                 $container.append($btn);
@@ -507,8 +507,8 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
             }
         });
         setTimeout(function() {
-            var $btns = $container.find('.mycinema-cinema-btn');
-            var name = 'mycinema-ru-btns';
+            var $btns = $container.find('.cinemabywolf-cinema-btn');
+            var name = 'cinemabywolf-ru-btns';
             var lastFocus = 0;
             function updateFocus(index) {
                 $btns.removeClass('focus').attr('tabindex', '-1');
@@ -547,21 +547,21 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
     }
     // Модальное окно для включения/отключения EN кинотеатров
     function showEnCinemasSettings() {
-        var $container = $('<div class="mycinema-cinema-btns" style="display:flex;flex-direction:column;align-items:center;padding:20px;"></div>');
+        var $container = $('<div class="cinemabywolf-cinema-btns" style="display:flex;flex-direction:column;align-items:center;padding:20px;"></div>');
         for (var i = 0; i < EN_CINEMAS.length; i++) {
             (function(c, idx) {
-                var enabled = mycinema.settings.en_cinemas[c.networkId];
-                var $btn = $('<div class="mycinema-cinema-btn selector" tabindex="' + (idx === 0 ? '0' : '-1') + '"></div>');
-                var icon = enabled ? '<span class="mycinema-cinema-btn__icon">✔</span>' : '<span class="mycinema-cinema-btn__icon">✖</span>';
-                var nameHtml = '<span class="mycinema-cinema-btn__name">' + c.name + '</span>';
+                var enabled = CinemaByWolf.settings.en_cinemas[c.networkId];
+                var $btn = $('<div class="cinemabywolf-cinema-btn selector" tabindex="' + (idx === 0 ? '0' : '-1') + '"></div>');
+                var icon = enabled ? '<span class="cinemabywolf-cinema-btn__icon">✔</span>' : '<span class="cinemabywolf-cinema-btn__icon">✖</span>';
+                var nameHtml = '<span class="cinemabywolf-cinema-btn__name">' + c.name + '</span>';
                 $btn.toggleClass('enabled', enabled);
                 $btn.html(icon + nameHtml);
                 $btn.on('hover:enter', function() {
-                    var now = !mycinema.settings.en_cinemas[c.networkId];
-                    mycinema.settings.en_cinemas[c.networkId] = now;
+                    var now = !CinemaByWolf.settings.en_cinemas[c.networkId];
+                    CinemaByWolf.settings.en_cinemas[c.networkId] = now;
                     saveSettings();
                     $btn.toggleClass('enabled', now);
-                    var icon = now ? '<span class="mycinema-cinema-btn__icon">✔</span>' : '<span class="mycinema-cinema-btn__icon">✖</span>';
+                    var icon = now ? '<span class="cinemabywolf-cinema-btn__icon">✔</span>' : '<span class="cinemabywolf-cinema-btn__icon">✖</span>';
                     $btn.html(icon + nameHtml);
                 });
                 $container.append($btn);
@@ -577,8 +577,8 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
             }
         });
         setTimeout(function() {
-            var $btns = $container.find('.mycinema-cinema-btn');
-            var name = 'mycinema-en-btns';
+            var $btns = $container.find('.cinemabywolf-cinema-btn');
+            var name = 'cinemabywolf-en-btns';
             var lastFocus = 0;
             function updateFocus(index) {
                 $btns.removeClass('focus').attr('tabindex', '-1');
@@ -617,21 +617,21 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
     }
     // Модальное окно для включения/отключения UA кинотеатров
     function showUaCinemasSettings() {
-        var $container = $('<div class="mycinema-cinema-btns" style="display:flex;flex-direction:column;align-items:center;padding:20px;"></div>');
+        var $container = $('<div class="cinemabywolf-cinema-btns" style="display:flex;flex-direction:column;align-items:center;padding:20px;"></div>');
         for (var i = 0; i < UA_CINEMAS.length; i++) {
             (function(c, idx) {
-                var enabled = mycinema.settings.ua_cinemas[c.networkId];
-                var $btn = $('<div class="mycinema-cinema-btn selector" tabindex="' + (idx === 0 ? '0' : '-1') + '"></div>');
-                var icon = enabled ? '<span class="mycinema-cinema-btn__icon">✔</span>' : '<span class="mycinema-cinema-btn__icon">✖</span>';
-                var nameHtml = '<span class="mycinema-cinema-btn__name">' + c.name + '</span>';
+                var enabled = CinemaByWolf.settings.ua_cinemas[c.networkId];
+                var $btn = $('<div class="cinemabywolf-cinema-btn selector" tabindex="' + (idx === 0 ? '0' : '-1') + '"></div>');
+                var icon = enabled ? '<span class="cinemabywolf-cinema-btn__icon">✔</span>' : '<span class="cinemabywolf-cinema-btn__icon">✖</span>';
+                var nameHtml = '<span class="cinemabywolf-cinema-btn__name">' + c.name + '</span>';
                 $btn.toggleClass('enabled', enabled);
                 $btn.html(icon + nameHtml);
                 $btn.on('hover:enter', function() {
-                    var now = !mycinema.settings.ua_cinemas[c.networkId];
-                    mycinema.settings.ua_cinemas[c.networkId] = now;
+                    var now = !CinemaByWolf.settings.ua_cinemas[c.networkId];
+                    CinemaByWolf.settings.ua_cinemas[c.networkId] = now;
                     saveSettings();
                     $btn.toggleClass('enabled', now);
-                    var icon = now ? '<span class="mycinema-cinema-btn__icon">✔</span>' : '<span class="mycinema-cinema-btn__icon">✖</span>';
+                    var icon = now ? '<span class="cinemabywolf-cinema-btn__icon">✔</span>' : '<span class="cinemabywolf-cinema-btn__icon">✖</span>';
                     $btn.html(icon + nameHtml);
                 });
                 $container.append($btn);
@@ -647,8 +647,8 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
             }
         });
         setTimeout(function() {
-            var $btns = $container.find('.mycinema-cinema-btn');
-            var name = 'mycinema-ua-btns';
+            var $btns = $container.find('.cinemabywolf-cinema-btn');
+            var name = 'cinemabywolf-ua-btns';
             var lastFocus = 0;
             function updateFocus(index) {
                 $btns.removeClass('focus').attr('tabindex', '-1');
@@ -688,86 +688,86 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
     // Основной компонент настроек
     function addSettingsComponent() {
         Lampa.SettingsApi.addComponent({
-            component: 'mycinema',
+            component: 'cinemabywolf',
             name: 'Онлайн кінотеатри',
             icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="currentColor"/></svg>'
         });
 
         // Показывать RU Кинотеатры на главной
         Lampa.SettingsApi.addParam({
-            component: 'mycinema',
-            param: { name: 'show_ru', type: 'trigger', default: mycinema.settings.show_ru },
+            component: 'cinemabywolf',
+            param: { name: 'show_ru', type: 'trigger', default: CinemaByWolf.settings.show_ru },
             field: { name: 'Показувати RU на головній' },
             onChange: function(val) {
-                if (mycinema.debug) {
-                    console.log('mycinema: show_ru змінено на', val);
+                if (CinemaByWolf.debug) {
+                    console.log('cinemabywolf: show_ru змінено на', val);
                 }
-                mycinema.settings.show_ru = val;
+                CinemaByWolf.settings.show_ru = val;
                 saveSettings();
                 refreshMenuButtons();
             }
         });
         // Показывать EN Кинотеатры на главной
         Lampa.SettingsApi.addParam({
-            component: 'mycinema',
-            param: { name: 'show_en', type: 'trigger', default: mycinema.settings.show_en },
+            component: 'cinemabywolf',
+            param: { name: 'show_en', type: 'trigger', default: CinemaByWolf.settings.show_en },
             field: { name: 'Показувати EN на головній' },
             onChange: function(val) {
-                if (mycinema.debug) {
-                    console.log('mycinema: show_en змінено на', val);
+                if (CinemaByWolf.debug) {
+                    console.log('cinemabywolf: show_en змінено на', val);
                 }
-                mycinema.settings.show_en = val;
+                CinemaByWolf.settings.show_en = val;
                 saveSettings();
                 refreshMenuButtons();
             }
         });
         // Показывать UA Кинотеатры на главной
         Lampa.SettingsApi.addParam({
-            component: 'mycinema',
-            param: { name: 'show_ua', type: 'trigger', default: mycinema.settings.show_ua },
+            component: 'cinemabywolf',
+            param: { name: 'show_ua', type: 'trigger', default: CinemaByWolf.settings.show_ua },
             field: { name: 'Показувати UA на головній' },
             onChange: function(val) {
-                if (mycinema.debug) {
-                    console.log('mycinema: show_ua змінено на', val);
+                if (CinemaByWolf.debug) {
+                    console.log('cinemabywolf: show_ua змінено на', val);
                 }
-                mycinema.settings.show_ua = val;
+                CinemaByWolf.settings.show_ua = val;
                 saveSettings();
                 refreshMenuButtons();
             }
         });
         // Кнопка для отдельного меню RU
         Lampa.SettingsApi.addParam({
-            component: 'mycinema',
+            component: 'cinemabywolf',
             param: { type: 'button', component: 'ru_cinemas_list' },
             field: { name: 'Включення RU Кінотеатрів', description: 'Вибрати які RU сервіси показувати' },
             onChange: showRuCinemasSettings
         });
         // Кнопка для отдельного меню EN
         Lampa.SettingsApi.addParam({
-            component: 'mycinema',
+            component: 'cinemabywolf',
             param: { type: 'button', component: 'en_cinemas_list' },
             field: { name: 'Включення EN Кінотеатрів', description: 'Вибрати які EN сервіси показувати' },
             onChange: showEnCinemasSettings
         });
         // Кнопка для отдельного меню UA
         Lampa.SettingsApi.addParam({
-            component: 'mycinema',
+            component: 'cinemabywolf',
             param: { type: 'button', component: 'ua_cinemas_list' },
             field: { name: 'Включення UA Кінотеатрів', description: 'Вибрати які UA сервіси показувати' },
             onChange: showUaCinemasSettings
         });
         // Режим сортировки
         Lampa.SettingsApi.addParam({
-            component: 'mycinema',
+            component: 'cinemabywolf',
             param: {
                 name: 'sort_mode',
                 type: 'select',
                 values: SORT_MODES,
-                default: mycinema.settings.sort_mode
+                default: CinemaByWolf.settings.sort_mode
             },
             field: { name: 'Режим сортування' },
             onChange: function(val) {
-                mycinema.settings.sort_mode = val;
+                CinemaByWolf.settings.sort_mode = val;
                 saveSettings();
             }
         });
@@ -775,7 +775,7 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
 
     // Функция для полного обновления кнопок меню
     function refreshMenuButtons() {
-        $('.menu__item.mycinema-btn-ru, .menu__item.mycinema-btn-en, .menu__item.mycinema-btn-ua').remove();
+        $('.menu__item.cinemabywolf-btn-ru, .menu__item.cinemabywolf-btn-en, .menu__item.cinemabywolf-btn-ua').remove();
         addMenuButtons();
     }
 
@@ -785,8 +785,8 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
         addLocalization();
         addStyles();
         addSettingsComponent();
-        if (mycinema.debug) {
-            console.log('mycinema: налаштування завантажені', mycinema.settings);
+        if (CinemaByWolf.debug) {
+            console.log('cinemabywolf: налаштування завантажені', CinemaByWolf.settings);
         }
         Lampa.Listener.follow('app', function (e) {
             if (e.type === 'ready') {
@@ -804,14 +804,14 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
                 refreshMenuButtons();
             }
         });
-        if (mycinema.debug) {
-            console.log('mycinema: плагін ініціалізований');
+        if (CinemaByWolf.debug) {
+            console.log('cinemabywolf: плагін ініціалізований');
         }
     }
 
     startPlugin();
 
     // Экспорт
-    window.mycinema = mycinema;
+    window.cinemabywolf = CinemaByWolf;
 
 })();
