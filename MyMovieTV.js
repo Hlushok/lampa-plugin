@@ -3,72 +3,81 @@
 
     var PLUGIN_NAME = 'movieTV_ua';
     var PLUGIN_TITLE = 'UA Новинки';
-    // Посилання на ваш JSON
-    var JSON_URL = 'https://raw.githubusercontent.com/Hlushok/lampa-plugin/main/base.json';
 
+    // ВСІ ВАШІ ДАНІ ТУТ
+    var data_content = [
+        {
+            title: "Українські Новинки",
+            items: [
+                { n: "Конотопська відьма", ti: "Konotopska Vidma", k: "7.5", q: "4K", s: "FILM.UA" },
+                { n: "Довбуш", ti: "Dovbush", k: "8.1", q: "FHD", s: "Pronto Film" },
+                { n: "Я, «Побєда» і Берлін", ti: "Ya, Pobeda i Berlin", k: "7.8", q: "FHD", s: "" }
+            ]
+        },
+        {
+            title: "Українські Серіали",
+            items: [
+                { n: "Спіймати Кайдаша", k: "9.1", q: "HD", s: "12 серій" },
+                { n: "Перші дні", k: "8.5", q: "FHD", s: "1 сезон" }
+            ]
+        }
+    ];
+
+    // Функція мапінгу даних у формат Lampa
     var Api = {
-        load: function (oncomplete, onerror) {
-            Lampa.Network.silent(JSON_URL + '?v=' + Math.random(), function (json) {
-                if (json && json.categories) {
-                    var lines = json.categories.map(function (cat) {
+        getLines: function () {
+            return data_content.map(function (cat) {
+                return {
+                    title: cat.title,
+                    results: cat.items.map(function (item) {
+                        var is_tv = cat.title.toLowerCase().includes('серіал') || !!item.s.includes('серій');
                         return {
-                            title: cat.title,
-                            results: cat.items.map(function (item) {
-                                return {
-                                    title: item.n,
-                                    original_title: item.ti || item.n,
-                                    // Визначаємо тип для Lampa
-                                    type: (cat.id.includes('series') || item.series) ? 'tv' : 'movie',
-                                    img: item.img || '',
-                                    vote_average: parseFloat(item.k || 0),
-                                    release_quality: item.release_quality,
-                                    category_id: cat.id,
-                                    // Дані для відображення в картці
-                                    salo_description: item.studio || (item.series ? 'Серіал' : 'Фільм'),
-                                    salo_release_date: item.country || 'UA'
-                                };
-                            }),
-                            // Параметри для Maker
-                            params: {
-                                source: PLUGIN_NAME
-                            }
+                            title: item.n,
+                            original_title: item.ti || item.n,
+                            type: is_tv ? 'tv' : 'movie',
+                            img: '', // Можна додати посилання на фото пізніше
+                            vote_average: parseFloat(item.k || 0),
+                            release_quality: item.q,
+                            // Додаткові дані для картки
+                            salo_description: item.s || (is_tv ? 'UA Серіал' : 'UA Фільм'),
+                            salo_release_date: 'UA'
                         };
-                    });
-                    oncomplete(lines);
-                } else {
-                    onerror();
-                }
-            }, onerror);
+                    }),
+                    params: { source: PLUGIN_NAME }
+                };
+            });
         }
     };
 
-    // Створюємо компонент на основі Maker (як у SaloPower)
+    // Компонент інтерфейсу (аналог SaloPower)
     function component(object) {
         var comp = Lampa.Maker.make('Main', object);
         comp.use({
             onCreate: function onCreate() {
                 var _this = this;
                 this.activity.loader(true);
-
-                Api.load(function (lines) {
+                
+                // Оскільки дані в коді, завантаження миттєве
+                try {
+                    var lines = Api.getLines();
                     _this.build(lines);
-                    _this.activity.loader(false);
-                }, function () {
+                } catch (e) {
                     _this.empty();
-                    _this.activity.loader(false);
-                });
+                }
+                
+                this.activity.loader(false);
             },
             onInstance: function onInstance(line_item, line_data) {
                 line_item.use({
                     onInstance: function onInstance(card_item, card_data) {
                         card_item.use({
                             onEnter: function onEnter() {
-                                // При натисканні відкриваємо стандартну картку TMDB
+                                // Пошук контенту в Lampa через стандартну картку
                                 Lampa.Activity.push({
                                     url: '',
                                     title: card_data.title,
                                     component: 'full',
-                                    id: card_data.id, // Якщо в JSON буде tmdb_id
+                                    id: 0,
                                     method: card_data.type,
                                     card: card_data,
                                     source: 'tmdb'
@@ -83,11 +92,11 @@
     }
 
     function startPlugin() {
-        // Реєструємо компонент у системі Lampa
+        // Реєстрація компонента
         Lampa.Component.add(PLUGIN_NAME, component);
 
         function addMenu() {
-            var icon = '<svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="19" cy="19" r="17" stroke="currentColor" stroke-width="3"/><path d="M19 10V28M10 19H28" stroke="currentColor" stroke-width="3"/></svg>';
+            var icon = '<svg width="38" height="38" viewBox="0 0 38 38" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="19" cy="19" r="17" stroke="currentColor" stroke-width="3"/><path d="M15 12L25 19L15 26V12Z" fill="currentColor"/></svg>';
             var button = $(`
                 <li class="menu__item selector">
                     <div class="menu__ico">${icon}</div>
@@ -111,6 +120,5 @@
         else Lampa.Listener.follow('app', function (e) { if (e.type == 'ready') addMenu(); });
     }
 
-    // Запуск
     startPlugin();
 })();
