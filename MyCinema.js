@@ -692,13 +692,7 @@ function _0x40ef(){var _0x1384d8=['append','17349020MqvRPx','2230zxznvK','308169
             name: 'Онлайн кінотеатри',
             icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="2" y="5" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/><polygon points="10,9 16,12 10,15" fill="currentColor"/></svg>'
         });
-        // О плагине
-        Lampa.SettingsApi.addParam({
-            component: 'cinemabywolf',
-            param: { type: 'button', component: 'about' },
-            field: { name: 'О плагине', description: 'Інформація і підтримка' },
-            onChange: showAbout
-        });
+
         // Показывать RU Кинотеатры на главной
         Lampa.SettingsApi.addParam({
             component: 'cinemabywolf',
