@@ -9,8 +9,8 @@
         settings: {
             enabled: true,
             show_ru: false,
-            show_en: true,
-            show_ua: true
+            show_en: false,
+            show_ua: false
         }
     };
 
