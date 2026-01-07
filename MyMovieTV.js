@@ -1,26 +1,29 @@
 !function() { 
     "use strict"; 
     var PLUGIN_NAME = "movieTV"; 
+    // Пряме посилання на ваш JSON
     var JSON_URL = "https://raw.githubusercontent.com/Hlushok/lampa-plugin/main/base.json"; 
     
     function CategorizedService() {
         var self = this;
         var network = new Lampa.Reguest();
 
-        // Ця функція виправляє помилку на вашому скріншоті
+        // ЦЕЙ БЛОК ВИПРАВЛЯЄ ПОМИЛКУ З ВАШИХ СКРІНШОТІВ
         self.category = function(params, onSuccess, onError) {
             network.silent(JSON_URL, function(json) {
                 var items = [];
-                json.categories.forEach(function(cat) {
-                    items.push({
-                        title: cat.title,
-                        items: cat.items.map(function(item) {
-                            item.type = item.ti ? 'movie' : 'tv';
-                            item.title = item.ti || item.n;
-                            return item;
-                        })
+                if (json && json.categories) {
+                    json.categories.forEach(function(cat) {
+                        items.push({
+                            title: cat.title,
+                            items: cat.items.map(function(item) {
+                                item.type = item.ti ? 'movie' : 'tv';
+                                item.title = item.ti || item.n;
+                                return item;
+                            })
+                        });
                     });
-                });
+                }
                 onSuccess(items);
             }, onError);
         };
