@@ -1,0 +1,58 @@
+{
+  "categories": [
+    {
+      "id": "ua_movies",
+      "title": "Українські Новинки",
+      "items": [
+        {
+          "n": "Конотопська відьма",
+          "ti": "Konotopska Vidma",
+          "k": "7.5",
+          "i": "7.2",
+          "country": "UA",
+          "release_quality": "4K",
+          "studio": "FILM.UA"
+        },
+        {
+          "n": "Довбуш",
+          "ti": "Dovbush",
+          "k": "8.1",
+          "i": "7.9",
+          "country": "UA",
+          "release_quality": "FHD",
+          "studio": "Pronto Film"
+        },
+        {
+          "n": "Я, «Побєда» і Берлін",
+          "ti": "Ya, Pobeda i Berlin",
+          "k": "7.8",
+          "i": "7.5",
+          "country": "UA",
+          "release_quality": "FHD"
+        }
+      ]
+    },
+    {
+      "id": "ua_series",
+      "title": "Українські Серіали",
+      "items": [
+        {
+          "n": "Спіймати Кайдаша",
+          "k": "9.1",
+          "i": "8.9",
+          "country": "UA",
+          "release_quality": "HD",
+          "series": "12 серій"
+        },
+        {
+          "n": "Перші дні",
+          "k": "8.5",
+          "i": "8.2",
+          "country": "UA",
+          "release_quality": "FHD",
+          "series": "1 сезон"
+        }
+      ]
+    }
+  ]
+}
