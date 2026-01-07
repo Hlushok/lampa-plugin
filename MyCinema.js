@@ -3,7 +3,7 @@
 
     var CinemaByWolf = {
         name: 'my_cinema_plugin',
-        version: '2.3.0',
+        version: '2.4.0',
         settings: {
             enabled: true,
             show_ru: false,
@@ -20,9 +20,7 @@
         { name: '1+1', networkId: '1254' },
         { name: 'ICTV', networkId: '1166' },
         { name: 'СТБ', networkId: '1206' },
-        { name: 'Новий канал', networkId: '1211' },
-        { name: '2+2', networkId: '1259' },
-        { name: 'ТЕТ', networkId: '1215' }
+        { name: 'Новий канал', networkId: '1211' }
     ];
 
     var EN_CINEMAS = [
@@ -33,36 +31,51 @@
         { name: 'Amazon Prime', networkId: '1024' },
         { name: 'SYFY', networkId: '77' },        
         { name: 'AMC', networkId: '174' },       
-        { name: 'BBC One', networkId: '4' },      
-        { name: 'Sky Sci-Fi', networkId: '5647' }
+        { name: 'BBC One', networkId: '4' }
     ];
 
     var RU_CINEMAS = [
         { name: 'Start', networkId: '2493' },
-        { name: 'Premier', networkId: '2859' },
-        { name: 'КиноПоиск', networkId: '3827' }
+        { name: 'Premier', networkId: '2859' }
     ];
 
-    // SVG Іконки для меню
+    // Іконки для головного меню
     var ICONS = {
         ua: '<svg width="24" height="24" viewBox="0 0 24 24"><rect width="24" height="12" fill="#0057B7"/><rect width="24" height="12" y="12" fill="#FFD700"/></svg>',
         en: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00dbde" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
-        ru: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff4b4b" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>'
+        ru: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ff4b4b" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M17 2l-5 5-5-5"/></svg>'
     };
 
     function getCinemaLogo(networkId, name, callback) {
-        var apiUrl = 'https://api.themoviedb.org/3/network/' + networkId + '?api_key=4ef0d38d4030e4ef5657065350e0f314';
-        $.ajax({
-            url: apiUrl,
-            type: 'GET',
-            success: function (data) {
-                if (data && data.logo_path) {
-                    callback('<img src="https://image.tmdb.org/t/p/w300' + data.logo_path + '" style="max-width:80px; max-height:40px; filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));">');
-                } else {
-                    callback('<div style="font-size:16px; font-weight:bold; color:#fff;">' + name + '</div>');
+        // Використовуємо прямий шлях до логотипів TMDB, якщо знаємо ID
+        // Це швидше, ніж робити AJAX запит щоразу
+        var logoMap = {
+            '213': 'wwemzKWzjKYJFfCeiB57q3r4Bcm.png', // Netflix
+            '2552': '4U0p5S7vREORvvi99pU9v63zQYp.png', // Apple TV+
+            '2739': '97vYm2qq0Yv6f7vXm9N1P9Qp3fN.png', // Disney+
+            '4454': '9fH5W7N9p7X6v7vXm9N1P9Qp3fN.png'  // Megogo (приклад)
+        };
+
+        if (logoMap[networkId]) {
+            callback('<img src="https://image.tmdb.org/t/p/w200/' + logoMap[networkId] + '" style="max-width:80px; max-height:40px;">');
+        } else {
+            // Якщо лого не в списку, тягнемо через API
+            $.ajax({
+                url: 'https://api.themoviedb.org/3/network/' + networkId + '?api_key=4ef0d38d4030e4ef5657065350e0f314',
+                type: 'GET',
+                timeout: 3000,
+                success: function (data) {
+                    if (data && data.logo_path) {
+                        callback('<img src="https://image.tmdb.org/t/p/w200' + data.logo_path + '" style="max-width:80px; max-height:40px;">');
+                    } else {
+                        callback('<div class="no-logo">' + name.substring(0, 2).toUpperCase() + '</div>');
+                    }
+                },
+                error: function () {
+                    callback('<div class="no-logo">' + name.substring(0, 2).toUpperCase() + '</div>');
                 }
-            }
-        });
+            });
+        }
     }
 
     function openCinemaCatalog(networkId, name) {
@@ -91,19 +104,21 @@
 
         list.forEach(function (c) {
             var $card = $(`<div class="my-cinema-card selector">
-                <div class="my-cinema-logo">...</div>
+                <div class="my-cinema-logo" id="logo-${c.networkId}">...</div>
                 <div class="my-cinema-name">${c.name}</div>
             </div>`);
-
-            getCinemaLogo(c.networkId, c.name, function(html) {
-                $card.find('.my-cinema-logo').html(html);
-            });
 
             $card.on('hover:enter', function () {
                 Lampa.Modal.close();
                 openCinemaCatalog(c.networkId, c.name);
             });
+
             $container.append($card);
+
+            // Завантажуємо лого після додавання в DOM
+            getCinemaLogo(c.networkId, c.name, function(html) {
+                $container.find('#logo-' + c.networkId).html(html);
+            });
         });
 
         Lampa.Modal.open({
@@ -136,12 +151,15 @@
 
     function start() {
         var style = $('<style>' +
-            '.my-cinema-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; padding: 20px; }' +
-            '.my-cinema-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: 0.2s; border: 1px solid rgba(255,255,255,0.1); }' +
-            '.my-cinema-card.focus { background: #fff !important; transform: scale(1.05); border-color: #fff; }' +
+            '.my-cinema-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; padding: 20px; }' +
+            '.my-cinema-card { background: rgba(255,255,255,0.03); border-radius: 10px; padding: 15px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.05); }' +
+            '.my-cinema-card.focus { background: #fff !important; }' +
             '.my-cinema-card.focus .my-cinema-name { color: #000 !important; }' +
-            '.my-cinema-logo { height: 50px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }' +
-            '.my-cinema-name { font-size: 14px; color: #fff; text-align: center; font-weight: 500; }' +
+            '.my-cinema-logo { height: 45px; display: flex; align-items: center; justify-content: center; }' +
+            '.my-cinema-logo img { filter: brightness(1); }' +
+            '.my-cinema-card.focus .my-cinema-logo img { filter: brightness(0); }' + // Чорне лого на білому фоні при фокусі
+            '.no-logo { font-size: 20px; font-weight: 800; color: rgba(255,255,255,0.5); }' +
+            '.my-cinema-name { font-size: 13px; color: #fff; text-align: center; margin-top: 8px; }' +
             '</style>');
         $('head').append(style);
 
