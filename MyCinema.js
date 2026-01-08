@@ -409,18 +409,18 @@
     var STORAGE_KEY = 'cinemabywolf_settings';
     // Список режимов сортировки TMDB
     var SORT_MODES = {
-        'popularity.desc': 'Популярные',
-        'release_date.desc': 'По дате (новые)',
-        'release_date.asc': 'По дате (старые)',
+        'popularity.desc': 'Популярны',
+        'release_date.desc': 'По даті (новіші)',
+        'release_date.asc': 'По даті (старіші)',
         'vote_average.desc': 'По рейтингу',
-        'vote_count.desc': 'По количеству голосов'
+        'vote_count.desc': 'По кількості голосів'
     };
 
     // Загрузка настроек из localStorage
     function loadSettings() {
         var saved = localStorage.getItem(STORAGE_KEY);
         if (CinemaByWolf.debug) {
-            console.log('cinemabywolf: загружаем настройки из localStorage', saved);
+            console.log('cinemabywolf: загружаєм настройки з localStorage', saved);
         }
         if (saved) {
             try {
