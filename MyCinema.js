@@ -3,7 +3,8 @@
 
     var CinemaByWolf = {
         name: 'cinemabywolf',
-        version: '2.5.0',
+        version: '2.6.0',
+        debug: false,
         settings: {
             enabled: true,
             show_ru: false,
@@ -13,7 +14,7 @@
         }
     };
 
-    // --- ПОВНИЙ СПИСОК ДЖЕРЕЛ З ВАШОГО КОДУ ---
+    // --- ПОВНІ СПИСКИ КІНОТЕАТРІВ ---
     var RU_CINEMAS = [
         { name: 'Start', networkId: '2493' }, { name: 'Premier', networkId: '2859' },
         { name: 'KION', networkId: '4085' }, { name: 'Okko', networkId: '3871' },
@@ -44,7 +45,7 @@
         { name: 'UA: Перший', networkId: '1264' }
     ];
 
-    // --- ЛОГІКА КАТАЛОГУ: ВИБІР ФІЛЬМИ / СЕРІАЛИ ---
+    // --- ФУНКЦІЯ ВІДКРИТТЯ КАТАЛОГУ (ФІЛЬМИ/СЕРІАЛИ) ---
     function openCinemaCatalog(networkId, name) {
         Lampa.Select.show({
             title: name,
@@ -53,17 +54,17 @@
                 { title: 'Серіали', type: 'tv' }
             ],
             onSelect: function (item) {
-                var sort = CinemaByWolf.settings.sort_mode;
-                if (item.type === 'tv' && sort.indexOf('release_date') !== -1) {
+                var sort = CinemaByWolf.settings.sort_mode || 'popularity.desc';
+                if (item.type === 'tv') {
                     sort = sort.replace('release_date', 'first_air_date');
                 }
 
                 Lampa.Activity.push({
                     url: 'discover/' + item.type,
-                    title: name + ' — ' + (item.type === 'tv' ? 'Серіали' : 'Фільми'),
+                    title: name + ' (' + (item.type === 'tv' ? 'Серіали' : 'Фільми') + ')',
                     component: 'category_full',
                     source: 'tmdb',
-                    // КЛЮЧОВЕ ВИПРАВЛЕННЯ: фільми через компанії, тб через мережі
+                    // Важливо: фільми через companies, серіали через networks
                     networks: item.type === 'tv' ? networkId : '',
                     with_companies: item.type === 'movie' ? networkId : '',
                     sort_by: sort,
@@ -74,85 +75,140 @@
         });
     }
 
-    // --- ВІЗУАЛ ТА ЛОГОТИПИ ---
+    // --- ВІЗУАЛЬНА ЧАСТИНА ТА ЛОГО ---
     function getCinemaLogo(networkId, name, callback) {
         var apiUrl = Lampa.TMDB.api('network/' + networkId + '?api_key=' + Lampa.TMDB.key());
         $.ajax({
-            url: apiUrl, type: 'GET',
+            url: apiUrl,
+            type: 'GET',
             success: function (data) {
                 if (data && data.logo_path) {
-                    callback('<img src="https://image.tmdb.org/t/p/w300' + data.logo_path + '" style="max-width:70px;max-height:40px;">');
-                } else callback('<div style="font-size:22px;color:#fff;font-weight:bold;">' + name.charAt(0) + '</div>');
+                    var imgUrl = 'https://image.tmdb.org/t/p/w300' + data.logo_path;
+                    callback('<img src="' + imgUrl + '" style="max-width:68px;max-height:68px;">');
+                } else {
+                    callback('<div style="font-size:22px;line-height:68px;color:#fff;font-weight:bold;">' + name.charAt(0) + '</div>');
+                }
             },
-            error: function () { callback('<div style="font-size:22px;color:#fff;font-weight:bold;">' + name.charAt(0) + '</div>'); }
-        });
-    }
-
-    function openCinemasModal(type) {
-        var list = type === 'ua' ? UA_CINEMAS : type === 'en' ? EN_CINEMAS : RU_CINEMAS;
-        var title = type === 'ua' ? 'UA Сервіси' : type === 'en' ? 'World Services' : 'RU Сервіси';
-        
-        var $container = $('<div class="wolf-grid"></div>');
-        list.forEach(function (c) {
-            var $card = $('<div class="wolf-card selector"><div class="wolf-logo">...</div><div class="wolf-name">' + c.name + '</div></div>');
-            getCinemaLogo(c.networkId, c.name, function(html) { $card.find('.wolf-logo').html(html); });
-            $card.on('hover:enter', function () { Lampa.Modal.close(); openCinemaCatalog(c.networkId, c.name); });
-            $container.append($card);
-        });
-
-        Lampa.Modal.open({ title: title, html: $container, size: 'full', onBack: function () { Lampa.Modal.close(); Lampa.Controller.toggle('menu'); } });
-    }
-
-    // --- МЕНЮ ТА НАЛАШТУВАННЯ ---
-    function addMenuButtons() {
-        $('.wolf-btn').remove();
-        var $menu = $('.menu .menu__list').eq(0);
-        var cats = [
-            { id: 'ua', title: 'UA Кіно', show: CinemaByWolf.settings.show_ua, color: '#FFD700' },
-            { id: 'en', title: 'World Cinema', show: CinemaByWolf.settings.show_en, color: '#00dbde' },
-            { id: 'ru', title: 'RU Кіно', show: CinemaByWolf.settings.show_ru, color: '#ff4b4b' }
-        ];
-        cats.forEach(function(cat) {
-            if (cat.show) {
-                var $btn = $(`<li class="menu__item selector wolf-btn"><div class="menu__ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="${cat.color}"><circle cx="12" cy="12" r="10"/></svg></div><div class="menu__text">${cat.title}</div></li>`);
-                $btn.on('hover:enter', function () { openCinemasModal(cat.id); });
-                $menu.append($btn);
+            error: function () {
+                callback('<div style="font-size:22px;line-height:68px;color:#fff;font-weight:bold;">' + name.charAt(0) + '</div>');
             }
         });
     }
 
-    function addSettings() {
-        Lampa.SettingsApi.addComponent({ component: 'wolf_cin', name: 'Онлайн Кінотеатри', icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>' });
-        Lampa.SettingsApi.addParam({ component: 'wolf_cin', name: 'show_ua', type: 'bool', default: true, name: 'Показувати UA' });
-        Lampa.SettingsApi.addParam({ component: 'wolf_cin', name: 'show_en', type: 'bool', default: true, name: 'Показувати EN' });
-        Lampa.SettingsApi.addParam({ component: 'wolf_cin', name: 'show_ru', type: 'bool', default: false, name: 'Показувати RU' });
+    function openCinemasModal(type) {
+        var cinemas = type === 'ru' ? RU_CINEMAS : type === 'en' ? EN_CINEMAS : UA_CINEMAS;
+        var titleText = type === 'ru' ? 'RU Кінотеатри' : type === 'en' ? 'EN Кінотеатри' : 'UA Кінотеатри';
+        
+        var $container = $('<div class="cinemabywolf-cards"></div>');
+
+        cinemas.forEach(function (c) {
+            var $card = $('<div class="cinemabywolf-card selector"><div class="cinemabywolf-card__logo">...</div><div class="cinemabywolf-card__name">' + c.name + '</div></div>');
+            
+            getCinemaLogo(c.networkId, c.name, function(logoHtml) {
+                $card.find('.cinemabywolf-card__logo').html(logoHtml);
+            });
+
+            $card.on('hover:enter', function () {
+                Lampa.Modal.close();
+                openCinemaCatalog(c.networkId, c.name);
+            });
+            $container.append($card);
+        });
+
+        Lampa.Modal.open({
+            title: titleText,
+            html: $container,
+            size: 'full',
+            onBack: function () {
+                Lampa.Modal.close();
+                Lampa.Controller.toggle('menu');
+            }
+        });
     }
 
-    function start() {
-        var style = `<style>
-            .wolf-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; padding: 20px; }
-            .wolf-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; align-items: center; border: 1px solid rgba(255,255,255,0.1); }
-            .wolf-card.focus { background: #fff !important; transform: scale(1.05); }
-            .wolf-card.focus .wolf-name { color: #000; font-weight: bold; }
-            .wolf-card.focus .wolf-logo img { filter: brightness(0); }
-            .wolf-logo { height: 45px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
-            .wolf-name { color: #fff; font-size: 14px; text-align: center; }
-        </style>`;
+    function addMenuButtons() {
+        $('.menu__item.cinemabywolf-btn').remove();
+        var $menu = $('.menu .menu__list').eq(0);
+
+        if (CinemaByWolf.settings.show_ua) {
+            var $btnUA = $('<li class="menu__item selector cinemabywolf-btn"><div class="menu__ico"><svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#FFD700"/></svg></div><div class="menu__text">UA Кіно</div></li>');
+            $btnUA.on('hover:enter', function () { openCinemasModal('ua'); });
+            $menu.append($btnUA);
+        }
+        if (CinemaByWolf.settings.show_en) {
+            var $btnEN = $('<li class="menu__item selector cinemabywolf-btn"><div class="menu__ico"><svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#00dbde"/></svg></div><div class="menu__text">World Кіно</div></li>');
+            $btnEN.on('hover:enter', function () { openCinemasModal('en'); });
+            $menu.append($btnEN);
+        }
+        if (CinemaByWolf.settings.show_ru) {
+            var $btnRU = $('<li class="menu__item selector cinemabywolf-btn"><div class="menu__ico"><svg width="24" height="24" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ff4b4b"/></svg></div><div class="menu__text">RU Кіно</div></li>');
+            $btnRU.on('hover:enter', function () { openCinemasModal('ru'); });
+            $menu.append($btnRU);
+        }
+    }
+
+    function addSettings() {
+        Lampa.SettingsApi.addComponent({
+            component: 'cinemabywolf_set',
+            name: 'Онлайн Кінотеатри',
+            icon: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2"/><polyline points="17 2 12 7 7 2"/></svg>'
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: 'cinemabywolf_set',
+            name: 'show_ua',
+            type: 'bool',
+            default: true,
+            name: 'Показувати UA Кіно'
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: 'cinemabywolf_set',
+            name: 'show_en',
+            type: 'bool',
+            default: true,
+            name: 'Показувати World Кіно'
+        });
+
+        Lampa.SettingsApi.addParam({
+            component: 'cinemabywolf_set',
+            name: 'show_ru',
+            type: 'bool',
+            default: false,
+            name: 'Показувати RU Кіно'
+        });
+    }
+
+    function startPlugin() {
+        var saved = localStorage.getItem('cinemabywolf_settings');
+        if (saved) {
+            try { CinemaByWolf.settings = JSON.parse(saved); } catch(e) {}
+        }
+
+        var style = '<style>' +
+            '.cinemabywolf-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; padding: 20px; }' +
+            '.cinemabywolf-card { background: rgba(255,255,255,0.05); border-radius: 12px; padding: 15px; display: flex; flex-direction: column; align-items: center; border: 1px solid rgba(255,255,255,0.1); }' +
+            '.cinemabywolf-card.focus { background: #fff !important; transform: scale(1.05); color: #000 !important; }' +
+            '.cinemabywolf-card.focus .cinemabywolf-card__name { color: #000; }' +
+            '.cinemabywolf-card__logo { height: 70px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }' +
+            '.cinemabywolf-card__name { color: #fff; font-size: 14px; text-align: center; }' +
+            '</style>';
         $('head').append(style);
-        
-        var saved = localStorage.getItem('wolf_settings');
-        if (saved) CinemaByWolf.settings = JSON.parse(saved);
 
         addSettings();
-        Lampa.Listener.follow('app', function (e) { if (e.type === 'ready') addMenuButtons(); });
-        Lampa.Listener.follow('settings', function(e) { 
+
+        Lampa.Listener.follow('app', function (e) {
+            if (e.type === 'ready') addMenuButtons();
+        });
+
+        Lampa.Listener.follow('settings', function(e) {
             if (e.type === 'update') {
-                localStorage.setItem('wolf_settings', JSON.stringify(CinemaByWolf.settings));
+                localStorage.setItem('cinemabywolf_settings', JSON.stringify(CinemaByWolf.settings));
                 addMenuButtons();
             }
         });
     }
 
-    if (window.appready) start();
-    else Lampa.Listener.follow('app', function (e) { if (e.type == 'ready') start(); });
+    if (window.appready) startPlugin();
+    else Lampa.Listener.follow('app', function (e) { if (e.type == 'ready') startPlugin(); });
 })();
