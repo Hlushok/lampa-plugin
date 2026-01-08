@@ -3,7 +3,7 @@
 
     var CinemaByWolf = {
         name: 'cinemabywolf',
-        version: '2.3.0',
+        version: '2.5.0',
         settings: {
             enabled: true,
             show_ru: false,
@@ -13,7 +13,7 @@
         }
     };
 
-    // --- ВАШІ ПОВНІ СПИСКИ ДЖЕРЕЛ ---
+    // --- ПОВНИЙ СПИСОК ДЖЕРЕЛ З ВАШОГО КОДУ ---
     var RU_CINEMAS = [
         { name: 'Start', networkId: '2493' }, { name: 'Premier', networkId: '2859' },
         { name: 'KION', networkId: '4085' }, { name: 'Okko', networkId: '3871' },
@@ -44,7 +44,7 @@
         { name: 'UA: Перший', networkId: '1264' }
     ];
 
-    // --- ЛОГІКА КАТАЛОГУ (ФІЛЬМИ + СЕРІАЛИ) ---
+    // --- ЛОГІКА КАТАЛОГУ: ВИБІР ФІЛЬМИ / СЕРІАЛИ ---
     function openCinemaCatalog(networkId, name) {
         Lampa.Select.show({
             title: name,
@@ -54,17 +54,16 @@
             ],
             onSelect: function (item) {
                 var sort = CinemaByWolf.settings.sort_mode;
-                // Корекція сортування для ТБ
-                if (item.type === 'tv') {
-                    if (sort === 'release_date.desc') sort = 'first_air_date.desc';
+                if (item.type === 'tv' && sort.indexOf('release_date') !== -1) {
+                    sort = sort.replace('release_date', 'first_air_date');
                 }
 
                 Lampa.Activity.push({
                     url: 'discover/' + item.type,
-                    title: name + ' (' + (item.type === 'movie' ? 'Фільми' : 'Серіали') + ')',
+                    title: name + ' — ' + (item.type === 'tv' ? 'Серіали' : 'Фільми'),
                     component: 'category_full',
                     source: 'tmdb',
-                    // Важливо: для фільмів використовуємо with_companies, для тб - networks
+                    // КЛЮЧОВЕ ВИПРАВЛЕННЯ: фільми через компанії, тб через мережі
                     networks: item.type === 'tv' ? networkId : '',
                     with_companies: item.type === 'movie' ? networkId : '',
                     sort_by: sort,
@@ -75,15 +74,14 @@
         });
     }
 
-    // --- ВІЗУАЛЬНА ЧАСТИНА (МОДАЛКА ТА ЛОГО) ---
+    // --- ВІЗУАЛ ТА ЛОГОТИПИ ---
     function getCinemaLogo(networkId, name, callback) {
         var apiUrl = Lampa.TMDB.api('network/' + networkId + '?api_key=' + Lampa.TMDB.key());
         $.ajax({
             url: apiUrl, type: 'GET',
             success: function (data) {
                 if (data && data.logo_path) {
-                    var url = 'https://image.tmdb.org/t/p/w300' + data.logo_path;
-                    callback('<img src="' + url + '" style="max-width:70px;max-height:40px;">');
+                    callback('<img src="https://image.tmdb.org/t/p/w300' + data.logo_path + '" style="max-width:70px;max-height:40px;">');
                 } else callback('<div style="font-size:22px;color:#fff;font-weight:bold;">' + name.charAt(0) + '</div>');
             },
             error: function () { callback('<div style="font-size:22px;color:#fff;font-weight:bold;">' + name.charAt(0) + '</div>'); }
@@ -91,8 +89,8 @@
     }
 
     function openCinemasModal(type) {
-        var list = type === 'ru' ? RU_CINEMAS : type === 'en' ? EN_CINEMAS : UA_CINEMAS;
-        var title = type === 'ru' ? 'RU Кінотеатри' : type === 'en' ? 'World Cinemas' : 'UA Кінотеатри';
+        var list = type === 'ua' ? UA_CINEMAS : type === 'en' ? EN_CINEMAS : RU_CINEMAS;
+        var title = type === 'ua' ? 'UA Сервіси' : type === 'en' ? 'World Services' : 'RU Сервіси';
         
         var $container = $('<div class="wolf-grid"></div>');
         list.forEach(function (c) {
