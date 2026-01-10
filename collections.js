@@ -59,6 +59,16 @@
                    </svg>`,
             url: "discover/tv?language=uk&with_networks=453",
             source: "tmdb"
+        },
+        {
+            id: 'scifi',
+            title: 'SciFi',
+            icon: `<svg width="24px" height="24px" viewBox="0 0 24 24" fill="currentColor" role="img" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75-4.365-9.75-9.75-9.75zm.75 14.25h-1.5v-1.5h1.5v1.5zm0-3h-1.5V7.5h1.5v6z"/>
+                      <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm1.443 14.443L12 18l-1.443-1.557L9 15l1.557-1.443L12 12l1.443 1.557L15 15l-1.557 1.443zM12 4c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2z"/>
+                   </svg>`,
+            url: "discover/tv?language=uk&with_genres=10765",
+            source: "tmdb"
         }
     ];
 
@@ -67,7 +77,7 @@
     function initPlugin() {
         if (window.plugin_podbor_ready) return;
 
-        // Р”РѕРґР°С”РјРѕ РєРѕРјРїРѕРЅРµРЅС‚ РІ РЅР°Р»Р°С€С‚СѓРІР°РЅРЅСЏ
+       // Додаємо компонент в налаштування
         Lampa.SettingsApi.addComponent({
             component: "porborki",
             icon: `<svg height="36" viewBox="0 0 38 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="transition: all 0.3s ease;">
@@ -82,38 +92,38 @@
         }
     </style>
 </svg>`,
-            name: "РџС–РґР±С–СЂРєРё"
+            name: "Підбірки"
         });
 
-        // Р”РѕРґР°С”РјРѕ РїР°СЂР°РјРµС‚СЂРё РґР»СЏ РєРѕР¶РЅРѕРіРѕ РїСѓРЅРєС‚Сѓ РјРµРЅСЋ
+        // Додаємо параметри для кожного пункту меню
         menuItems.forEach(item => {
             Lampa.SettingsApi.addParam({
                 component: "porborki",
                 param: {
                     name: `porborki_${item.id}`,
                     type: "select",
-                    values: { 1: "РџРѕРєР°Р·Р°С‚Рё", 0: "РџСЂРёС…РѕРІР°С‚Рё" },
+                    values: { 1: "Показати", 0: "Приховати" },
                     default: 0
                 },
                 field: { name: item.title }
             });
         });
 
-        // РЎР»С–РґРєСѓС”РјРѕ Р·Р° Р·РјС–РЅР°РјРё РЅР°Р»Р°С€С‚СѓРІР°РЅСЊ "porborki"
+        // Слідкуємо за змінами налаштувань "porborki"
         Lampa.Listener.follow('settings', e => {
             if (e.type === 'change' && e.component === 'porborki') {
                 updateMenuItems();
             }
         });
 
-        // РЎС‚РІРѕСЂСЋС”РјРѕ РїСѓРЅРєС‚Рё РјРµРЅСЋ РІ DOM
+       // Створюємо пункти меню в DOM
         createMenuItems();
 
         window.plugin_podbor_ready = true;
     }
 
     function createMenuItems() {
-        // РњРµРЅСЋ РІ DOM (РїРµСЂС€РёР№ .menu__list)
+        // Меню в DOM (перший .menu__list)
         const menuList = $(".menu .menu__list").eq(0);
 
         menuItems.forEach(item => {
@@ -158,7 +168,7 @@
         });
     }
 
-    // Р†РЅС–С†С–Р°Р»С–Р·Р°С†С–СЏ РїР»Р°РіС–РЅР° РїСЂРё РіРѕС‚РѕРІРЅРѕСЃС‚С– РґРѕРґР°С‚РєСѓ
+ // Ініціалізація плагіна при готовності додатка
     if (window.appready) {
         initPlugin();
     } else {
