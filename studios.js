@@ -4,7 +4,7 @@
     /**
      * STUDIOS MASTER (Unified)
      * Developed by: Syvyj
-     * Version: 1.2.0
+     * Version: 1.2.1
      * Description: Unified studio collections for Lampa (Netflix, HBO, Disney+, etc.)
      * 
      * This plugin is a community development. 
