@@ -1,16 +1,16 @@
 (function() {
     'use strict';
 
-    // ⚙️ ТВОЇ ПРЕСЕТИ
+    // ⚙️ПРЕСЕТИ
     var my_presets = {
-        local: {
-            name: '🏠 Дім (Локально)',
-            url: 'http://192.168.8.234:9117',
+        local: { 
+            name: '🌍JackettUa',
+            url: 'https://jackettua.mooo.com',
             key: 'ua'  // Ключ API
         },
         domain: {
-            name: '🌍 Ззовні (Домен)',
-            url: 'https://lampaua.mooo.com/jackett',
+            name: '🌍ProwlarrUa',
+            url: 'https://prowlarrua.mooo.com',
             key: 'ua'  // Ключ API
         }
     };
