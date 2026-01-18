@@ -3,22 +3,20 @@
 
     /*
       📌 PLUGIN: LampaUA Parser Switcher
-      📝 DESC: Автоматичне перемикання Jackett/Prowlarr між локальною мережею та доменом.
+      📝 DESC: Швидкий вибір URL парсера Jackett/Prowlarr.
     */
 
-    // ⚙️ ТВОЇ СЕРВЕРИ
+    // СЕРВЕРИ
     var all_presets = [
         { name: '🌍 JackettUa (Основний)', type: 'jackett', url: 'https://jackettua.mooo.com', key: 'ua' },
         { name: '🏠 JackettUa (Резерв)', type: 'jackett', url: 'https://lampaua.mooo.com', key: '1' },
-        { name: '🔌 Jackett (Локально)', type: 'jackett', url: 'http://192.168.8.234:9117', key: 'ua' },
-        { name: '👾 ProwlarrUa (Домен)', type: 'prowlarr', url: 'https://prowlarrua.mooo.com', key: 'ua' },
-        { name: '🔌 Prowlarr (Локально)', type: 'prowlarr', url: 'http://192.168.8.234:9696', key: 'ua' }
+        { name: '👾 ProwlarrUa (Домен)', type: 'prowlarr', url: 'https://prowlarrua.mooo.com', key: 'ua' }
     ];
 
     function applyPreset(preset) {
         var type = preset.type;
 
-        // 1. Зберігаємо
+        //Зберігаємо
         if (type === 'jackett') {
             Lampa.Storage.set('jackett_url', preset.url);
             Lampa.Storage.set('parser_jackett_url', preset.url);
@@ -35,7 +33,7 @@
             Lampa.Storage.set('parser_prowlarr_key', preset.key);
         }
 
-        // 2. Оновлюємо поля
+        //Оновлюємо поля
         $('.settings__input').each(function() {
             var name = $(this).data('name');
             if (name && name.indexOf(type) > -1) {
@@ -60,9 +58,9 @@
                 default: 'Натисніть для вибору'
             },
             field: {
-                // 👇 ТУТ МИ ДАЛИ ЙОМУ ГАРНУ НАЗВУ 👇
+                //НАЗВА
                 name: '⚡ Менеджер Парсерів',
-                description: 'Швидке перемикання: Дім (Local) ↔ Вулиця (Domain)'
+                description: 'Швидкий вибір URL парсера Jackett/Prowlarr'
             },
             onRender: function(item) {
                 item.hide(); 
