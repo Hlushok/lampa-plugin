@@ -4,14 +4,19 @@
     // ⚙️ПРЕСЕТИ
     var my_presets = {
         local: { 
-            name: '🌍 JackettUa',
+            name: '🌍 JackettUa (Основний)',
             url: 'https://jackettua.mooo.com',
-            key: 'ua'  // Ключ API
+            key: 'ua'
         },
         domain: {
-            name: '🏠 JackettUa',
+            name: '🏠 JackettUa (Резерв)',
             url: 'https://lampaua.mooo.com',
-            key: '1'  // Ключ API
+            key: '1'
+        },
+        prowlarr: {
+            name: '👾 ProwlarrUa',
+            url: 'https://prowlarrua.mooo.com',
+            key: 'ua'
         }
     };
 
@@ -45,7 +50,7 @@
             }
         });
 
-        Lampa.Noty.show('✅ URL та API ключ оновлено!');
+        Lampa.Noty.show('✅ ' + url + ' встановлено!');
     }
 
     function initPlugin() {
@@ -65,8 +70,8 @@
                 default: 'none'
             },
             field: {
-                name: '⚡ Швидкий вибір Jackett',
-                description: 'Встановити URL та API одним кліком'
+                name: '⚡ Швидкий вибір Парсера',
+                description: 'Jackett або Prowlarr'
             },
             onChange: function(value) {
                 if (my_presets[value]) {
