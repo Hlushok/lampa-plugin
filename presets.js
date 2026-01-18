@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    // ⚙️ НАЛАШТУВАННЯ ПРЕСЕТІВ
+    // ⚙️ ТВОЇ СЕРВЕРИ
     var all_presets = [
         { name: '🌍 JackettUa (Основний)', type: 'jackett', url: 'https://jackettua.mooo.com', key: 'ua' },
         { name: '🏠 JackettUa (Резерв)', type: 'jackett', url: 'https://lampaua.mooo.com', key: '1' },
@@ -13,7 +13,7 @@
     function applyPreset(preset) {
         var type = preset.type;
 
-        // Зберігаємо у всі можливі змінні
+        // 1. Зберігаємо (безшумно)
         if (type === 'jackett') {
             Lampa.Storage.set('jackett_url', preset.url);
             Lampa.Storage.set('parser_jackett_url', preset.url);
@@ -30,23 +30,20 @@
             Lampa.Storage.set('parser_prowlarr_key', preset.key);
         }
 
-        // Оновлюємо візуально (якщо поля видимі)
+        // 2. Оновлюємо поля на екрані
         $('.settings__input').each(function() {
-            var el = $(this);
-            var name = el.data('name');
+            var name = $(this).data('name');
             if (name && name.indexOf(type) > -1) {
                 if (name.indexOf('url') > -1) {
-                    el.val(preset.url);
-                    el.find('.settings__value').text(preset.url);
+                    $(this).val(preset.url).find('.settings__value').text(preset.url);
                 }
                 if (name.indexOf('api') > -1 || name.indexOf('key') > -1) {
-                    el.val(preset.key);
-                    el.find('.settings__value').text(preset.key);
+                    $(this).val(preset.key).find('.settings__value').text(preset.key);
                 }
             }
         });
 
-        Lampa.Noty.show('✅ ' + preset.name + ' встановлено!');
+        Lampa.Noty.show('✅ ' + preset.name + ' обрано!');
     }
 
     function initPlugin() {
@@ -59,36 +56,27 @@
             },
             field: {
                 name: '⚡ Вибрати сервер',
-                description: 'Список серверів для поточного парсера'
+                description: 'Швидка зміна Jackett / Prowlarr'
             },
             onRender: function(item) {
-                // Додаємо унікальний клас для пошуку
-                item.addClass('smart-preset-btn');
-                
-                // Приховуємо кнопку одразу після створення (щоб вона не висіла де не треба)
-                item.hide();
+                // Ховаємо кнопку одразу, щоб вона не блимала де не треба
+                item.hide(); 
+                item.addClass('my-super-button'); // Мітка для пошуку
 
                 item.on('click', function() {
-                    // Визначаємо поточний тип
                     var current_type = Lampa.Storage.get('parser_torrent_type', 'jackett');
                     
-                    var filtered_items = all_presets.filter(function(p) {
-                        return p.type === current_type;
-                    });
+                    // Фільтруємо список під поточний тип
+                    var list = all_presets.filter(function(p) { return p.type === current_type; });
 
-                    if (filtered_items.length === 0) {
-                        Lampa.Noty.show('⚠️ Немає пресетів для ' + current_type);
-                        return;
-                    }
+                    if (!list.length) return Lampa.Noty.show('⚠️ Немає пресетів для ' + current_type);
 
                     Lampa.Select.show({
                         title: 'Сервери: ' + (current_type === 'jackett' ? 'Jackett' : 'Prowlarr'),
-                        items: filtered_items.map(function(p) {
-                            return { title: p.name, preset: p };
-                        }),
+                        items: list.map(function(p){ return {title: p.name, preset: p} }),
                         onSelect: function(itm) {
                             applyPreset(itm.preset);
-                            Lampa.Controller.toggle('settings_component');
+                            Lampa.Controller.toggle('settings_component'); // Закрити список
                         },
                         onBack: function() {
                             Lampa.Controller.toggle('settings_component');
@@ -96,18 +84,36 @@
                     });
                 });
 
-                // ФУНКЦІЯ ПЕРЕМІЩЕННЯ
-                var placeButton = function() {
-                    // 1. Перевіряємо, чи ми вже додали таку кнопку в DOM (захист від клонів)
-                    if ($('.settings__content .smart-preset-btn').length > 0) {
-                        // Якщо кнопка вже є, а ця - нова (дублікат), видаляємо нову
-                        if (!item.parent().length) item.remove();
-                        return; 
-                    }
-
-                    // 2. Шукаємо "Якір" - пункт "Використовувати парсер"
-                    // Він є ТІЛЬКИ в меню парсера.
+                // 🔥 РОЗУМНА ВСТАВКА (Smart Insert)
+                var tryToPlace = function() {
+                    // 1. Шукаємо "Якір" (елемент, який є ТІЛЬКИ в меню парсера)
+                    // Зазвичай це галочка "Використовувати парсер" або поле URL
                     var anchor = $('div[data-name="parser_use"]');
+                    if (!anchor.length) anchor = $('div[data-name="jackett_url"]');
+                    if (!anchor.length) anchor = $('div[data-name="prowlarr_url"]');
 
                     if (anchor.length > 0) {
-                        // Знайшли якір! Значить ми в меню Парсер
+                        // УРА! Ми точно в меню Парсера.
+                        
+                        // 2. Чистимо дублікати (якщо раптом старі кнопки лишилися)
+                        $('.my-super-button').not(item).remove();
+
+                        // 3. Ставимо кнопку перед якорем і показуємо її
+                        item.insertBefore(anchor);
+                        item.show();
+                    } else {
+                        // Якоря немає? Значить ми в Головному меню.
+                        // Кнопка сидить тихо і не висовується (hide).
+                    }
+                };
+
+                // Пробуємо знайти місце кілька разів
+                setTimeout(tryToPlace, 50);
+                setTimeout(tryToPlace, 300);
+            }
+        });
+    }
+
+    if (window.appready) initPlugin();
+    else Lampa.Listener.follow('app', function(e) { if (e.type === 'ready') initPlugin(); });
+})();
