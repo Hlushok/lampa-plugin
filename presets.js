@@ -1,29 +1,22 @@
 (function() {
     'use strict';
 
-    // ⚙️ ВСІ ТВОЇ ПРЕСЕТИ (В одному місці)
-    // type: 'jackett' або 'prowlarr' - це вказує куди зберігати
+    // ⚙️ ПРЕСЕТИ
     var all_presets = [
         {
-            name: '🌍 Jackett (Основний/Домен)',
+            name: '🌍 JackettUa (Основний)',
             type: 'jackett',
             url: 'https://jackettua.mooo.com',
             key: 'ua'
         },
         {
-            name: '🏠 Jackett (Резерв/LampaUA)',
+            name: '🏠 JackettUa (Резерв)',
             type: 'jackett',
             url: 'https://lampaua.mooo.com',
             key: '1'
         },
         {
-            name: '🔌 Jackett (Локально)',
-            type: 'jackett',
-            url: 'http://192.168.8.234:9117',
-            key: 'ua'
-        },
-        {
-            name: '👾 Prowlarr (UA/Домен)',
+            name: '👾 ProwlarrUa (Основний)',
             type: 'prowlarr',
             url: 'https://prowlarrua.mooo.com',
             key: 'ua'
@@ -36,23 +29,31 @@
         }
     ];
 
-    // Функція, яка розуміє куди писати (в Jackett чи в Prowlarr)
     function applyPreset(preset) {
-        var prefix = preset.type; // 'jackett' або 'prowlarr'
+        var type = preset.type; // 'jackett' або 'prowlarr'
         
-        // 1. Зберігаємо в пам'ять (Storage)
-        Lampa.Storage.set(prefix + '_url', preset.url);
-        Lampa.Storage.set('parser_' + prefix + '_url', preset.url);
+        // 1. Зберігаємо дані (URL та API)
+        Lampa.Storage.set(type + '_url', preset.url);
+        Lampa.Storage.set('parser_' + type + '_url', preset.url);
         
-        Lampa.Storage.set(prefix + '_api', preset.key); 
-        Lampa.Storage.set(prefix + '_key', preset.key);
-        Lampa.Storage.set('parser_' + prefix + '_api', preset.key);
-        Lampa.Storage.set('parser_' + prefix + '_key', preset.key);
+        Lampa.Storage.set(type + '_api', preset.key); 
+        Lampa.Storage.set(type + '_key', preset.key);
+        Lampa.Storage.set('parser_' + type + '_api', preset.key);
+        Lampa.Storage.set('parser_' + type + '_key', preset.key);
 
-        // 2. Оновлюємо візуально поля на екрані
-        updateVisualFields(prefix, preset.url, preset.key);
+        // 2. Зберігаємо ТИП парсера (важливо!)
+        Lampa.Storage.set('parser_torrent_type', type);
 
-        Lampa.Noty.show('✅ ' + preset.name + ' встановлено!');
+        // 3. Оновлюємо візуально поля на екрані
+        updateVisualFields(type, preset.url, preset.key);
+        
+        // 4. Оновлюємо перемикач типу парсера
+        var type_selector = $('div[data-name="parser_torrent_type"]').find('.settings__value');
+        if (type_selector.length) {
+            type_selector.text(type === 'jackett' ? 'Jackett' : 'Prowlarr');
+        }
+
+        Lampa.Noty.show('✅ ' + preset.name + ' застосовано! (Перезайдіть в меню)');
     }
 
     function updateVisualFields(type, url, key) {
@@ -60,7 +61,7 @@
             var el = $(this);
             var name = el.data('name');
             
-            // Якщо поле містить тип (наприклад prowlarr_url)
+            // Шукаємо поля, що відповідають вибраному типу
             if (name && name.indexOf(type) > -1) {
                 if (name.indexOf('url') > -1) {
                     el.val(url);
@@ -79,19 +80,16 @@
             component: 'parser',
             param: {
                 name: 'universal_preset_selector',
-                type: 'static', // Просто кнопка, не select
+                type: 'static',
                 default: 'Натисніть для вибору'
             },
             field: {
-                name: '⚡ Пресети (Jackett / Prowlarr)',
-                description: 'Виберіть потрібний сервіс зі списку'
+                name: '⚡ ПРЕСЕТИ (Jackett / Prowlarr)',
+                description: 'Натисніть тут, щоб вибрати сервер'
             },
-            // Обробка натискання на саму кнопку (замість onChange)
             onRender: function(item) {
                 item.on('click', function() {
                     var menu_items = [];
-                    
-                    // Формуємо меню для Lampa Select
                     all_presets.forEach(function(preset) {
                         menu_items.push({
                             title: preset.name,
@@ -104,7 +102,8 @@
                         items: menu_items,
                         onSelect: function(item) {
                             applyPreset(item.preset_data);
-                            Lampa.Controller.toggle('settings_component'); // Повернути фокус
+                            // Закриваємо селект, повертаємось в налаштування
+                            Lampa.Controller.toggle('settings_component');
                         },
                         onBack: function() {
                             Lampa.Controller.toggle('settings_component');
@@ -112,20 +111,20 @@
                     });
                 });
 
-                // Вставляємо кнопку на самий верх списку
-                setTimeout(function() {
-                    // Пробуємо вставити перед будь-яким полем URL (Jackett або Prowlarr)
-                    var target = $('div[data-name="jackett_url"]');
-                    if (target.length == 0) target = $('div[data-name="prowlarr_url"]');
-                    if (target.length == 0) target = $('div[data-name="parser_jackett_url"]');
-                    
-                    if (target.length > 0) {
-                        item.insertBefore(target);
-                    } else {
-                        // Якщо полів ще немає, кидаємо нагору
-                        $('.settings__content').prepend(item);
+                // 🔥 АГРЕСИВНА ВСТАВКА НА САМИЙ ВЕРХ
+                var insertPlugin = function() {
+                    var content = $('.settings__content');
+                    if (content.length > 0) {
+                        // Якщо кнопка ще не там - вставляємо на початок
+                        if (content.find('div[data-name="universal_preset_selector"]').length === 0) {
+                            content.prepend(item);
+                        }
                     }
-                }, 200);
+                };
+
+                // Робимо це з затримкою, щоб меню точно відкрилося
+                setTimeout(insertPlugin, 100);
+                setTimeout(insertPlugin, 500); // Повторна перевірка
             }
         });
     }
