@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    // ⚙️ ПРЕСЕТИ
+    // ⚙️ ТВОЇ ПРЕСЕТИ
     var all_presets = [
         {
             name: '🌍 JackettUa (Основний)',
@@ -16,7 +16,7 @@
             key: '1'
         },
         {
-            name: '👾 ProwlarrUa (Основний)',
+            name: '👾 ProwlarrUa (Домен)',
             type: 'prowlarr',
             url: 'https://prowlarrua.mooo.com',
             key: 'ua'
@@ -32,28 +32,39 @@
     function applyPreset(preset) {
         var type = preset.type; // 'jackett' або 'prowlarr'
         
-        // 1. Зберігаємо дані (URL та API)
-        Lampa.Storage.set(type + '_url', preset.url);
-        Lampa.Storage.set('parser_' + type + '_url', preset.url);
+        // 1. Зберігаємо дані у ВСІ можливі комірки пам'яті
+        // Для Jackett
+        if (type === 'jackett') {
+            Lampa.Storage.set('jackett_url', preset.url);
+            Lampa.Storage.set('parser_jackett_url', preset.url);
+            Lampa.Storage.set('jackett_api', preset.key);
+            Lampa.Storage.set('jackett_key', preset.key);
+            Lampa.Storage.set('parser_jackett_api', preset.key);
+            Lampa.Storage.set('parser_jackett_key', preset.key);
+        }
         
-        Lampa.Storage.set(type + '_api', preset.key); 
-        Lampa.Storage.set(type + '_key', preset.key);
-        Lampa.Storage.set('parser_' + type + '_api', preset.key);
-        Lampa.Storage.set('parser_' + type + '_key', preset.key);
-
-        // 2. Зберігаємо ТИП парсера (важливо!)
-        Lampa.Storage.set('parser_torrent_type', type);
-
-        // 3. Оновлюємо візуально поля на екрані
-        updateVisualFields(type, preset.url, preset.key);
-        
-        // 4. Оновлюємо перемикач типу парсера
-        var type_selector = $('div[data-name="parser_torrent_type"]').find('.settings__value');
-        if (type_selector.length) {
-            type_selector.text(type === 'jackett' ? 'Jackett' : 'Prowlarr');
+        // Для Prowlarr
+        if (type === 'prowlarr') {
+            Lampa.Storage.set('prowlarr_url', preset.url);
+            Lampa.Storage.set('parser_prowlarr_url', preset.url);
+            Lampa.Storage.set('prowlarr_api', preset.key);
+            Lampa.Storage.set('prowlarr_key', preset.key);
+            Lampa.Storage.set('parser_prowlarr_api', preset.key);
+            Lampa.Storage.set('parser_prowlarr_key', preset.key);
         }
 
-        Lampa.Noty.show('✅ ' + preset.name + ' застосовано! (Перезайдіть в меню)');
+        // 2. Перемикаємо тип парсера в налаштуваннях
+        Lampa.Storage.set('parser_torrent_type', type);
+
+        // 3. Сповіщення
+        Lampa.Noty.show('✅ ' + preset.name + ' збережено! Перезайдіть у меню.');
+
+        // 4. Оновлення полів (якщо вони видимі)
+        updateVisualFields(type, preset.url, preset.key);
+        
+        // 5. Оновлення тексту типу парсера
+        var typeSelector = $('div[data-name="parser_torrent_type"] .settings__value');
+        if (typeSelector.length) typeSelector.text(type === 'jackett' ? 'Jackett' : 'Prowlarr');
     }
 
     function updateVisualFields(type, url, key) {
@@ -61,7 +72,7 @@
             var el = $(this);
             var name = el.data('name');
             
-            // Шукаємо поля, що відповідають вибраному типу
+            // Якщо поле стосується вибраного типу
             if (name && name.indexOf(type) > -1) {
                 if (name.indexOf('url') > -1) {
                     el.val(url);
@@ -85,9 +96,12 @@
             },
             field: {
                 name: '⚡ ПРЕСЕТИ (Jackett / Prowlarr)',
-                description: 'Натисніть тут, щоб вибрати сервер'
+                description: 'Виберіть сервер зі списку'
             },
             onRender: function(item) {
+                // Додаємо унікальний клас, щоб знаходити кнопку
+                item.addClass('my-unique-preset-button');
+
                 item.on('click', function() {
                     var menu_items = [];
                     all_presets.forEach(function(preset) {
@@ -102,7 +116,7 @@
                         items: menu_items,
                         onSelect: function(item) {
                             applyPreset(item.preset_data);
-                            // Закриваємо селект, повертаємось в налаштування
+                            // Закриваємо меню вибору, повертаємось у налаштування
                             Lampa.Controller.toggle('settings_component');
                         },
                         onBack: function() {
@@ -111,20 +125,19 @@
                     });
                 });
 
-                // 🔥 АГРЕСИВНА ВСТАВКА НА САМИЙ ВЕРХ
+                // 🔥 ЗАХИСТ ВІД ДУБЛЮВАННЯ + ВСТАВКА
                 var insertPlugin = function() {
+                    // Якщо кнопка вже є - СТОП, нічого не робимо
+                    if ($('.my-unique-preset-button').length > 0) return;
+
                     var content = $('.settings__content');
                     if (content.length > 0) {
-                        // Якщо кнопка ще не там - вставляємо на початок
-                        if (content.find('div[data-name="universal_preset_selector"]').length === 0) {
-                            content.prepend(item);
-                        }
+                        content.prepend(item);
                     }
                 };
 
-                // Робимо це з затримкою, щоб меню точно відкрилося
                 setTimeout(insertPlugin, 100);
-                setTimeout(insertPlugin, 500); // Повторна перевірка
+                setTimeout(insertPlugin, 500); // Контрольний постріл
             }
         });
     }
