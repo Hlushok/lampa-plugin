@@ -1,19 +1,17 @@
 (function() {
     'use strict';
 
-    // ⚙️ ТВОЇ СЕРВЕРИ
+    // СЕРВЕРИ
     var all_presets = [
         { name: '🌍 JackettUa (Основний)', type: 'jackett', url: 'https://jackettua.mooo.com', key: 'ua' },
         { name: '🏠 JackettUa (Резерв)', type: 'jackett', url: 'https://lampaua.mooo.com', key: '1' },
-        { name: '🔌 Jackett (Локально)', type: 'jackett', url: 'http://192.168.8.234:9117', key: 'ua' },
-        { name: '👾 ProwlarrUa (Домен)', type: 'prowlarr', url: 'https://prowlarrua.mooo.com', key: 'ua' },
-        { name: '🔌 Prowlarr (Локально)', type: 'prowlarr', url: 'http://192.168.8.234:9696', key: 'ua' }
+        { name: '👾 ProwlarrUa (Домен)', type: 'prowlarr', url: 'https://prowlarrua.mooo.com', key: 'ua' }
     ];
 
     function applyPreset(preset) {
         var type = preset.type;
 
-        // 1. Зберігаємо (безшумно)
+        // Зберігаємо (безшумно)
         if (type === 'jackett') {
             Lampa.Storage.set('jackett_url', preset.url);
             Lampa.Storage.set('parser_jackett_url', preset.url);
@@ -30,7 +28,7 @@
             Lampa.Storage.set('parser_prowlarr_key', preset.key);
         }
 
-        // 2. Оновлюємо поля на екрані
+        // Оновлюємо поля на екрані
         $('.settings__input').each(function() {
             var name = $(this).data('name');
             if (name && name.indexOf(type) > -1) {
@@ -84,9 +82,9 @@
                     });
                 });
 
-                // 🔥 РОЗУМНА ВСТАВКА (Smart Insert)
+                // РОЗУМНА ВСТАВКА (Smart Insert)
                 var tryToPlace = function() {
-                    // 1. Шукаємо "Якір" (елемент, який є ТІЛЬКИ в меню парсера)
+                    // Шукаємо "Якір" (елемент, який є ТІЛЬКИ в меню парсера)
                     // Зазвичай це галочка "Використовувати парсер" або поле URL
                     var anchor = $('div[data-name="parser_use"]');
                     if (!anchor.length) anchor = $('div[data-name="jackett_url"]');
@@ -95,10 +93,10 @@
                     if (anchor.length > 0) {
                         // УРА! Ми точно в меню Парсера.
                         
-                        // 2. Чистимо дублікати (якщо раптом старі кнопки лишилися)
+                        // Чистимо дублікати (якщо раптом старі кнопки лишилися)
                         $('.my-super-button').not(item).remove();
 
-                        // 3. Ставимо кнопку перед якорем і показуємо її
+                        // Ставимо кнопку перед якорем і показуємо її
                         item.insertBefore(anchor);
                         item.show();
                     } else {
