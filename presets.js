@@ -1,149 +1,131 @@
 (function() {
     'use strict';
 
-    // 1️⃣ ПРЕСЕТИ ДЛЯ JACKETT
-    var jackett_presets = {
-        main: { 
-            name: '🌍 JackettUa (Основний)',
+    // ⚙️ ВСІ ТВОЇ ПРЕСЕТИ (В одному місці)
+    // type: 'jackett' або 'prowlarr' - це вказує куди зберігати
+    var all_presets = [
+        {
+            name: '🌍 Jackett (Основний/Домен)',
+            type: 'jackett',
             url: 'https://jackettua.mooo.com',
             key: 'ua'
         },
-        backup: {
-            name: '🏠 JackettUa (Резерв/Домен)',
+        {
+            name: '🏠 Jackett (Резерв/LampaUA)',
+            type: 'jackett',
             url: 'https://lampaua.mooo.com',
             key: '1'
         },
-        local: {
-            name: '🔌 Локальний (192.168...)',
+        {
+            name: '🔌 Jackett (Локально)',
+            type: 'jackett',
             url: 'http://192.168.8.234:9117',
             key: 'ua'
-        }
-    };
-
-    // 2️⃣ ПРЕСЕТИ ДЛЯ PROWLARR
-    var prowlarr_presets = {
-        main: {
-            name: '👾 ProwlarrUa',
+        },
+        {
+            name: '👾 Prowlarr (UA/Домен)',
+            type: 'prowlarr',
             url: 'https://prowlarrua.mooo.com',
             key: 'ua'
         },
-        local: {
-            name: '🔌 Локальний Prowlarr',
+        {
+            name: '🔌 Prowlarr (Локально)',
+            type: 'prowlarr',
             url: 'http://192.168.8.234:9696',
             key: 'ua'
         }
-    };
+    ];
 
-    // Функція оновлення полів JACKETT
-    function updateJackettFields(url, key) {
-        Lampa.Storage.set('jackett_url', url);
-        Lampa.Storage.set('parser_jackett_url', url);
-        Lampa.Storage.set('jackett_api', key); 
-        Lampa.Storage.set('jackett_key', key);
+    // Функція, яка розуміє куди писати (в Jackett чи в Prowlarr)
+    function applyPreset(preset) {
+        var prefix = preset.type; // 'jackett' або 'prowlarr'
         
-        // Оновлюємо візуально
-        updateUI('jackett', url, key);
-        Lampa.Noty.show('✅ Jackett налаштовано: ' + url);
+        // 1. Зберігаємо в пам'ять (Storage)
+        Lampa.Storage.set(prefix + '_url', preset.url);
+        Lampa.Storage.set('parser_' + prefix + '_url', preset.url);
+        
+        Lampa.Storage.set(prefix + '_api', preset.key); 
+        Lampa.Storage.set(prefix + '_key', preset.key);
+        Lampa.Storage.set('parser_' + prefix + '_api', preset.key);
+        Lampa.Storage.set('parser_' + prefix + '_key', preset.key);
+
+        // 2. Оновлюємо візуально поля на екрані
+        updateVisualFields(prefix, preset.url, preset.key);
+
+        Lampa.Noty.show('✅ ' + preset.name + ' встановлено!');
     }
 
-    // Функція оновлення полів PROWLARR
-    function updateProwlarrFields(url, key) {
-        Lampa.Storage.set('prowlarr_url', url);
-        Lampa.Storage.set('parser_prowlarr_url', url);
-        Lampa.Storage.set('prowlarr_api', key); 
-        Lampa.Storage.set('prowlarr_key', key);
-        
-        // Оновлюємо візуально
-        updateUI('prowlarr', url, key);
-        Lampa.Noty.show('✅ Prowlarr налаштовано: ' + url);
-    }
-
-    // Загальна функція оновлення полів на екрані
-    function updateUI(type, url, key) {
+    function updateVisualFields(type, url, key) {
         $('.settings__input').each(function() {
             var el = $(this);
             var name = el.data('name');
             
-            // Перевіряємо, чи це поле відноситься до вибраного типу
-            if (name.indexOf(type + '_url') > -1) {
-                el.val(url);
-                el.find('.settings__value').text(url);
-            }
-            if (name.indexOf(type + '_api') > -1 || name.indexOf(type + '_key') > -1) {
-                el.val(key);
-                el.find('.settings__value').text(key);
+            // Якщо поле містить тип (наприклад prowlarr_url)
+            if (name && name.indexOf(type) > -1) {
+                if (name.indexOf('url') > -1) {
+                    el.val(url);
+                    el.find('.settings__value').text(url);
+                }
+                if (name.indexOf('api') > -1 || name.indexOf('key') > -1) {
+                    el.val(key);
+                    el.find('.settings__value').text(key);
+                }
             }
         });
     }
 
     function initPlugin() {
-        
-        // --- ЛОГІКА ДЛЯ JACKETT ---
-        var jackett_values = { 'none': '--- Виберіть Jackett ---' };
-        for (var j in jackett_presets) jackett_values[j] = jackett_presets[j].name;
-
         Lampa.SettingsApi.addParam({
             component: 'parser',
             param: {
-                name: 'jackett_preset_selector',
-                type: 'select',
-                values: jackett_values,
-                default: 'none'
+                name: 'universal_preset_selector',
+                type: 'static', // Просто кнопка, не select
+                default: 'Натисніть для вибору'
             },
             field: {
-                name: '⚡ Вибір Jackett',
-                description: 'Швидкі налаштування для Jackett'
+                name: '⚡ Пресети (Jackett / Prowlarr)',
+                description: 'Виберіть потрібний сервіс зі списку'
             },
-            onChange: function(value) {
-                if (jackett_presets[value]) updateJackettFields(jackett_presets[value].url, jackett_presets[value].key);
-            },
+            // Обробка натискання на саму кнопку (замість onChange)
             onRender: function(item) {
-                // Показувати ТІЛЬКИ якщо вибрано тип Jackett
-                if (Lampa.Storage.get('parser_torrent_type') !== 'jackett') {
-                    item.hide();
-                    return;
-                }
-                setTimeout(function() {
-                    var target = $('div[data-name="jackett_url"]');
-                    if (target.length) item.insertBefore(target);
-                    else $('.settings__content').prepend(item);
-                }, 100);
-            }
-        });
-
-        // --- ЛОГІКА ДЛЯ PROWLARR ---
-        var prowlarr_values = { 'none': '--- Виберіть Prowlarr ---' };
-        for (var p in prowlarr_presets) prowlarr_values[p] = prowlarr_presets[p].name;
-
-        Lampa.SettingsApi.addParam({
-            component: 'parser',
-            param: {
-                name: 'prowlarr_preset_selector',
-                type: 'select',
-                values: prowlarr_values,
-                default: 'none'
-            },
-            field: {
-                name: '⚡ Вибір Prowlarr',
-                description: 'Швидкі налаштування для Prowlarr'
-            },
-            onChange: function(value) {
-                if (prowlarr_presets[value]) updateProwlarrFields(prowlarr_presets[value].url, prowlarr_presets[value].key);
-            },
-            onRender: function(item) {
-                // Показувати ТІЛЬКИ якщо вибрано тип Prowlarr
-                if (Lampa.Storage.get('parser_torrent_type') !== 'prowlarr') {
-                    item.hide();
-                    return;
-                }
-                setTimeout(function() {
-                    var target = $('div[data-name="prowlarr_url"]');
-                    // Якщо поле Prowlarr ще не намалювалось, спробуємо знайти Jackett і встати замість нього
-                    if (target.length == 0) target = $('div[data-name="jackett_url"]');
+                item.on('click', function() {
+                    var menu_items = [];
                     
-                    if (target.length) item.insertBefore(target);
-                    else $('.settings__content').prepend(item);
-                }, 100);
+                    // Формуємо меню для Lampa Select
+                    all_presets.forEach(function(preset) {
+                        menu_items.push({
+                            title: preset.name,
+                            preset_data: preset
+                        });
+                    });
+
+                    Lampa.Select.show({
+                        title: 'Виберіть сервер',
+                        items: menu_items,
+                        onSelect: function(item) {
+                            applyPreset(item.preset_data);
+                            Lampa.Controller.toggle('settings_component'); // Повернути фокус
+                        },
+                        onBack: function() {
+                            Lampa.Controller.toggle('settings_component');
+                        }
+                    });
+                });
+
+                // Вставляємо кнопку на самий верх списку
+                setTimeout(function() {
+                    // Пробуємо вставити перед будь-яким полем URL (Jackett або Prowlarr)
+                    var target = $('div[data-name="jackett_url"]');
+                    if (target.length == 0) target = $('div[data-name="prowlarr_url"]');
+                    if (target.length == 0) target = $('div[data-name="parser_jackett_url"]');
+                    
+                    if (target.length > 0) {
+                        item.insertBefore(target);
+                    } else {
+                        // Якщо полів ще немає, кидаємо нагору
+                        $('.settings__content').prepend(item);
+                    }
+                }, 200);
             }
         });
     }
