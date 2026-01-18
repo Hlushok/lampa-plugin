@@ -1,17 +1,24 @@
 (function() {
     'use strict';
 
-    // СЕРВЕРИ
+    /*
+      📌 PLUGIN: LampaUA Parser Switcher
+      📝 DESC: Автоматичне перемикання Jackett/Prowlarr між локальною мережею та доменом.
+    */
+
+    // ⚙️ ТВОЇ СЕРВЕРИ
     var all_presets = [
         { name: '🌍 JackettUa (Основний)', type: 'jackett', url: 'https://jackettua.mooo.com', key: 'ua' },
         { name: '🏠 JackettUa (Резерв)', type: 'jackett', url: 'https://lampaua.mooo.com', key: '1' },
-        { name: '👾 ProwlarrUa (Домен)', type: 'prowlarr', url: 'https://prowlarrua.mooo.com', key: 'ua' }
+        { name: '🔌 Jackett (Локально)', type: 'jackett', url: 'http://192.168.8.234:9117', key: 'ua' },
+        { name: '👾 ProwlarrUa (Домен)', type: 'prowlarr', url: 'https://prowlarrua.mooo.com', key: 'ua' },
+        { name: '🔌 Prowlarr (Локально)', type: 'prowlarr', url: 'http://192.168.8.234:9696', key: 'ua' }
     ];
 
     function applyPreset(preset) {
         var type = preset.type;
 
-        // Зберігаємо (безшумно)
+        // 1. Зберігаємо
         if (type === 'jackett') {
             Lampa.Storage.set('jackett_url', preset.url);
             Lampa.Storage.set('parser_jackett_url', preset.url);
@@ -28,7 +35,7 @@
             Lampa.Storage.set('parser_prowlarr_key', preset.key);
         }
 
-        // Оновлюємо поля на екрані
+        // 2. Оновлюємо поля
         $('.settings__input').each(function() {
             var name = $(this).data('name');
             if (name && name.indexOf(type) > -1) {
@@ -41,7 +48,7 @@
             }
         });
 
-        Lampa.Noty.show('✅ ' + preset.name + ' обрано!');
+        Lampa.Noty.show('✅ ' + preset.name + ' активовано!');
     }
 
     function initPlugin() {
@@ -53,28 +60,26 @@
                 default: 'Натисніть для вибору'
             },
             field: {
-                name: '⚡ Вибрати сервер',
-                description: 'Швидка зміна Jackett / Prowlarr'
+                // 👇 ТУТ МИ ДАЛИ ЙОМУ ГАРНУ НАЗВУ 👇
+                name: '⚡ Менеджер Парсерів',
+                description: 'Швидке перемикання: Дім (Local) ↔ Вулиця (Domain)'
             },
             onRender: function(item) {
-                // Ховаємо кнопку одразу, щоб вона не блимала де не треба
                 item.hide(); 
-                item.addClass('my-super-button'); // Мітка для пошуку
+                item.addClass('my-super-button');
 
                 item.on('click', function() {
                     var current_type = Lampa.Storage.get('parser_torrent_type', 'jackett');
-                    
-                    // Фільтруємо список під поточний тип
                     var list = all_presets.filter(function(p) { return p.type === current_type; });
 
-                    if (!list.length) return Lampa.Noty.show('⚠️ Немає пресетів для ' + current_type);
+                    if (!list.length) return Lampa.Noty.show('⚠️ Немає налаштувань для ' + current_type);
 
                     Lampa.Select.show({
-                        title: 'Сервери: ' + (current_type === 'jackett' ? 'Jackett' : 'Prowlarr'),
+                        title: 'Оберіть джерело (' + (current_type === 'jackett' ? 'Jackett' : 'Prowlarr') + ')',
                         items: list.map(function(p){ return {title: p.name, preset: p} }),
                         onSelect: function(itm) {
                             applyPreset(itm.preset);
-                            Lampa.Controller.toggle('settings_component'); // Закрити список
+                            Lampa.Controller.toggle('settings_component');
                         },
                         onBack: function() {
                             Lampa.Controller.toggle('settings_component');
@@ -82,30 +87,18 @@
                     });
                 });
 
-                // РОЗУМНА ВСТАВКА (Smart Insert)
                 var tryToPlace = function() {
-                    // Шукаємо "Якір" (елемент, який є ТІЛЬКИ в меню парсера)
-                    // Зазвичай це галочка "Використовувати парсер" або поле URL
                     var anchor = $('div[data-name="parser_use"]');
                     if (!anchor.length) anchor = $('div[data-name="jackett_url"]');
                     if (!anchor.length) anchor = $('div[data-name="prowlarr_url"]');
 
                     if (anchor.length > 0) {
-                        // УРА! Ми точно в меню Парсера.
-                        
-                        // Чистимо дублікати (якщо раптом старі кнопки лишилися)
                         $('.my-super-button').not(item).remove();
-
-                        // Ставимо кнопку перед якорем і показуємо її
                         item.insertBefore(anchor);
                         item.show();
-                    } else {
-                        // Якоря немає? Значить ми в Головному меню.
-                        // Кнопка сидить тихо і не висовується (hide).
                     }
                 };
 
-                // Пробуємо знайти місце кілька разів
                 setTimeout(tryToPlace, 50);
                 setTimeout(tryToPlace, 300);
             }
