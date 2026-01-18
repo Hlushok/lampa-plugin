@@ -4,14 +4,14 @@
     // ⚙️ПРЕСЕТИ
     var my_presets = {
         local: { 
-            name: '🌍JackettUa',
+            name: '🌍 JackettUa',
             url: 'https://jackettua.mooo.com',
             key: 'ua'  // Ключ API
         },
         domain: {
-            name: '🌍ProwlarrUa',
-            url: 'https://prowlarrua.mooo.com',
-            key: 'ua'  // Ключ API
+            name: '🏠 JackettUa',
+            url: 'https://lampaua.mooo.com',
+            key: '1'  // Ключ API
         }
     };
 
