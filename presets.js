@@ -1,59 +1,63 @@
 (function() {
     'use strict';
 
-    // ⚙️ НАЛАШТУВАННЯ ПРЕСЕТІВ
-    // Тут твої реальні дані. Можеш змінювати URL та API.
+    // ⚙️ ТВОЇ ПРЕСЕТИ
     var my_presets = {
         local: {
             name: '🏠 Дім (Локально)',
             url: 'http://192.168.8.234:9117',
-            api: 'ua'
+            key: 'ua'  // Ключ API
         },
         domain: {
             name: '🌍 Ззовні (Домен)',
             url: 'https://lampaua.mooo.com/jackett',
-            api: 'ua'
+            key: 'ua'  // Ключ API
         }
     };
 
-    // Допоміжна функція для оновлення полів на екрані без перезавантаження
-    function updateUIFields(url, api) {
-        // Оновлюємо значення в пам'яті (Storage)
+    function updateUIFields(url, key) {
+        // 1. Зберігаємо в пам'ять (пишемо у всі можливі варіанти, щоб точно спрацювало)
         Lampa.Storage.set('jackett_url', url);
-        Lampa.Storage.set('jackett_api', api);
         Lampa.Storage.set('parser_jackett_url', url);
-        Lampa.Storage.set('parser_jackett_api', api);
+        
+        Lampa.Storage.set('jackett_api', key); 
+        Lampa.Storage.set('jackett_key', key); // Деякі моди використовують 'key'
+        Lampa.Storage.set('parser_jackett_api', key);
+        Lampa.Storage.set('parser_jackett_key', key);
 
-        // Шукаємо поля на екрані і змінюємо їх візуально
-        $('.settings__input').each(function() {
-            var name = $(this).data('name');
+        // 2. Оновлюємо вигляд полів на екрані
+        var inputs = $('.settings__input');
+        
+        inputs.each(function() {
+            var el = $(this);
+            var name = el.data('name');
+            
+            // Логіка для URL
             if (name == 'jackett_url' || name == 'parser_jackett_url') {
-                $(this).val(url);
-                $(this).find('.settings__value').text(url);
+                el.val(url);
+                el.find('.settings__value').text(url);
             }
-            if (name == 'jackett_api' || name == 'parser_jackett_api') {
-                $(this).val(api);
-                $(this).find('.settings__value').text(api);
+
+            // Логіка для API (шукаємо все, що схоже на api або key)
+            if (name == 'jackett_api' || name == 'jackett_key' || name == 'parser_jackett_api' || name == 'parser_jackett_key') {
+                el.val(key);
+                el.find('.settings__value').text(key);
             }
         });
-        
-        // Показуємо повідомлення
-        Lampa.Noty.show('✅ Налаштування застосовано!');
+
+        Lampa.Noty.show('✅ URL та API ключ оновлено!');
     }
 
     function initPlugin() {
-        // Формуємо список для випадаючого меню (select)
         var select_values = {};
-        // Додаємо пункт "Виберіть..." як стартовий, якщо нічого не вибрано
         select_values['none'] = '--- Виберіть пресет ---';
         
-        for (var key in my_presets) {
-            select_values[key] = my_presets[key].name;
+        for (var k in my_presets) {
+            select_values[k] = my_presets[k].name;
         }
 
-        // Додаємо параметр через офіційний API
         Lampa.SettingsApi.addParam({
-            component: 'parser', // Вказуємо, що це для меню "Парсер"
+            component: 'parser',
             param: {
                 name: 'parser_preset_selector',
                 type: 'select',
@@ -62,46 +66,31 @@
             },
             field: {
                 name: '⚡ Швидкий вибір Jackett',
-                description: 'Автоматично прописати URL та API'
+                description: 'Встановити URL та API одним кліком'
             },
             onChange: function(value) {
                 if (my_presets[value]) {
-                    // Якщо вибрали реальний пресет - застосовуємо
-                    updateUIFields(my_presets[value].url, my_presets[value].api);
+                    // Передаємо URL та KEY
+                    updateUIFields(my_presets[value].url, my_presets[value].key);
                 }
             },
             onRender: function(item) {
-                // Магія переміщення пункту нагору
                 setTimeout(function() {
-                    // Шукаємо наш створений елемент
                     var my_item = $('div[data-name="parser_preset_selector"]');
+                    // Спробуємо вставити перед полем URL Jackett
+                    var target = $('div[data-name="jackett_url"]');
+                    if (target.length == 0) target = $('div[data-name="parser_jackett_url"]');
                     
-                    // Шукаємо, куди вставити (спробуємо перед галочкою "Використовувати парсер")
-                    var target = $('div[data-name="parser_use"]');
-                    
-                    // Якщо галочки немає, спробуємо перед полем URL
-                    if (target.length == 0) target = $('div[data-name="jackett_url"]');
-                    
-                    // Якщо знайшли куди - переміщуємо
-                    if (target.length > 0 && my_item.length > 0) {
+                    if (target.length > 0) {
                         my_item.insertBefore(target);
                     } else {
-                        // Якщо нічого не знайшли, вставляємо на початок списку
                         $('.settings__content').prepend(my_item);
                     }
-                }, 0);
+                }, 100);
             }
         });
     }
 
-    // Стандартна перевірка готовності Lampa (як у зразку)
-    if (window.appready) {
-        initPlugin();
-    } else {
-        Lampa.Listener.follow('app', function(e) {
-            if (e.type === 'ready') {
-                initPlugin();
-            }
-        });
-    }
+    if (window.appready) initPlugin();
+    else Lampa.Listener.follow('app', function(e) { if (e.type === 'ready') initPlugin(); });
 })();
