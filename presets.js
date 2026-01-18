@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    // ⚙️ ТВОЇ ПРЕСЕТИ
+    // ⚙️ ПРЕСЕТИ (Всі разом, скрипт сам розбереться)
     var all_presets = [
         {
             name: '🌍 JackettUa (Основний)',
@@ -14,6 +14,12 @@
             type: 'jackett',
             url: 'https://lampaua.mooo.com',
             key: '1'
+        },
+        {
+            name: '🔌 Jackett (Локально)',
+            type: 'jackett',
+            url: 'http://192.168.8.234:9117',
+            key: 'ua'
         },
         {
             name: '👾 ProwlarrUa (Домен)',
@@ -30,10 +36,9 @@
     ];
 
     function applyPreset(preset) {
-        var type = preset.type; // 'jackett' або 'prowlarr'
-        
-        // 1. Зберігаємо дані у ВСІ можливі комірки пам'яті
-        // Для Jackett
+        var type = preset.type;
+
+        // Зберігаємо дані
         if (type === 'jackett') {
             Lampa.Storage.set('jackett_url', preset.url);
             Lampa.Storage.set('parser_jackett_url', preset.url);
@@ -41,10 +46,7 @@
             Lampa.Storage.set('jackett_key', preset.key);
             Lampa.Storage.set('parser_jackett_api', preset.key);
             Lampa.Storage.set('parser_jackett_key', preset.key);
-        }
-        
-        // Для Prowlarr
-        if (type === 'prowlarr') {
+        } else {
             Lampa.Storage.set('prowlarr_url', preset.url);
             Lampa.Storage.set('parser_prowlarr_url', preset.url);
             Lampa.Storage.set('prowlarr_api', preset.key);
@@ -53,18 +55,10 @@
             Lampa.Storage.set('parser_prowlarr_key', preset.key);
         }
 
-        // 2. Перемикаємо тип парсера в налаштуваннях
-        Lampa.Storage.set('parser_torrent_type', type);
-
-        // 3. Сповіщення
-        Lampa.Noty.show('✅ ' + preset.name + ' збережено! Перезайдіть у меню.');
-
-        // 4. Оновлення полів (якщо вони видимі)
+        // Оновлюємо поля візуально
         updateVisualFields(type, preset.url, preset.key);
         
-        // 5. Оновлення тексту типу парсера
-        var typeSelector = $('div[data-name="parser_torrent_type"] .settings__value');
-        if (typeSelector.length) typeSelector.text(type === 'jackett' ? 'Jackett' : 'Prowlarr');
+        Lampa.Noty.show('✅ ' + preset.name + ' встановлено!');
     }
 
     function updateVisualFields(type, url, key) {
@@ -72,7 +66,6 @@
             var el = $(this);
             var name = el.data('name');
             
-            // Якщо поле стосується вибраного типу
             if (name && name.indexOf(type) > -1) {
                 if (name.indexOf('url') > -1) {
                     el.val(url);
@@ -90,33 +83,45 @@
         Lampa.SettingsApi.addParam({
             component: 'parser',
             param: {
-                name: 'universal_preset_selector',
+                name: 'smart_preset_selector',
                 type: 'static',
                 default: 'Натисніть для вибору'
             },
             field: {
-                name: '⚡ ПРЕСЕТИ (Jackett / Prowlarr)',
-                description: 'Виберіть сервер зі списку'
+                name: '⚡ Вибрати сервер',
+                description: 'Список серверів для поточного парсера'
             },
             onRender: function(item) {
-                // Додаємо унікальний клас, щоб знаходити кнопку
-                item.addClass('my-unique-preset-button');
+                // Додаємо клас для пошуку
+                item.addClass('smart-preset-btn');
 
                 item.on('click', function() {
-                    var menu_items = [];
+                    // 1. ДІЗНАЄМОСЯ, ЩО ЗАРАЗ ВКЛЮЧЕНО (Jackett чи Prowlarr)
+                    var current_type = Lampa.Storage.get('parser_torrent_type', 'jackett');
+                    
+                    // 2. ФІЛЬТРУЄМО СПИСОК
+                    var filtered_items = [];
                     all_presets.forEach(function(preset) {
-                        menu_items.push({
-                            title: preset.name,
-                            preset_data: preset
-                        });
+                        if (preset.type === current_type) {
+                            filtered_items.push({
+                                title: preset.name,
+                                preset_data: preset
+                            });
+                        }
                     });
 
+                    // Якщо список порожній (наприклад, вибрано TorLook)
+                    if (filtered_items.length === 0) {
+                        Lampa.Noty.show('⚠️ Для цього типу парсера немає пресетів');
+                        return;
+                    }
+
+                    // 3. ПОКАЗУЄМО ТІЛЬКИ ПОТРІБНЕ
                     Lampa.Select.show({
-                        title: 'Виберіть сервер',
-                        items: menu_items,
+                        title: 'Сервери для ' + (current_type === 'jackett' ? 'Jackett' : 'Prowlarr'),
+                        items: filtered_items,
                         onSelect: function(item) {
                             applyPreset(item.preset_data);
-                            // Закриваємо меню вибору, повертаємось у налаштування
                             Lampa.Controller.toggle('settings_component');
                         },
                         onBack: function() {
@@ -125,23 +130,9 @@
                     });
                 });
 
-                // 🔥 ЗАХИСТ ВІД ДУБЛЮВАННЯ + ВСТАВКА
-                var insertPlugin = function() {
-                    // Якщо кнопка вже є - СТОП, нічого не робимо
-                    if ($('.my-unique-preset-button').length > 0) return;
-
-                    var content = $('.settings__content');
-                    if (content.length > 0) {
-                        content.prepend(item);
-                    }
-                };
-
-                setTimeout(insertPlugin, 100);
-                setTimeout(insertPlugin, 500); // Контрольний постріл
-            }
-        });
-    }
-
-    if (window.appready) initPlugin();
-    else Lampa.Listener.follow('app', function(e) { if (e.type === 'ready') initPlugin(); });
-})();
+                // 🔥 ЖОРСТКА ВСТАВКА НА САМИЙ ВЕРХ
+                var moveTop = function() {
+                    // Шукаємо найперший елемент (зазвичай це галочка "Використовувати парсер")
+                    var topElement = $('div[data-name="parser_use"]');
+                    
+                    // Якщо знайшли верхній елемент і наша кнопка ще
