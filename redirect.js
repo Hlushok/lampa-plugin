@@ -74,7 +74,7 @@
         });
         
         // Запускаємо перевірку при старті плагіна
-        //checkRedirect();
+        checkRedirect();
     }
 
     if (window.appready) initPlugin();
