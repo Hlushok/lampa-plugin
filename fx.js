@@ -1,4 +1,4 @@
-﻿(function() {
+(function() {
   'use strict';
 
   var fxapi_token = Lampa.Storage.get('fxapi_token', '');
