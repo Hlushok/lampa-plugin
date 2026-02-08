@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    // Додаємо локалізацію
+    // 1. Локалізація (тексти меню)
     Lampa.Lang.add({
         location_redirect_title: {
             ru: 'Смена сервера',
@@ -20,6 +20,7 @@
         }
     });
 
+    // 2. Іконка для меню налаштувань
     var icon_server_redirect = `<svg height="36" viewBox="0 0 38 36" fill="none" xmlns="http://www.w3.org/2000/svg">
         <path d="M19 2L24 7L19 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M19 24L24 29L19 34" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -28,26 +29,28 @@
         <circle cx="19" cy="18" r="3" stroke="white" stroke-width="2"/>
     </svg>`;
 
+    // 3. Функція перевірки та переходу
     function checkRedirect() {
         var target = Lampa.Storage.get('location_server');
         var current = window.location.hostname;
 
-        // Якщо вибрано конкретний сервер (не "-") і ми не на ньому
+        // Якщо вибрано конкретний сервер і ми зараз НЕ на ньому
         if (target && target !== '-' && target !== '' && current !== target) {
-            // Використовуємо HTTPS, бо сервер на SSL
-            window.location.href = 'https://' + target;
+            // ПРИМУСОВО використовуємо HTTP для всього
+            window.location.href = 'http://' + target;
         }
     }
 
+    // 4. Ініціалізація плагіна
     function initPlugin() {
-        // Додаємо компонент у налаштування
+        // Додаємо пункт у налаштування
         Lampa.SettingsApi.addComponent({
             component: 'location_redirect',
             name: Lampa.Lang.translate('location_redirect_title'),
             icon: icon_server_redirect
         });
 
-        // Додаємо вибір домену
+        // Додаємо випадаючий список з доменами
         Lampa.SettingsApi.addParam({
             component: 'location_redirect',
             param: {
@@ -55,28 +58,29 @@
                 type: 'select',
                 values: {
                     '-': Lampa.Lang.translate('location_redirect_current'),
-                    'lampaua.mooo.com': 'lampaua.mooo.com', // Мій
-                    'lampa.mx': 'lampa.mx'                  // Офіційний
+                    'lampaua.mooo.com': 'lampaua.mooo.com', // Ваш сервер
+                    'lampa.mx': 'lampa.mx'                  // Офіційний (теж через http)
                 },
                 default: '-'
             },
             field: {
                 name: Lampa.Lang.translate('location_redirect_select_domain'),
-                description: 'Автоматичний перехід на обраний домен'
+                description: 'Автоматичний перехід на обраний домен (HTTP)'
             },
             onChange: function (value) {
-                // Якщо користувач змінив налаштування - одразу перевіряємо, чи треба переходити
+                // Якщо користувач змінив налаштування - зберігаємо і переходимо
                 if (value !== '-') {
-                    Lampa.Storage.set('location_server', value); // Примусово зберігаємо перед переходом
+                    Lampa.Storage.set('location_server', value);
                     checkRedirect();
                 }
             }
         });
         
-        // Запускаємо перевірку при старті плагіна
+        // Перевіряємо при старті, чи треба переходити
         checkRedirect();
     }
 
+    // 5. Запуск плагіна
     if (window.appready) initPlugin();
     else {
         Lampa.Listener.follow('app', function(e) {
