@@ -1,7 +1,7 @@
 (function() {
     'use strict';
 
-    // 1. Локалізація
+    // Локалізація
     Lampa.Lang.add({
         location_redirect_title: {
             ru: 'Смена сервера',
