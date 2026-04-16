@@ -61,7 +61,7 @@
                     values: {
                         '': 'Не вибрано',
                         'http://lampaua.mooo.com/': 'Lampa UA',
-                        'https://golampaua.mooo.com/': 'Go Lampa UA',
+                        'http://siaivo.isroot.in/': 'Сяєво UA',
                         'http://lampa.mx/': 'Lampa MX'
                     },
                     default: 'http://lampaua.mooo.com/'
