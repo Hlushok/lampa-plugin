@@ -9,8 +9,7 @@
     // СЕРВЕРИ
     var all_presets = [
         { name: '🌍 JackettUa (Основний)', type: 'jackett', url: 'https://jackettua.mooo.com', key: 'ua' },
-        { name: '🏠 JackettUa (Резерв)', type: 'jackett', url: 'https://lampaua.mooo.com', key: '1' },
-        { name: '👾 ProwlarrUa (Домен)', type: 'prowlarr', url: 'https://prowlarrua.mooo.com', key: 'ua' }
+        { name: '🏠 JackettUa (Резерв)', type: 'jackett', url: 'http://lampaua.mooo.com', key: '1' }
     ];
 
     function applyPreset(preset) {
@@ -60,7 +59,7 @@
             field: {
                 //НАЗВА
                 name: '⚡ Менеджер Парсерів',
-                description: 'Швидкий вибір URL парсера Jackett/Prowlarr'
+                description: 'Швидкий вибір URL парсера Jackett'
             },
             onRender: function(item) {
                 item.hide(); 
