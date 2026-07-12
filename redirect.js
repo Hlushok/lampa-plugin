@@ -60,6 +60,7 @@
                     type: 'select', 
                     values: {
                         '': 'Не вибрано',
+                        'https://kinohub.uk/': 'KinoHub',
                         'http://lampaua.mooo.com/': 'Lampa UA',
                         'http://siaivo.isroot.in/': 'Сяєво UA',
                         'http://lampa.mx/': 'Lampa MX'
