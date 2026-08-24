@@ -1,0 +1,95 @@
+name: Sync Nova Skin Premium
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "27 * * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nova-skin-premium-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync and patch
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      pages: write
+    steps:
+      - name: Checkout bridge repository
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+
+      - name: Resolve and validate immutable upstream file
+        id: upstream
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          commit_sha="$(gh api --method GET repos/amikdn/amikdn.github.io/commits -f sha=main -f path=nova_skin.js -F per_page=1 --jq '.[0].sha')"
+          [[ "$commit_sha" =~ ^[0-9a-f]{40}$ ]]
+          download="$RUNNER_TEMP/nova_skin-$commit_sha.js"
+          curl --fail --silent --show-error --location --retry 3 "https://raw.githubusercontent.com/amikdn/amikdn.github.io/$commit_sha/nova_skin.js" --output "$download"
+          test -s "$download"
+          node --check "$download"
+          digest="$(sha256sum "$download" | cut -d' ' -f1)"
+          printf 'commit_sha=%s\n' "$commit_sha" >> "$GITHUB_OUTPUT"
+          printf 'sha256=%s\n' "$digest" >> "$GITHUB_OUTPUT"
+          printf 'download_path=%s\n' "$download" >> "$GITHUB_OUTPUT"
+
+      - name: Test bridge and build Premium file
+        shell: bash
+        env:
+          DOWNLOAD_PATH: ${{ steps.upstream.outputs.download_path }}
+        run: |
+          set -euo pipefail
+          node --test tests/*.test.js
+          node scripts/build-nova-skin-premium.mjs "$DOWNLOAD_PATH" "$RUNNER_TEMP/nova_skin_premium.js"
+          node --check "$RUNNER_TEMP/nova_skin_premium.js"
+
+      - name: Commit changed Premium build
+        shell: bash
+        env:
+          PREMIUM_PATH: ${{ runner.temp }}/nova_skin_premium.js
+          UPSTREAM_COMMIT: ${{ steps.upstream.outputs.commit_sha }}
+          UPSTREAM_SHA256: ${{ steps.upstream.outputs.sha256 }}
+        run: |
+          set -euo pipefail
+          if cmp -s "$PREMIUM_PATH" nova_skin_premium.js; then
+            echo "nova_skin_premium.js already matches upstream $UPSTREAM_COMMIT"
+            exit 0
+          fi
+
+          install -m 0644 "$PREMIUM_PATH" nova_skin_premium.js.next
+          mv -f nova_skin_premium.js.next nova_skin_premium.js
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- nova_skin_premium.js
+          short_sha="${UPSTREAM_COMMIT:0:12}"
+          git commit -m "chore: sync Nova Skin Premium from upstream $short_sha" -m "Upstream-Commit: $UPSTREAM_COMMIT" -m "Upstream-SHA256: $UPSTREAM_SHA256"
+          git push origin HEAD:main
+
+      - name: Ensure legacy Pages build
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          head_sha="$(git rev-parse HEAD)"
+          latest="$(gh api --method GET "repos/$GITHUB_REPOSITORY/pages/builds/latest" --jq '(.commit // "") + "\t" + (.status // "")' || true)"
+          latest_commit="${latest%%$'\t'*}"
+          latest_status="${latest#*$'\t'}"
+
+          if [[ "$latest_commit" == "$head_sha" && ("$latest_status" == 'built' || "$latest_status" == 'building') ]]; then
+            echo "Pages already handles $head_sha with status $latest_status"
+            exit 0
+          fi
+
+          gh api --method POST "repos/$GITHUB_REPOSITORY/pages/builds" --silent
