@@ -8,7 +8,7 @@ const markerAnchor = `(function () {
 const markerReplacement = `(function () {
   'use strict';
 
-  // LampaUA Premium build: upstream Nova Skin by amikdn; access and resume patches only.
+  // LampaUA Premium build: upstream Nova Skin by amikdn; access, managed settings, and resume patches only.
 
   if (window.nova_skin_lampac_access !== true) return;`;
 
@@ -17,6 +17,71 @@ const enabledAnchor = `  function enabled() { return get(ENABLED_KEY, true) !== 
 const enabledReplacement = `  function enabled() {
     return window.nova_skin_lampac_access === true && get(ENABLED_KEY, true) !== false;
   }`;
+
+const probeManagedLabelAnchor = `    nova_skin_set_probe_ext: { ru: 'Источники проверяет сам онлайн-плагин, повторный обход не нужен', uk: 'Джерела перевіряє сам онлайн-плагін, повторний обхід не потрібен', en: 'The online plugin checks sources itself, no second pass needed' },`;
+
+const probeManagedLabelReplacement = `    nova_skin_set_probe_ext: { ru: 'Источники проверяет сам онлайн-плагин, повторный обход не нужен', uk: 'Джерела перевіряє сам онлайн-плагін, повторний обхід не потрібен', en: 'The online plugin checks sources itself, no second pass needed' },
+    nova_skin_set_probe_managed: { ru: 'Управляется LampaUA', uk: 'Керується LampaUA', en: 'Managed by LampaUA' },`;
+
+const probeSettingsAnchor = `      Lampa.SettingsApi.addParam({
+        component: 'nova_skin',
+        param: { name: 'nova_skin_probe', type: 'trigger', default: false },
+        field: {
+          name: label('nova_skin_set_probe'),
+          description: label('nova_skin_set_probe_descr')
+        },
+        onChange: function () { redraw(); }
+      });
+
+      try {
+        Lampa.Settings.listener.follow('open', function (e) {
+          if (!e || e.name !== 'nova_skin' || !e.body) return;
+
+          var mode = probeHook();
+          var item = e.body.find('[data-name="nova_skin_probe"]');
+          if (!item.length) return;
+
+          if (mode === 'disabled') {
+            item.addClass('hide');
+            return;
+          }
+
+          item.removeClass('hide');
+
+          var descr = item.find('.settings-param__descr');
+          if (!descr.length) return;
+
+          if (mode === 'external') {
+            descr.text(label('nova_skin_set_probe_ext'));
+            item.css('opacity', '.6');
+          } else {
+            descr.text(label('nova_skin_set_probe_descr'));
+            item.css('opacity', '');
+          }
+        });
+      } catch (e) {}`;
+
+const probeSettingsReplacement = `      var probeSettingsMode = probeHook();
+
+      if (probeSettingsMode !== 'disabled') {
+        var probeSettingsManaged = probeSettingsMode === 'external';
+        var probeSettingsParam = {
+          component: 'nova_skin',
+          param: probeSettingsManaged
+            ? { name: 'nova_skin_probe_managed', type: 'static' }
+            : { name: 'nova_skin_probe', type: 'trigger', default: false },
+          field: {
+            name: label('nova_skin_set_probe'),
+            description: label(probeSettingsManaged ? 'nova_skin_set_probe_managed' : 'nova_skin_set_probe_descr')
+          }
+        };
+
+        if (!probeSettingsManaged) {
+          probeSettingsParam.onChange = function () { redraw(); };
+        }
+
+        Lampa.SettingsApi.addParam(probeSettingsParam);
+      }`;
 
 const timelineAnchor = `    var percent = 0;
 
@@ -113,6 +178,8 @@ export function buildPremiumSource(upstreamSource) {
   let source = upstreamSource.replace(/\r\n/g, '\n');
   source = replaceExactlyOnce(source, markerAnchor, markerReplacement, 'Premium marker');
   source = replaceExactlyOnce(source, enabledAnchor, enabledReplacement, 'Premium access');
+  source = replaceExactlyOnce(source, probeManagedLabelAnchor, probeManagedLabelReplacement, 'Probe managed label');
+  source = replaceExactlyOnce(source, probeSettingsAnchor, probeSettingsReplacement, 'Probe settings');
   source = replaceExactlyOnce(source, timelineAnchor, timelineReplacement, 'Timeline read');
   source = replaceExactlyOnce(source, timelineFieldAnchor, timelineFieldReplacement, 'Timeline updated field');
   source = replaceExactlyOnce(source, resumeAnchor, resumeReplacement, 'Resume');

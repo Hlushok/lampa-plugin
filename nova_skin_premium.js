@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  // LampaUA Premium build: upstream Nova Skin by amikdn; access and resume patches only.
+  // LampaUA Premium build: upstream Nova Skin by amikdn; access, managed settings, and resume patches only.
 
   if (window.nova_skin_lampac_access !== true) return;
 
@@ -187,6 +187,7 @@
     nova_skin_set_probe: { ru: 'Проверять источники в фоне', uk: 'Перевіряти джерела у фоні', en: 'Check sources in background' },
     nova_skin_set_probe_descr: { ru: 'Отмечать рабочие точкой и показывать их качество', uk: 'Позначати робочі точкою та показувати їхню якість', en: 'Mark working ones with a dot and show their quality' },
     nova_skin_set_probe_ext: { ru: 'Источники проверяет сам онлайн-плагин, повторный обход не нужен', uk: 'Джерела перевіряє сам онлайн-плагін, повторний обхід не потрібен', en: 'The online plugin checks sources itself, no second pass needed' },
+    nova_skin_set_probe_managed: { ru: 'Управляется LampaUA', uk: 'Керується LampaUA', en: 'Managed by LampaUA' },
     nova_skin_set_switch: { ru: 'Автопереход по источникам', uk: 'Автоперехід по джерелах', en: 'Auto switch source' },
     nova_skin_set_switch_descr: { ru: 'Если ничего не найдено, пробовать следующий рабочий источник', uk: 'Якщо нічого не знайдено, пробувати наступне робоче джерело', en: 'Try the next working source when nothing is found' },
     nova_skin_set_view: { ru: 'Вид списка', uk: 'Вигляд списку', en: 'List layout' },
@@ -1938,6 +1939,37 @@
     }, 60);
   }
 
+  function watchNumber(item, slot) {
+    if (!item || !item.origin || !slot || !slot.length) return;
+    var timer = null;
+    var tries = 0;
+
+    function take() {
+      var value = 0;
+      try { value = digits(item.origin.find('.online-prestige__episode-number').text()); } catch (e) { value = 0; }
+      if (!value) return false;
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+      item.num = value;
+      item.numbered = true;
+      slot.text(episodeNumber(value));
+      return true;
+    }
+
+    if (take()) return;
+
+    timer = setInterval(function () {
+      tries++;
+      if (take()) return;
+      if (tries > 100) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }, 60);
+  }
+
   function buildCard(item, compact, grid) {
     var card = $('<div class="nova-card selector">' +
       '<div class="nova-card__thumb"><img alt=""><div class="nova-card__num"><span></span></div><div class="nova-card__line"></div></div>' +
@@ -1962,8 +1994,11 @@
       return '<span>' + esc(part) + '</span>';
     }).join('<span class="nova-dot">\u25cf</span>'));
 
-    if (item.numbered && serial) card.find('.nova-card__num > span').text(episodeNumber(item.num));
-    else card.find('.nova-card__num').remove();
+    if (serial && !item.folder) {
+      var slot = card.find('.nova-card__num > span');
+      slot.text(episodeNumber(item.num));
+      if (!item.numbered) watchNumber(item, slot);
+    } else card.find('.nova-card__num').remove();
 
     var badge = shortQuality(item.quality);
     if (badge) card.find('.nova-card__quality').addClass('nova-badge').text(badge);
@@ -3966,43 +4001,27 @@
         onChange: function () { applyEdgeFade(); }
       });
 
-      Lampa.SettingsApi.addParam({
-        component: 'nova_skin',
-        param: { name: 'nova_skin_probe', type: 'trigger', default: false },
-        field: {
-          name: label('nova_skin_set_probe'),
-          description: label('nova_skin_set_probe_descr')
-        },
-        onChange: function () { redraw(); }
-      });
+      var probeSettingsMode = probeHook();
 
-      try {
-        Lampa.Settings.listener.follow('open', function (e) {
-          if (!e || e.name !== 'nova_skin' || !e.body) return;
-
-          var mode = probeHook();
-          var item = e.body.find('[data-name="nova_skin_probe"]');
-          if (!item.length) return;
-
-          if (mode === 'disabled') {
-            item.addClass('hide');
-            return;
+      if (probeSettingsMode !== 'disabled') {
+        var probeSettingsManaged = probeSettingsMode === 'external';
+        var probeSettingsParam = {
+          component: 'nova_skin',
+          param: probeSettingsManaged
+            ? { name: 'nova_skin_probe_managed', type: 'static' }
+            : { name: 'nova_skin_probe', type: 'trigger', default: false },
+          field: {
+            name: label('nova_skin_set_probe'),
+            description: label(probeSettingsManaged ? 'nova_skin_set_probe_managed' : 'nova_skin_set_probe_descr')
           }
+        };
 
-          item.removeClass('hide');
+        if (!probeSettingsManaged) {
+          probeSettingsParam.onChange = function () { redraw(); };
+        }
 
-          var descr = item.find('.settings-param__descr');
-          if (!descr.length) return;
-
-          if (mode === 'external') {
-            descr.text(label('nova_skin_set_probe_ext'));
-            item.css('opacity', '.6');
-          } else {
-            descr.text(label('nova_skin_set_probe_descr'));
-            item.css('opacity', '');
-          }
-        });
-      } catch (e) {}
+        Lampa.SettingsApi.addParam(probeSettingsParam);
+      }
 
       Lampa.SettingsApi.addParam({
         component: 'nova_skin',

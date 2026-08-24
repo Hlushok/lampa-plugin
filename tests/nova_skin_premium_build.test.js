@@ -27,6 +27,10 @@ function upstreamFixture(eol = '\r\n') {
     "  function get() { return true; }",
     '  function enabled() { return get(ENABLED_KEY, true) !== false; }',
     '',
+    '  var lang = {',
+    "    nova_skin_set_probe_ext: { ru: 'Источники проверяет сам онлайн-плагин, повторный обход не нужен', uk: 'Джерела перевіряє сам онлайн-плагін, повторний обхід не потрібен', en: 'The online plugin checks sources itself, no second pass needed' },",
+    '  };',
+    '',
     '  function readCard(node, index) {',
     '    var origin = $(node);',
     "    var line = origin.find('.time-line').first();",
@@ -77,6 +81,46 @@ function upstreamFixture(eol = '\r\n') {
     '    return list[list.length - 1];',
     '  }',
     '',
+    '  function settingsFixture() {',
+    '      Lampa.SettingsApi.addParam({',
+    "        component: 'nova_skin',",
+    "        param: { name: 'nova_skin_probe', type: 'trigger', default: false },",
+    '        field: {',
+    "          name: label('nova_skin_set_probe'),",
+    "          description: label('nova_skin_set_probe_descr')",
+    '        },',
+    '        onChange: function () { redraw(); }',
+    '      });',
+    '',
+    '      try {',
+    "        Lampa.Settings.listener.follow('open', function (e) {",
+    "          if (!e || e.name !== 'nova_skin' || !e.body) return;",
+    '',
+    '          var mode = probeHook();',
+    "          var item = e.body.find('[data-name=\"nova_skin_probe\"]');",
+    '          if (!item.length) return;',
+    '',
+    "          if (mode === 'disabled') {",
+    "            item.addClass('hide');",
+    '            return;',
+    '          }',
+    '',
+    "          item.removeClass('hide');",
+    '',
+    "          var descr = item.find('.settings-param__descr');",
+    '          if (!descr.length) return;',
+    '',
+    "          if (mode === 'external') {",
+    "            descr.text(label('nova_skin_set_probe_ext'));",
+    "            item.css('opacity', '.6');",
+    '          } else {',
+    "            descr.text(label('nova_skin_set_probe_descr'));",
+    "            item.css('opacity', '');",
+    '          }',
+    '        });',
+    '      } catch (e) {}',
+    '  }',
+    '',
     '  function freshItem() {}',
     '})();',
     ''
@@ -108,6 +152,38 @@ function patchedPolicy(output) {
   return context.pickResume;
 }
 
+function renderedProbeSetting(output, mode) {
+  const normalized = output.replace(/\r\n/g, '\n');
+  const start = normalized.indexOf('  function settingsFixture() {');
+  const end = normalized.indexOf('\n\n  function freshItem()', start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+
+  const added = [];
+  const context = {
+    Lampa: {
+      SettingsApi: {
+        addParam(param) {
+          added.push(param);
+        }
+      }
+    },
+    label(key) {
+      return key;
+    },
+    probeHook() {
+      return mode;
+    },
+    redraw() {}
+  };
+  vm.runInNewContext(
+    normalized.slice(start, end) + '\nthis.settingsFixture = settingsFixture;',
+    context
+  );
+  context.settingsFixture();
+  return added;
+}
+
 function episodes(progress) {
   return Array.from({ length: 10 }, (_, index) => ({
     num: index + 1,
@@ -129,6 +205,32 @@ test('normalizes LF while adding the Premium access guard and timeline updated f
   assert.match(output, /updated: updated,/);
   assert.ok(!output.includes('\r'));
   assert.ok(output.includes('\n'));
+});
+
+test('renders externally managed probing as static LampaUA information', () => {
+  const output = buildPremiumSource(upstreamFixture('\n'));
+  const external = renderedProbeSetting(output, 'external');
+  const legacy = renderedProbeSetting(output, 'legacy');
+  const disabled = renderedProbeSetting(output, 'disabled');
+
+  assert.equal(external.length, 1);
+  assert.equal(external[0].param.type, 'static');
+  assert.equal(external[0].param.name, 'nova_skin_probe_managed');
+  assert.equal(external[0].field.name, 'nova_skin_set_probe');
+  assert.equal(external[0].field.description, 'nova_skin_set_probe_managed');
+  assert.equal(external[0].onChange, undefined);
+
+  assert.equal(legacy.length, 1);
+  assert.equal(legacy[0].param.type, 'trigger');
+  assert.equal(legacy[0].param.name, 'nova_skin_probe');
+  assert.equal(legacy[0].field.description, 'nova_skin_set_probe_descr');
+  assert.equal(typeof legacy[0].onChange, 'function');
+
+  assert.equal(disabled.length, 0);
+  assert.match(output, /ru: 'Управляется LampaUA'/);
+  assert.match(output, /uk: 'Керується LampaUA'/);
+  assert.match(output, /en: 'Managed by LampaUA'/);
+  assert.ok(!output.includes("item.css('opacity', '.6')"));
 });
 
 test('keeps a directly loaded Premium build inert without bridge entitlement', () => {
@@ -188,4 +290,13 @@ test('refuses to build when the upstream enable anchor has changed', () => {
   );
 
   assert.throws(() => buildPremiumSource(changed), /premium access anchor/i);
+});
+
+test('refuses to build when the upstream probe settings anchor has changed', () => {
+  const changed = upstreamFixture('\n').replace(
+    "item.css('opacity', '.6');",
+    "item.css('opacity', '.5');"
+  );
+
+  assert.throws(() => buildPremiumSource(changed), /probe settings anchor/i);
 });
