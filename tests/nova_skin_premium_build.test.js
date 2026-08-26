@@ -121,6 +121,59 @@ function upstreamFixture(eol = '\r\n') {
     '      } catch (e) {}',
     '  }',
     '',
+    '  var loading_started = 0;',
+    '  var loading_timer = null;',
+    '',
+    '  function loadingPanel() {',
+    '    uiFrame();',
+    "    note_sig = '';",
+    '',
+    '    if (ui.hero && ui.hero.parent().length) {',
+    '      loadingStop();',
+    '      ui.list.empty().append(skeleton(4));',
+    '      refreshCollection();',
+    '      var keep = (lockActive() && seek(ui_lock)) || seek(ui_focus);',
+    '      if (keep) focusNode(keep);',
+    '      return;',
+    '    }',
+    '',
+    '    ui.hero_box.empty();',
+    '    ui.hero = null;',
+    "    ui.hero_kind = '';",
+    '    ui.rows.empty();',
+    '',
+    '    if (!ui.load) {',
+    '      loading_started = Date.now();',
+    "      ui.load = $('<div class=\"nova-loading\">' +",
+    "        '<div class=\"nova-loading__title\"></div>' +",
+    "        '<div class=\"nova-loading__text\"></div>' +",
+    "        '<div class=\"nova-loading__bar\"><div></div></div>' +",
+    "        '</div>');",
+    "      ui.load.find('.nova-loading__title').text(text('nova_loading_title', 'nova_skin_loading_title'));",
+    '    }',
+    '',
+    '    ui.list.empty().append(ui.load).append(skeleton(3));',
+    '    loadingText();',
+    '',
+    '    clearInterval(loading_timer);',
+    '    loading_timer = setInterval(loadingText, 1000);',
+    '  }',
+    '',
+    '  function loadingText() {',
+    '    if (!ui.load || !ui.load.parent().length) return loadingStop();',
+    '    var seconds = Math.max(0, Math.round((Date.now() - loading_started) / 1000));',
+    "    var line = text('nova_loading_start', 'nova_skin_loading_start') +",
+    "      ' \\u00b7 ' + seconds + text('nova_sec', 'nova_skin_sec');",
+    "    ui.load.find('.nova-loading__text').text(line);",
+    "    ui.load.find('.nova-loading__bar>div').css('width', Math.min(90, seconds * 7) + '%');",
+    '  }',
+    '',
+    '  function loadingStop() {',
+    '    clearInterval(loading_timer);',
+    '    loading_timer = null;',
+    '    ui.load = null;',
+    '  }',
+    '',
     '  function freshItem() {}',
     '})();',
     ''
@@ -233,6 +286,30 @@ test('renders externally managed probing as static LampaUA information', () => {
   assert.ok(!output.includes("item.css('opacity', '.6')"));
 });
 
+test('renders the initial source search inside the final hero shell', () => {
+  const output = buildPremiumSource(upstreamFixture('\n'));
+
+  assert.match(output, /function loadingHeroPanel\(\)/);
+  assert.match(output, /function loadingMarkSync\(\)/);
+  assert.match(output, /function loadingMarkRestore\(\)/);
+  assert.ok(output.includes("ui.hero.addClass('nova-hero--loading')"));
+  assert.ok(output.includes("ui.hero.find('.nova-hero__actions').prepend(ui.load)"));
+  assert.ok(output.includes("ui.hero.find('.nova-hero__progress').empty().hide()"));
+  assert.ok(output.includes('nova-loading-mark__base'));
+  assert.ok(output.includes('nova-loading-mark__shine'));
+  assert.ok(output.includes('@-webkit-keyframes novaLoadingMarkSweep'));
+  assert.ok(output.includes('(prefers-reduced-motion:reduce)'));
+  assert.ok(output.split('loadingMarkSync();').length - 1 >= 2);
+  assert.ok(output.includes('loadingMarkRestore();'));
+  assert.ok(!output.includes("? ui.hero.find('.nova-hero__progress .time-line>div')"));
+  assert.ok(output.includes(
+    "ui.load.find('.nova-loading__bar>div').css('width', Math.min(90, seconds * 7) + '%');"
+  ));
+  assert.ok(output.includes("!ui.hero.hasClass('nova-hero--loading')"));
+  assert.ok(output.includes("ui.hero.removeClass('nova-hero--loading')"));
+  assert.ok(output.includes('ui.load.remove();'));
+});
+
 test('keeps a directly loaded Premium build inert without bridge entitlement', () => {
   const output = buildPremiumSource(upstreamFixture('\n'));
   const denied = { window: { nova_skin_lampac_access: false } };
@@ -299,4 +376,13 @@ test('refuses to build when the upstream probe settings anchor has changed', () 
   );
 
   assert.throws(() => buildPremiumSource(changed), /probe settings anchor/i);
+});
+
+test('refuses to build when the upstream loading anchor has changed', () => {
+  const changed = upstreamFixture('\n').replace(
+    'Math.min(90, seconds * 7)',
+    'Math.min(95, seconds * 7)'
+  );
+
+  assert.throws(() => buildPremiumSource(changed), /hero loading anchor/i);
 });

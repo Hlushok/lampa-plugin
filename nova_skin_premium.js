@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  // LampaUA Premium build: upstream Nova Skin by amikdn; access, managed settings, and resume patches only.
+  // LampaUA Premium build: upstream Nova Skin by amikdn; access, managed settings, resume, and loading patches only.
 
   if (window.nova_skin_lampac_access !== true) return;
 
@@ -3380,12 +3380,153 @@
 
   var loading_started = 0;
   var loading_timer = null;
+  var loading_mark_slot = null;
+  var loading_mark_signature = '';
+
+  var LOADING_MARK_CSS = [
+    '.nova-skin-root .nova-hero__title--loading{position:relative!important;display:block!important;overflow:visible!important;-webkit-line-clamp:none!important;-webkit-box-orient:horizontal!important}',
+    '.nova-skin-root .nova-hero__title--loading>.nova-loading-mark__base,.nova-skin-root .nova-hero__title--loading>.nova-loading-mark__shine{display:block}',
+    '.nova-skin-root .nova-hero__title--loading>.nova-loading-mark__base{opacity:.24}',
+    '.nova-skin-root .nova-hero__title--loading>.nova-loading-mark__shine{position:absolute!important;top:0;left:0;right:auto;bottom:auto;opacity:1;pointer-events:none;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 42%,#000 58%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 42%,#000 58%,transparent 100%);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:42% 100%;mask-size:42% 100%;-webkit-animation:novaLoadingMarkSweep 1.8s linear infinite;animation:novaLoadingMarkSweep 1.8s linear infinite}',
+    '@-webkit-keyframes novaLoadingMarkSweep{0%{-webkit-mask-position:-60% 0}100%{-webkit-mask-position:160% 0}}',
+    '@keyframes novaLoadingMarkSweep{0%{-webkit-mask-position:-60% 0;mask-position:-60% 0}100%{-webkit-mask-position:160% 0;mask-position:160% 0}}',
+    '@media screen and (prefers-reduced-motion:reduce){.nova-skin-root .nova-hero__title--loading>.nova-loading-mark__shine{display:none!important;-webkit-animation:none!important;animation:none!important}.nova-skin-root .nova-hero__title--loading>.nova-loading-mark__base{opacity:.72}}'
+  ].join('');
+
+  function loadingMarkStyles() {
+    if (typeof document === 'undefined' || document.getElementById('nova-skin-loading-mark-css')) return;
+    var target = document.head || document.body;
+    if (!target) return;
+    var style = document.createElement('style');
+    style.id = 'nova-skin-loading-mark-css';
+    style.textContent = LOADING_MARK_CSS;
+    target.appendChild(style);
+  }
+
+  function loadingMarkRestore() {
+    var slot = loading_mark_slot;
+    loading_mark_slot = null;
+    loading_mark_signature = '';
+    if (!slot || !slot.length) return;
+
+    var base = slot.children('.nova-loading-mark__base').first();
+    var shine = slot.children('.nova-loading-mark__shine');
+    shine.remove();
+
+    if (base.length) {
+      if (base.is('img')) {
+        base.removeClass('nova-loading-mark__base');
+      } else {
+        var content = base.contents().detach();
+        slot.empty().append(content);
+      }
+    }
+    slot.removeClass('nova-hero__title--loading');
+  }
+
+  function loadingMarkSync() {
+    if (!ui.hero || !ui.hero.hasClass('nova-hero--loading')) return;
+
+    var slot = logoSlot();
+    if (!slot || !slot.length) return;
+    if (loading_mark_slot && loading_mark_slot[0] !== slot[0]) loadingMarkRestore();
+    loading_mark_slot = slot;
+
+    var picture = slot.children('img').not('.nova-loading-mark__shine').first();
+    if (picture.length) {
+      picture.addClass('nova-loading-mark__base');
+      var picture_class = String(picture.attr('class') || '')
+        .replace(/\bnova-loading-mark__base\b/g, '')
+        .replace(/^\s+|\s+$/g, '');
+      var picture_signature = 'img:' + (picture.attr('src') || '') + '|' + picture_class;
+      var picture_shine = slot.children('img.nova-loading-mark__shine').first();
+
+      if (!picture_shine.length || loading_mark_signature !== picture_signature) {
+        picture_shine.remove();
+        picture_shine = picture.clone(false)
+          .removeClass('nova-loading-mark__base')
+          .addClass('nova-loading-mark__shine')
+          .attr('aria-hidden', 'true');
+        slot.append(picture_shine);
+        loading_mark_signature = picture_signature;
+      }
+      slot.addClass('nova-hero__title--loading');
+      return;
+    }
+
+    var base = slot.children('span.nova-loading-mark__base').first();
+    var value = base.length ? base.text() : slot.text();
+    if (!value) return;
+
+    var text_signature = 'text:' + value;
+    var text_shine = slot.children('span.nova-loading-mark__shine').first();
+    if (!base.length) {
+      slot.empty();
+      base = $('<span class="nova-loading-mark__base"></span>').text(value);
+      slot.append(base);
+    }
+    if (!text_shine.length || loading_mark_signature !== text_signature) {
+      text_shine.remove();
+      text_shine = base.clone(false)
+        .removeClass('nova-loading-mark__base')
+        .addClass('nova-loading-mark__shine')
+        .attr('aria-hidden', 'true');
+      slot.append(text_shine);
+      loading_mark_signature = text_signature;
+    }
+    slot.addClass('nova-hero__title--loading');
+  }
+
+  function loadingHeroPanel() {
+    if (!heroEnabled() || !movie) return false;
+
+    if (ui.hero && !ui.hero.parent().length) {
+      ui.hero = null;
+      ui.hero_kind = '';
+    }
+
+    nav = false;
+    serial = !!(movie.name || movie.number_of_seasons);
+    buildHero();
+
+    if (!ui.hero || !ui.hero.parent().length) return false;
+
+    if (!ui.load) {
+      loading_started = Date.now();
+      ui.load = $('<div class="nova-loading">' +
+        '<div class="nova-loading__title"></div>' +
+        '<div class="nova-loading__text"></div>' +
+        '</div>');
+      ui.load.find('.nova-loading__title').text(text('nova_loading_title', 'nova_skin_loading_title'));
+    }
+
+    ui.load.addClass('nova-loading--hero').css({
+      padding: '0',
+      background: 'none',
+      margin: '0',
+      minWidth: '0'
+    });
+    ui.load.find('.nova-loading__title').css({
+      fontSize: '1.15em',
+      marginBottom: '.2em'
+    });
+    ui.load.find('.nova-loading__text').css('margin-bottom', '0');
+
+    loadingMarkStyles();
+    ui.hero.addClass('nova-hero--loading');
+    ui.hero.find('.nova-hero__actions').prepend(ui.load);
+    ui.hero.find('.nova-hero__hint').empty();
+    ui.hero.find('.nova-hero__season').hide();
+    ui.hero.find('.nova-hero__progress').empty().hide();
+    loadingMarkSync();
+    return true;
+  }
 
   function loadingPanel() {
     uiFrame();
     note_sig = '';
 
-    if (ui.hero && ui.hero.parent().length) {
+    if (ui.hero && ui.hero.parent().length && !ui.hero.hasClass('nova-hero--loading')) {
       loadingStop();
       ui.list.empty().append(skeleton(4));
       refreshCollection();
@@ -3394,10 +3535,21 @@
       return;
     }
 
+    ui.rows.empty();
+
+    if (loadingHeroPanel()) {
+      ui.list.empty().append(skeleton(3));
+      refreshCollection();
+      loadingText();
+
+      clearInterval(loading_timer);
+      loading_timer = setInterval(loadingText, 1000);
+      return;
+    }
+
     ui.hero_box.empty();
     ui.hero = null;
     ui.hero_kind = '';
-    ui.rows.empty();
 
     if (!ui.load) {
       loading_started = Date.now();
@@ -3422,13 +3574,23 @@
     var line = text('nova_loading_start', 'nova_skin_loading_start') +
       ' \u00b7 ' + seconds + text('nova_sec', 'nova_skin_sec');
     ui.load.find('.nova-loading__text').text(line);
+    loadingMarkSync();
     ui.load.find('.nova-loading__bar>div').css('width', Math.min(90, seconds * 7) + '%');
   }
 
   function loadingStop() {
     clearInterval(loading_timer);
     loading_timer = null;
+    loading_started = 0;
+
+    if (ui.load && ui.load.parent().length) ui.load.remove();
     ui.load = null;
+    loadingMarkRestore();
+
+    if (ui.hero && ui.hero.hasClass('nova-hero--loading')) {
+      ui.hero.removeClass('nova-hero--loading');
+      ui.hero.find('.nova-hero__progress').empty().hide();
+    }
   }
 
   function noteStamp(native) {
