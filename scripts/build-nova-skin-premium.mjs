@@ -167,10 +167,10 @@ const heroLoadingAnchor = `  var loading_started = 0;
 
     if (ui.hero && ui.hero.parent().length) {
       loadingStop();
-      ui.list.empty().append(skeleton(4));
+      listHold().empty().append(skeleton(4));
       refreshCollection();
       var keep = (lockActive() && seek(ui_lock)) || seek(ui_focus);
-      if (keep) focusNode(keep);
+      if (keep) focusNode(keep, true);
       return;
     }
 
@@ -189,7 +189,7 @@ const heroLoadingAnchor = `  var loading_started = 0;
       ui.load.find('.nova-loading__title').text(text('nova_loading_title', 'nova_skin_loading_title'));
     }
 
-    ui.list.empty().append(ui.load).append(skeleton(3));
+    listHold().empty().append(ui.load).append(skeleton(3));
     loadingText();
 
     clearInterval(loading_timer);
@@ -361,17 +361,17 @@ const heroLoadingReplacement = `  var loading_started = 0;
 
     if (ui.hero && ui.hero.parent().length && !ui.hero.hasClass('nova-hero--loading')) {
       loadingStop();
-      ui.list.empty().append(skeleton(4));
+      listHold().empty().append(skeleton(4));
       refreshCollection();
       var keep = (lockActive() && seek(ui_lock)) || seek(ui_focus);
-      if (keep) focusNode(keep);
+      if (keep) focusNode(keep, true);
       return;
     }
 
     ui.rows.empty();
 
     if (loadingHeroPanel()) {
-      ui.list.empty().append(skeleton(3));
+      listHold().empty().append(skeleton(3));
       refreshCollection();
       loadingText();
 
@@ -394,7 +394,7 @@ const heroLoadingReplacement = `  var loading_started = 0;
       ui.load.find('.nova-loading__title').text(text('nova_loading_title', 'nova_skin_loading_title'));
     }
 
-    ui.list.empty().append(ui.load).append(skeleton(3));
+    listHold().empty().append(ui.load).append(skeleton(3));
     loadingText();
 
     clearInterval(loading_timer);

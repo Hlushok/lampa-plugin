@@ -130,10 +130,10 @@ function upstreamFixture(eol = '\r\n') {
     '',
     '    if (ui.hero && ui.hero.parent().length) {',
     '      loadingStop();',
-    '      ui.list.empty().append(skeleton(4));',
+    '      listHold().empty().append(skeleton(4));',
     '      refreshCollection();',
     '      var keep = (lockActive() && seek(ui_lock)) || seek(ui_focus);',
-    '      if (keep) focusNode(keep);',
+    '      if (keep) focusNode(keep, true);',
     '      return;',
     '    }',
     '',
@@ -152,7 +152,7 @@ function upstreamFixture(eol = '\r\n') {
     "      ui.load.find('.nova-loading__title').text(text('nova_loading_title', 'nova_skin_loading_title'));",
     '    }',
     '',
-    '    ui.list.empty().append(ui.load).append(skeleton(3));',
+    '    listHold().empty().append(ui.load).append(skeleton(3));',
     '    loadingText();',
     '',
     '    clearInterval(loading_timer);',
@@ -308,6 +308,11 @@ test('renders the initial source search inside the final hero shell', () => {
   assert.ok(output.includes("!ui.hero.hasClass('nova-hero--loading')"));
   assert.ok(output.includes("ui.hero.removeClass('nova-hero--loading')"));
   assert.ok(output.includes('ui.load.remove();'));
+  assert.ok(output.includes('listHold().empty().append(skeleton(4));'));
+  assert.ok(output.includes('listHold().empty().append(skeleton(3));'));
+  assert.ok(output.includes('listHold().empty().append(ui.load).append(skeleton(3));'));
+  assert.ok(output.includes('focusNode(keep, true);'));
+  assert.ok(!output.includes('ui.list.empty().append(skeleton('));
 });
 
 test('keeps a directly loaded Premium build inert without bridge entitlement', () => {
@@ -380,8 +385,8 @@ test('refuses to build when the upstream probe settings anchor has changed', () 
 
 test('refuses to build when the upstream loading anchor has changed', () => {
   const changed = upstreamFixture('\n').replace(
-    'Math.min(90, seconds * 7)',
-    'Math.min(95, seconds * 7)'
+    'listHold().empty().append(skeleton(4));',
+    'listHold().empty().append(skeleton(5));'
   );
 
   assert.throws(() => buildPremiumSource(changed), /hero loading anchor/i);
