@@ -158,6 +158,72 @@ const resumeReplacement = `    var reached = [];
     }
     return list[0];`;
 
+const heroResultReuseAnchor = `  function buildHero() {
+    if (!heroEnabled()) {
+      ui.hero_box.empty();
+      ui.hero = null;
+      ui.hero_kind = '';
+      return null;
+    }
+
+    var target = nav ? null : pickResume(items);
+    var button = playButton();
+    var kind = target ? 'full' : 'static';
+    var withArt = artEnabled();
+
+    if (ui.hero && ui.hero_kind !== kind) {
+      button.detach();
+      nextButton().detach();
+      ui.hero_box.empty();
+      ui.hero = null;
+    }
+
+    if (!ui.hero) {`;
+
+const heroResultReuseReplacement = `  function buildHero(preserve) {
+    if (!heroEnabled()) {
+      ui.hero_box.empty();
+      ui.hero = null;
+      ui.hero_kind = '';
+      return null;
+    }
+
+    var target = nav ? null : pickResume(items);
+    var button = playButton();
+    var kind = target ? 'full' : 'static';
+    var withArt = artEnabled();
+
+    if (ui.hero && ui.hero_kind !== kind) {
+      button.detach();
+      nextButton().detach();
+      if (preserve) ui.hero_kind = kind;
+      else {
+        ui.hero_box.empty();
+        ui.hero = null;
+      }
+    }
+
+    if (!ui.hero) {`;
+
+const heroResultCaptureAnchor = `    hopStop();
+    hopReset();
+    loadingStop();
+    root.addClass('nova-skin-scope nova-skin-chips');
+    uiFrame();`;
+
+const heroResultCaptureReplacement = `    hopStop();
+    hopReset();
+    var preserve_loading_hero = !!(ui.hero && ui.hero.hasClass('nova-hero--loading'));
+    loadingStop();
+    root.addClass('nova-skin-scope nova-skin-chips');
+    uiFrame();`;
+
+const heroResultRenderAnchor = `    var button = buildHero();
+    buildRows();`;
+
+const heroResultRenderReplacement = `    var button = buildHero(preserve_loading_hero);
+    buildRows();`;
+
 const heroLoadingAnchor = `  var loading_started = 0;
   var loading_timer = null;
 
@@ -451,6 +517,9 @@ export function buildPremiumSource(upstreamSource) {
   source = replaceExactlyOnce(source, timelineAnchor, timelineReplacement, 'Timeline read');
   source = replaceExactlyOnce(source, timelineFieldAnchor, timelineFieldReplacement, 'Timeline updated field');
   source = replaceExactlyOnce(source, resumeAnchor, resumeReplacement, 'Resume');
+  source = replaceExactlyOnce(source, heroResultReuseAnchor, heroResultReuseReplacement, 'Hero result reuse');
+  source = replaceExactlyOnce(source, heroResultCaptureAnchor, heroResultCaptureReplacement, 'Hero result capture');
+  source = replaceExactlyOnce(source, heroResultRenderAnchor, heroResultRenderReplacement, 'Hero result render');
   source = replaceExactlyOnce(source, heroLoadingAnchor, heroLoadingReplacement, 'Hero loading');
 
   return source;

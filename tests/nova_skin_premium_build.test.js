@@ -121,6 +121,45 @@ function upstreamFixture(eol = '\r\n') {
     '      } catch (e) {}',
     '  }',
     '',
+    '  function buildHero() {',
+    '    if (!heroEnabled()) {',
+    '      ui.hero_box.empty();',
+    '      ui.hero = null;',
+    "      ui.hero_kind = '';",
+    '      return null;',
+    '    }',
+    '',
+    '    var target = nav ? null : pickResume(items);',
+    '    var button = playButton();',
+    "    var kind = target ? 'full' : 'static';",
+    '    var withArt = artEnabled();',
+    '',
+    '    if (ui.hero && ui.hero_kind !== kind) {',
+    '      button.detach();',
+    '      nextButton().detach();',
+    '      ui.hero_box.empty();',
+    '      ui.hero = null;',
+    '    }',
+    '',
+    '    if (!ui.hero) {',
+    '      ui.hero_kind = kind;',
+    '    }',
+    '',
+    '    return button;',
+    '  }',
+    '',
+    '  function drawFixture() {',
+    '    hopStop();',
+    '    hopReset();',
+    '    loadingStop();',
+    "    root.addClass('nova-skin-scope nova-skin-chips');",
+    '    uiFrame();',
+    '',
+    '    var button = buildHero();',
+    '    buildRows();',
+    '    return button;',
+    '  }',
+    '',
     '  var loading_started = 0;',
     '  var loading_timer = null;',
     '',
@@ -237,6 +276,63 @@ function renderedProbeSetting(output, mode) {
   return added;
 }
 
+function heroTransition(output, preserve) {
+  const normalized = output.replace(/\r\n/g, '\n');
+  const start = normalized.indexOf('  function buildHero(');
+  const end = normalized.indexOf('\n\n  function drawFixture()', start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+
+  const hero = {};
+  let emptyCalls = 0;
+  let buttonDetaches = 0;
+  let nextDetaches = 0;
+  const context = {
+    nav: false,
+    items: [{}],
+    ui: {
+      hero,
+      hero_kind: 'static',
+      hero_box: {
+        empty() {
+          emptyCalls += 1;
+        }
+      }
+    },
+    heroEnabled() { return true; },
+    pickResume(list) { return list[0] || null; },
+    playButton() {
+      return {
+        detach() {
+          buttonDetaches += 1;
+        }
+      };
+    },
+    nextButton() {
+      return {
+        detach() {
+          nextDetaches += 1;
+        }
+      };
+    },
+    artEnabled() { return true; }
+  };
+
+  vm.runInNewContext(
+    normalized.slice(start, end) + '\nthis.buildHero = buildHero;',
+    context
+  );
+  context.buildHero(preserve);
+
+  return {
+    hero,
+    ui: context.ui,
+    emptyCalls,
+    buttonDetaches,
+    nextDetaches
+  };
+}
+
 function episodes(progress) {
   return Array.from({ length: 10 }, (_, index) => ({
     num: index + 1,
@@ -315,6 +411,21 @@ test('renders the initial source search inside the final hero shell', () => {
   assert.ok(!output.includes('ui.list.empty().append(skeleton('));
 });
 
+test('reuses the loaded hero when source search becomes playable results', () => {
+  const output = buildPremiumSource(upstreamFixture('\n'));
+  const held = heroTransition(output, true);
+  const regular = heroTransition(output, false);
+
+  assert.equal(held.ui.hero, held.hero);
+  assert.equal(held.ui.hero_kind, 'full');
+  assert.equal(held.emptyCalls, 0);
+  assert.equal(held.buttonDetaches, 1);
+  assert.equal(held.nextDetaches, 1);
+
+  assert.equal(regular.ui.hero, null);
+  assert.equal(regular.emptyCalls, 1);
+});
+
 test('keeps a directly loaded Premium build inert without bridge entitlement', () => {
   const output = buildPremiumSource(upstreamFixture('\n'));
   const denied = { window: { nova_skin_lampac_access: false } };
@@ -390,4 +501,31 @@ test('refuses to build when the upstream loading anchor has changed', () => {
   );
 
   assert.throws(() => buildPremiumSource(changed), /hero loading anchor/i);
+});
+
+test('refuses to build when the upstream hero reuse anchor has changed', () => {
+  const changed = upstreamFixture('\n').replace(
+    'if (ui.hero && ui.hero_kind !== kind) {',
+    'if (ui.hero && ui.hero_kind !== kind && ui.hero.parent().length) {'
+  );
+
+  assert.throws(() => buildPremiumSource(changed), /hero result reuse anchor/i);
+});
+
+test('refuses to build when the upstream result render anchor has changed', () => {
+  const changed = upstreamFixture('\n').replace(
+    'var button = buildHero();',
+    'var button = buildHero(false);'
+  );
+
+  assert.throws(() => buildPremiumSource(changed), /hero result render anchor/i);
+});
+
+test('refuses to build when the upstream result capture anchor has changed', () => {
+  const changed = upstreamFixture('\n').replace(
+    'hopReset();',
+    'hopReset(true);'
+  );
+
+  assert.throws(() => buildPremiumSource(changed), /hero result capture anchor/i);
 });

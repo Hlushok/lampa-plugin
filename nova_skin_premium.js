@@ -2716,7 +2716,7 @@
     ui.hero.find('.nova-hero__season').hide();
   }
 
-  function buildHero() {
+  function buildHero(preserve) {
     if (!heroEnabled()) {
       ui.hero_box.empty();
       ui.hero = null;
@@ -2732,8 +2732,11 @@
     if (ui.hero && ui.hero_kind !== kind) {
       button.detach();
       nextButton().detach();
-      ui.hero_box.empty();
-      ui.hero = null;
+      if (preserve) ui.hero_kind = kind;
+      else {
+        ui.hero_box.empty();
+        ui.hero = null;
+      }
     }
 
     if (!ui.hero) {
@@ -4097,6 +4100,7 @@
 
     hopStop();
     hopReset();
+    var preserve_loading_hero = !!(ui.hero && ui.hero.hasClass('nova-hero--loading'));
     loadingStop();
     root.addClass('nova-skin-scope nova-skin-chips');
     uiFrame();
@@ -4154,7 +4158,7 @@
     });
     listFree();
 
-    var button = buildHero();
+    var button = buildHero(preserve_loading_hero);
     buildRows();
 
     var locked = lockActive();
