@@ -1736,6 +1736,36 @@
       };
     }
 
+    if (typeof comp.draw === 'function') {
+      var nativeDraw = comp.draw;
+      comp.draw = function () {
+        var context = this;
+        var args = arguments;
+        var keep = null;
+        var keepHost = host;
+
+        try {
+          if (ui.root && ui.root[0] && ui.root.parent().length) keep = ui.root;
+        } catch (e) {
+          keep = null;
+        }
+
+        try {
+          if (keep) keep.detach();
+        } catch (e) {}
+
+        try {
+          return nativeDraw.apply(context, args);
+        } finally {
+          try {
+            if (keep && keepHost && document.body.contains(keepHost) && !$.contains(keepHost, keep[0])) {
+              $(keepHost).prepend(keep);
+            }
+          } catch (e) {}
+        }
+      };
+    }
+
     var real = comp.changeBalanser;
 
     comp.changeBalanser = function () {

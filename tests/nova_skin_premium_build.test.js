@@ -121,6 +121,27 @@ function upstreamFixture(eol = '\r\n') {
     '      } catch (e) {}',
     '  }',
     '',
+    '  function patchHost(comp) {',
+    '    if (!comp || comp.nova_host_hooked) return;',
+    "    if (typeof comp.changeBalanser !== 'function') return;",
+    '',
+    '    comp.nova_host_hooked = true;',
+    '',
+    "    if (typeof comp.request === 'function') {",
+    '      var request = comp.request;',
+    '      comp.request = function (url) {',
+    '        try { learnUrl(url); } catch (e) {}',
+    '        return request.apply(comp, arguments);',
+    '      };',
+    '    }',
+    '',
+    '    var real = comp.changeBalanser;',
+    '',
+    '    comp.changeBalanser = function () {',
+    '      return real.apply(comp, arguments);',
+    '    };',
+    '  }',
+    '',
     '  function buildHero() {',
     '    if (!heroEnabled()) {',
     '      ui.hero_box.empty();',
@@ -333,6 +354,71 @@ function heroTransition(output, preserve) {
   };
 }
 
+function nativeDrawTransition(output) {
+  const normalized = output.replace(/\r\n/g, '\n');
+  const start = normalized.indexOf('  function patchHost(comp) {');
+  const end = normalized.indexOf('\n\n  function buildHero(', start);
+  assert.notEqual(start, -1);
+  assert.notEqual(end, -1);
+
+  const image = { id: 'loaded-poster' };
+  const root = { image };
+  const host = { children: [root] };
+  const rootBox = {
+    0: root,
+    parent() {
+      return { length: host.children.includes(root) ? 1 : 0 };
+    },
+    detach() {
+      host.children = host.children.filter((item) => item !== root);
+      return this;
+    }
+  };
+  let attachedDuringClear = false;
+
+  function jquery(target) {
+    assert.equal(target, host);
+    return {
+      prepend(box) {
+        host.children = host.children.filter((item) => item !== box[0]);
+        host.children.unshift(box[0]);
+      }
+    };
+  }
+  jquery.contains = (parent, child) => parent.children.includes(child);
+
+  const component = {
+    changeBalanser() {},
+    draw(value) {
+      attachedDuringClear = host.children.includes(root);
+      host.children = [];
+      return `drawn:${value}`;
+    }
+  };
+  const context = {
+    ui: { root: rootBox },
+    host,
+    document: { body: { contains: (node) => node === host } },
+    $: jquery,
+    inplace: false
+  };
+
+  vm.runInNewContext(
+    normalized.slice(start, end) + '\nthis.patchHost = patchHost;',
+    context
+  );
+  context.patchHost(component);
+  const result = component.draw('episodes');
+
+  return {
+    result,
+    attachedDuringClear,
+    root,
+    image,
+    host
+  };
+}
+
 function episodes(progress) {
   return Array.from({ length: 10 }, (_, index) => ({
     num: index + 1,
@@ -424,6 +510,16 @@ test('reuses the loaded hero when source search becomes playable results', () =>
 
   assert.equal(regular.ui.hero, null);
   assert.equal(regular.emptyCalls, 1);
+});
+
+test('keeps the loaded poster mounted while native Online clears its result list', () => {
+  const output = buildPremiumSource(upstreamFixture('\n'));
+  const transition = nativeDrawTransition(output);
+
+  assert.equal(transition.attachedDuringClear, false);
+  assert.equal(transition.result, 'drawn:episodes');
+  assert.equal(transition.host.children[0], transition.root);
+  assert.equal(transition.host.children[0].image, transition.image);
 });
 
 test('keeps a directly loaded Premium build inert without bridge entitlement', () => {
@@ -528,4 +624,13 @@ test('refuses to build when the upstream result capture anchor has changed', () 
   );
 
   assert.throws(() => buildPremiumSource(changed), /hero result capture anchor/i);
+});
+
+test('refuses to build when the native draw preservation anchor has changed', () => {
+  const changed = upstreamFixture('\n').replace(
+    'var real = comp.changeBalanser;',
+    'var real = comp.changeBalanser.bind(comp);'
+  );
+
+  assert.throws(() => buildPremiumSource(changed), /native draw preservation anchor/i);
 });

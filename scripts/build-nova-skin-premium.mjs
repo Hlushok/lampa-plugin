@@ -158,6 +158,56 @@ const resumeReplacement = `    var reached = [];
     }
     return list[0];`;
 
+const nativeDrawPreservationAnchor = `    if (typeof comp.request === 'function') {
+      var request = comp.request;
+      comp.request = function (url) {
+        try { learnUrl(url); } catch (e) {}
+        return request.apply(comp, arguments);
+      };
+    }
+
+    var real = comp.changeBalanser;`;
+
+const nativeDrawPreservationReplacement = `    if (typeof comp.request === 'function') {
+      var request = comp.request;
+      comp.request = function (url) {
+        try { learnUrl(url); } catch (e) {}
+        return request.apply(comp, arguments);
+      };
+    }
+
+    if (typeof comp.draw === 'function') {
+      var nativeDraw = comp.draw;
+      comp.draw = function () {
+        var context = this;
+        var args = arguments;
+        var keep = null;
+        var keepHost = host;
+
+        try {
+          if (ui.root && ui.root[0] && ui.root.parent().length) keep = ui.root;
+        } catch (e) {
+          keep = null;
+        }
+
+        try {
+          if (keep) keep.detach();
+        } catch (e) {}
+
+        try {
+          return nativeDraw.apply(context, args);
+        } finally {
+          try {
+            if (keep && keepHost && document.body.contains(keepHost) && !$.contains(keepHost, keep[0])) {
+              $(keepHost).prepend(keep);
+            }
+          } catch (e) {}
+        }
+      };
+    }
+
+    var real = comp.changeBalanser;`;
+
 const heroResultReuseAnchor = `  function buildHero() {
     if (!heroEnabled()) {
       ui.hero_box.empty();
@@ -517,6 +567,7 @@ export function buildPremiumSource(upstreamSource) {
   source = replaceExactlyOnce(source, timelineAnchor, timelineReplacement, 'Timeline read');
   source = replaceExactlyOnce(source, timelineFieldAnchor, timelineFieldReplacement, 'Timeline updated field');
   source = replaceExactlyOnce(source, resumeAnchor, resumeReplacement, 'Resume');
+  source = replaceExactlyOnce(source, nativeDrawPreservationAnchor, nativeDrawPreservationReplacement, 'Native draw preservation');
   source = replaceExactlyOnce(source, heroResultReuseAnchor, heroResultReuseReplacement, 'Hero result reuse');
   source = replaceExactlyOnce(source, heroResultCaptureAnchor, heroResultCaptureReplacement, 'Hero result capture');
   source = replaceExactlyOnce(source, heroResultRenderAnchor, heroResultRenderReplacement, 'Hero result render');
