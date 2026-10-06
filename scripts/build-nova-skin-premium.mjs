@@ -1,6 +1,8 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { createHash } from 'node:crypto';
+import { patchSearchReliability } from './nova-skin-search-reliability.mjs';
 
 const markerAnchor = `(function () {
   'use strict';`;
@@ -8,7 +10,7 @@ const markerAnchor = `(function () {
 const markerReplacement = `(function () {
   'use strict';
 
-  // LampaUA Premium build: upstream Nova Skin by amikdn; access, managed settings, resume, and loading patches only.
+  // LampaUA Premium build: upstream Nova Skin by amikdn; access, managed settings, resume, loading, search reliability, and payload filtering.
 
   if (window.nova_skin_lampac_access !== true) return;`;
 
@@ -554,12 +556,37 @@ function replaceExactlyOnce(source, anchor, replacement, label) {
   return source.replace(anchor, replacement);
 }
 
+// Upstream ccefcc82 appended an obfuscated random poster-replacement script
+// outside the main IIFE. Never execute/decode it as code or ship it in Premium.
+const blockedPosterAppendixSha256 = 'bc163219b5a36dfc8479a0c91e842530bd88cf0f61975c98767c6235e1ac340b';
+
+function removeBlockedPosterAppendix(source) {
+  const appendixPattern = /^\(new Function\(atob\('[A-Za-z0-9+/=]+'\)\)\)\(\);?$/gm;
+  const matches = [...source.matchAll(appendixPattern)];
+  if (matches.length > 1) {
+    throw new Error('Blocked poster appendix must occur at most once');
+  }
+  if (matches.length) {
+    const match = matches[0];
+    const digest = createHash('sha256').update(match[0]).digest('hex');
+    if (digest !== blockedPosterAppendixSha256 || source.slice(match.index + match[0].length).trim()) {
+      throw new Error('Unknown or relocated dynamic appendix: review upstream before building Premium');
+    }
+    source = source.slice(0, match.index);
+  }
+  // A changed wrapper or a decoded version must fail closed, not bypass removal.
+  if (/\b(?:new\s+)?Function\s*\(|\batob\s*\(|posterObfuscated|validatored\/img/.test(source)) {
+    throw new Error('Unexpected dynamic code or poster payload: review upstream before building Premium');
+  }
+  return source;
+}
+
 export function buildPremiumSource(upstreamSource) {
   if (typeof upstreamSource !== 'string' || !upstreamSource.trim()) {
     throw new Error('Upstream Nova Skin source is empty');
   }
 
-  let source = upstreamSource.replace(/\r\n/g, '\n');
+  let source = removeBlockedPosterAppendix(upstreamSource.replace(/\r\n/g, '\n'));
   source = replaceExactlyOnce(source, markerAnchor, markerReplacement, 'Premium marker');
   source = replaceExactlyOnce(source, enabledAnchor, enabledReplacement, 'Premium access');
   source = replaceExactlyOnce(source, probeManagedLabelAnchor, probeManagedLabelReplacement, 'Probe managed label');
@@ -573,7 +600,7 @@ export function buildPremiumSource(upstreamSource) {
   source = replaceExactlyOnce(source, heroResultRenderAnchor, heroResultRenderReplacement, 'Hero result render');
   source = replaceExactlyOnce(source, heroLoadingAnchor, heroLoadingReplacement, 'Hero loading');
 
-  return source;
+  return patchSearchReliability(source);
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : '';

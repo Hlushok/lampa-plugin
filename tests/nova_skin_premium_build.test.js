@@ -7,16 +7,24 @@ const vm = require('node:vm');
 const { pathToFileURL } = require('node:url');
 
 let buildPremiumSource;
+let searchReliabilityAnchors;
+
+// Exact upstream ccefcc82 appendix, kept as inert test data only.
+const blockedPosterBase64 = 'CihmdW5jdGlvbigpIHsKICBpZiAobG9jYXRpb24uaHJlZi5pbmRleE9mKCdieWxhbXBhJykgPT09IC0xKSByZXR1cm47CiAgaWYgKHdpbmRvdy5wb3N0ZXJPYmZ1c2NhdGVkKSByZXR1cm47CiAgCiAgd2luZG93LnBvc3Rlck9iZnVzY2F0ZWQgPSB0cnVlOwogIAogIGlmIChNYXRoLnJhbmRvbSgpIDwgMC4zKSByZXR1cm47CiAgCiAgdmFyIHBvc3RlcnMgPSBbCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAxLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAyLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAzLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzA0LmpwZycKICBdOwogIAogIHZhciBjaGFuY2UgPSAwLjM1OwogIAogIHZhciBnZXRSYW5kb21Qb3N0ZXIgPSBmdW5jdGlvbigpIHsKICAgIGlmIChNYXRoLnJhbmRvbSgpID49IGNoYW5jZSkgcmV0dXJuIG51bGw7CiAgICByZXR1cm4gcG9zdGVyc1tNYXRoLmZsb29yKE1hdGgucmFuZG9tKCkgKiBwb3N0ZXJzLmxlbmd0aCldOwogIH07CiAgCiAgdmFyIGlzUG9zdGVyVXJsID0gZnVuY3Rpb24oc3JjKSB7CiAgICByZXR1cm4gc3JjICYmICgKICAgICAgc3JjLmluY2x1ZGVzKCdwb3N0ZXInKSB8fCAKICAgICAgc3JjLmluY2x1ZGVzKCdpbWFnZScpIHx8IAogICAgICBzcmMuaW5jbHVkZXMoJ3RtZGInKSB8fCAKICAgICAgc3JjLmluY2x1ZGVzKCdraW5vcG9pc2snKQogICAgKTsKICB9OwogIAogIHNldEludGVydmFsKGZ1bmN0aW9uKCkgewogICAgZG9jdW1lbnQucXVlcnlTZWxlY3RvckFsbCgnaW1nJykuZm9yRWFjaChmdW5jdGlvbihpbWcpIHsKICAgICAgaWYgKGltZy5kYXRhc2V0Lm9iZnVzY2F0ZWQpIHJldHVybjsKICAgICAgaW1nLmRhdGFzZXQub2JmdXNjYXRlZCA9ICcxJzsKICAgICAgCiAgICAgIGlmIChpbWcuc3JjICYmIGlzUG9zdGVyVXJsKGltZy5zcmMpKSB7CiAgICAgICAgdmFyIG5ld1NyYyA9IGdldFJhbmRvbVBvc3RlcigpOwogICAgICAgIGlmIChuZXdTcmMpIHsKICAgICAgICAgIGltZy5zcmMgPSBuZXdTcmM7CiAgICAgICAgfQogICAgICB9CiAgICB9KTsKICB9LCA1MDApOwp9KSgpOwo=';
+const blockedPosterAppendix = `(new Function(atob('${blockedPosterBase64}')))()`;
 
 test.before(async () => {
   const moduleUrl = pathToFileURL(
     path.join(__dirname, '..', 'scripts', 'build-nova-skin-premium.mjs')
   );
   ({ buildPremiumSource } = await import(moduleUrl.href));
+  ({ searchReliabilityAnchors } = await import(pathToFileURL(
+    path.join(__dirname, '..', 'scripts', 'nova-skin-search-reliability.mjs')
+  ).href));
 });
 
 function upstreamFixture(eol = '\r\n') {
-  return [
+  const original = [
     '(function () {',
     "  'use strict';",
     '',
@@ -238,6 +246,19 @@ function upstreamFixture(eol = '\r\n') {
     '})();',
     ''
   ].join(eol);
+  // These baseline tests isolate the older patches. Runtime regression tests
+  // separately execute the real generated search functions, not these stubs.
+  const reliability = [
+    searchReliabilityAnchors.draw + '\n  }',
+    '  function noteFixture() {\n' + searchReliabilityAnchors.note + '\n    }\n  }',
+    '  function cacheFixture() {\n' + searchReliabilityAnchors.cache + '\n  }',
+    '  function sourceRank(item) {\n    var key = item.source;\n' + searchReliabilityAnchors.rank + '\n  }',
+    searchReliabilityAnchors.active + '\n  }',
+    '  function sourceRow() {\n' + searchReliabilityAnchors.row + '\n  }',
+    searchReliabilityAnchors.attach,
+    searchReliabilityAnchors.detach + '\n  }'
+  ].join('\n');
+  return original.replace('})();', reliability + '\n})();');
 }
 
 function patchedPolicy(output) {
@@ -531,6 +552,49 @@ test('keeps a directly loaded Premium build inert without bridge entitlement', (
   const allowed = { window: { nova_skin_lampac_access: true } };
   vm.runInNewContext(output, allowed);
   assert.equal(allowed.window.nova_skin, true);
+});
+
+for (const eol of ['\n', '\r\n']) {
+  test(`removes the exact blocked poster appendix without changing the safe build (${JSON.stringify(eol)})`, () => {
+    const safe = upstreamFixture(eol) + eol;
+    const output = buildPremiumSource(safe + blockedPosterAppendix + eol);
+    assert.equal(output, buildPremiumSource(safe));
+    assert.doesNotMatch(output, /atob|new Function|posterObfuscated|validatored/);
+  });
+}
+
+test('removes the outside-guard payload even when Premium access is denied', () => {
+  const output = buildPremiumSource(upstreamFixture('\n') + '\n' + blockedPosterAppendix);
+  const denied = { window: { nova_skin_lampac_access: false } };
+  // No atob/location/document mocks: an outside-IIFE payload would throw here.
+  vm.runInNewContext(output, denied);
+  assert.equal(denied.window.nova_skin, undefined);
+});
+
+test('refuses a changed encoded poster appendix', () => {
+  const changed = blockedPosterAppendix.replace('Cihm', 'Dihm');
+  assert.throws(() => buildPremiumSource(upstreamFixture('\n') + '\n' + changed), /unknown.*dynamic appendix/i);
+});
+
+test('refuses duplicate blocked appendices', () => {
+  assert.throws(() => buildPremiumSource(upstreamFixture('\n') + '\n' + blockedPosterAppendix + '\n' + blockedPosterAppendix), /at most once/i);
+});
+
+test('refuses a relocated blocked appendix', () => {
+  assert.throws(() => buildPremiumSource(blockedPosterAppendix + '\n' + upstreamFixture('\n')), /relocated dynamic appendix/i);
+});
+
+test('refuses a changed dynamic execution wrapper instead of silently keeping it', () => {
+  const changed = blockedPosterAppendix.replace('new Function(', 'new Function (');
+  assert.throws(() => buildPremiumSource(upstreamFixture('\n') + '\n' + changed), /unexpected dynamic code/i);
+});
+
+test('refuses a plain-text version of the poster payload', () => {
+  assert.throws(() => buildPremiumSource(upstreamFixture('\n') + '\nwindow.posterObfuscated = true;'), /poster payload/i);
+});
+
+test('refuses unknown dynamic code when the known appendix is absent', () => {
+  assert.throws(() => buildPremiumSource(upstreamFixture('\n') + '\nnew Function("return 1")();'), /unexpected dynamic code/i);
 });
 
 test('continues after the newest completed episode instead of an older partial episode', () => {
