@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { buildAppearanceCss } from './nova-skin-appearance/bwa-styles.mjs';
 
 const startAnchor = '  function start() {\n    settings();';
+const destroyAnchor = "      if (e.type === 'destroy') {\n        if (pendingLive()) {";
 export const appearanceAnchors = [
   '  function start() {',
   '  function settings() {',
@@ -22,7 +23,7 @@ export function patchAppearance(source) {
   if (source.includes('function installNovaAppearance(')) {
     throw new Error('Appearance patch is already installed');
   }
-  for (const anchor of [...appearanceAnchors, startAnchor]) {
+  for (const anchor of [...appearanceAnchors, startAnchor, destroyAnchor]) {
     const count = source.split(anchor).length - 1;
     if (count !== 1) throw new Error(`Appearance anchor must occur exactly once; found ${count}: ${anchor}`);
   }
@@ -32,6 +33,13 @@ export function patchAppearance(source) {
   }
   const runtime = readFileSync(new URL('./nova-skin-appearance/runtime.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n').trimEnd();
   const css = buildAppearanceCss();
+  // Back activates Online immediately, then destroys the actor 200 ms later.
+  // That delayed event must never detach the newly active Online layout.
+  source = source.replace(destroyAnchor,
+    "      if (e.type === 'destroy') {\n" +
+    "        var active = Lampa.Activity.active();\n" +
+    "        if (e.object && active && e.object !== active) return;\n" +
+    '        if (pendingLive()) {');
   return source.replace(startAnchor,
     runtime.split('\n').map(line => line ? '  ' + line : '').join('\n') + '\n\n' +
     '  function start() {\n    installNovaAppearance(' + JSON.stringify(css) + ');\n    settings();');

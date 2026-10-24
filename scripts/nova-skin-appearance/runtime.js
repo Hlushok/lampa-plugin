@@ -112,7 +112,8 @@ function installNovaAppearance(css) {
       buildRows();
     }
     ui.appearanceDrawer.addClass('nova-layout__drawer--closed').attr('aria-hidden', 'true');
-    ui.appearanceDrawer.find('.selector').addClass('nova-layout__disabled-selector').removeClass('selector');
+    // Lampa binds mouse clicks only when selector nodes are inserted. Keep the
+    // class while hidden; collectionSet(..., true) already excludes the drawer.
     if (ui.appearanceSettings) ui.appearanceSettings.attr('aria-expanded', 'false');
     refreshCollection();
     if (restore !== false) focus(listTarget());
@@ -186,11 +187,14 @@ function installNovaAppearance(css) {
         ui.appearanceList = $('<div class="bwa-vlist"></div>').addClass(mode === 'credits' ? 'bwv-list' : 'bwv-plist').append(ui.list.addClass('bwa-vlist__track'));
         ui.appearanceMain.append(ui.appearanceList);
       }
-      ui.list.on('wheel.novaAppearance', function (event) {
+      ui.list.add(ui.rows).on('wheel.novaAppearance', function (event) {
         if (current() !== 'filmstrip') return;
+        // Activity stacks retain old DOM while the shared ui object is reset.
+        var rail = $(this).closest('.bwv-rail,.bwv-chips--opts')[0];
+        if (!rail) return;
         var wheel = event.originalEvent || event;
         if (Math.abs(wheel.deltaY || 0) > Math.abs(wheel.deltaX || 0)) {
-          ui.appearanceRail[0].scrollLeft += wheel.deltaY;
+          rail.scrollLeft += wheel.deltaY;
           event.preventDefault();
         }
       });
@@ -509,7 +513,7 @@ function installNovaAppearance(css) {
     if (!panel.length) return true;
     var target = node.getBoundingClientRect();
     var seat = panel[0].getBoundingClientRect();
-    if ((current() === 'filmstrip' && panel.is('.bwv-rail')) || panel.is('.bwv-info__p')) {
+    if ((current() === 'filmstrip' && panel.is('.bwv-rail,.bwv-chips')) || panel.is('.bwv-info__p')) {
       if (target.left < seat.left + 8) panel[0].scrollLeft -= seat.left - target.left + 12;
       if (target.right > seat.right - 8) panel[0].scrollLeft += target.right - seat.right + 12;
     } else {

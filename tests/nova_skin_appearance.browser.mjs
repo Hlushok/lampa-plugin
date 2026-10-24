@@ -15,19 +15,28 @@ const output = resolve(args['--output']);
 mkdirSync(output, { recursive: true });
 const css = buildAppearanceCss();
 const bridge = readFileSync(new URL('./fixtures/nova_appearance_bridge.js', import.meta.url), 'utf8');
-const source = buildPremiumSource(readFileSync(resolve(args['--upstream']), 'utf8'))
-  .replace('  if (window.appready) start();', bridge + '\n  if (window.appready) start();');
+const generated = buildPremiumSource(readFileSync(resolve(args['--upstream']), 'utf8'));
+const activityListener = generated.slice(generated.indexOf("    Lampa.Listener.follow('activity', function (e) {"), generated.indexOf("    Lampa.Controller.listener.follow('toggle', function (e) {"));
+assert.ok(activityListener.includes("e.type === 'destroy'"), 'verify the production activity listener');
+const source = generated.replace('  if (window.appready) start();', bridge + '\nwindow.novaFixture.listen = function () {\n' + activityListener + '\n};\n  if (window.appready) start();');
 const jquery = readFileSync(resolve(args['--jquery']), 'utf8');
+const lampaDirectory = resolve(args['--jquery'], '../../..');
+const lampaBundle = readFileSync(join(lampaDirectory, 'app.min.js'), 'utf8');
+const nativeController = lampaBundle.slice(lampaBundle.indexOf('\tvar listener$2 = Subscribe$2();'), lampaBundle.indexOf('\tvar http = window.location.protocol'));
+assert.ok(nativeController.includes('function collectionFocus('), 'verify the actual Lampa controller');
+const navigator = readFileSync(join(lampaDirectory, 'vender/navigator/navigator.js'), 'utf8');
 const fontDirectory = resolve(args['--jquery'], '../../../fonts/SegoeUI');
 const fontFaces = [['SegoeUI',400],['SegoeUI-SemiBold',600],['SegoeUI-Bold',700]].map(([name,weight]) => '@font-face{font-family:SegoeUI;src:url(data:font/woff;base64,' + readFileSync(join(fontDirectory, name + '.woff')).toString('base64') + ');font-weight:' + weight + '}').join('');
 const rawBwa = name => readFileSync(new URL('../scripts/nova-skin-appearance/bwa/' + name + '.css', import.meta.url), 'utf8');
 const browser = await chromium.launch({ executablePath: resolve(args['--edge']), headless: true });
 let checks = 0;
+const browserErrors = new WeakMap();
 
 async function fixture(mode, options = {}, width = 1600, height = 900) {
   const page = await browser.newPage({ viewport: { width, height } });
   await page.route('**/*', route => route.abort());
   const errors = [];
+  browserErrors.set(page, errors);
   page.on('pageerror', error => errors.push(error.message));
   await page.setContent('<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;height:100%;background:#0b0b0c;color:#eee;font:18px Arial}body{overflow:hidden}*{box-sizing:border-box}.head{height:80px;border-bottom:1px solid #333;padding:20px 36px;font-size:30px}.fixture{height:calc(100vh - 80px)}.explorer__files-body,.scroll{height:100%;width:100%;overflow:auto}.scroll__body{min-height:100%;width:100%;padding:26px 36px}.focus{outline:2px solid #fff}</style></head><body><div class="head">LampaUA · Оформлення</div><div class="fixture"><div class="explorer__files-body"><div class="scroll"><div class="scroll__body"><div class="native-results"></div></div></div></div></div></body></html>');
   await page.addStyleTag({ content: fontFaces + 'body{font-family:SegoeUI,sans-serif;line-height:1}' });
@@ -52,11 +61,12 @@ async function fixture(mode, options = {}, width = 1600, height = 900) {
       Storage: storage,
       Lang: { translate: key => translations[key] && (translations[key].uk || translations[key].en) || key, add: entries => Object.assign(translations, entries) },
       SettingsApi: { addParam() {}, addComponent() {} },
-      Listener: { follow() {} },
+      Listener: { callbacks: {}, follow(name, fn) { (this.callbacks[name] ||= []).push(fn); }, send(name, value) { (this.callbacks[name] || []).forEach(fn => fn(value)); } },
       Activity: { active: () => window.fixtureActivity, replace: () => window.fixtureActions.push(['replace']), push: value => window.fixtureActions.push(['activity', value.component]) },
       Timeline: { view: hash => ({ percent: window.fixtureProgress[+hash.split(':')[1]] || 0, updated: hash === 'fixture:0' ? 1000 : 0 }) },
       TMDB: { image: () => window.fixtureArtwork(0) },
       Controller: {
+        listener: { follow() {} },
         add: (name, object) => { window.fixtureControllers[name] = object; },
         enabled: () => window.fixtureControllers.content || { name: 'content' },
         enable() {}, collectionSet() {},
@@ -68,8 +78,29 @@ async function fixture(mode, options = {}, width = 1600, height = 900) {
       Player: { listener: { follow() {} } }
     };
   });
+  if (options.nativeController) {
+    await page.addScriptTag({ content: navigator });
+    await page.addScriptTag({ content: `(function () {
+      function Subscribe$2() { const callbacks = {}; return { follow(name, fn) { (callbacks[name] ||= []).push(fn); }, send(name, value) { (callbacks[name] || []).forEach(fn => fn(value)); } }; }
+      HTMLElement.prototype.toggleClass = function (name, value) { this.classList.toggle(name, value); };
+      HTMLElement.prototype.addClass = function (name) { this.classList.add(name); };
+      HTMLElement.prototype.removeClass = function (name) { this.classList.remove(name); };
+      const Storage = { field: key => key === 'navigation_type' ? 'mouse' : false };
+      const Platform = { screen: name => name === 'tv' };
+      const DeviceInput = { canClick: () => true, noDubleClick: () => true };
+      const Utils$1 = { trigger(node, name) { node.dispatchEvent(new Event(name, { bubbles: false, cancelable: true })); }, isTouchDevice: () => false };
+      const Activity = { call() {} }, Layer = { update() {} }, Screensaver$2 = { stopSlideshow() {} };
+      ${nativeController}
+      const add = Controller.add;
+      Controller.add = function (name, object) { window.fixtureControllers[name] = object; return add(name, object); };
+      Lampa.Controller = Controller;
+      Navigator.follow('focus', event => Controller.focus(event.elem));
+      Controller.observe();
+    })();` });
+  }
   await page.addScriptTag({ content: source });
   await page.evaluate(({ mode, options, css }) => window.novaFixture.mount(mode, options, css), { mode, options, css });
+  if (options.nativeController) await page.evaluate(() => Lampa.Controller.toggle('content'));
   assert.deepEqual(errors, [], 'render script errors');
   await page.evaluate(() => document.fonts.ready);
   return page;
@@ -132,6 +163,66 @@ async function compareOriginalBwa(page, mode) {
 }
 
 try {
+  for (const mode of ['filmstrip', 'credits', 'credits_plus']) {
+    const page = await fixture(mode, { lifecycle: true });
+    await page.evaluate(() => { novaFixture.enter('appearance:details'); novaFixture.enter('appearance:person:0'); novaFixture.actorRoundTrip(); });
+    await page.waitForTimeout(450);
+    assert.equal(await page.locator('.nova-bwa-scope').count(), 1, mode + ' actor destruction must not strip the restored Online styles'); checks++;
+    assert.equal(await page.locator('.nova-skin-root').count(), 1, mode + ' actor return rebuilds exactly one live layout'); checks++;
+    await page.locator('.nova__list').dispatchEvent('wheel', { deltaY: 240 });
+    assert.deepEqual(browserErrors.get(page), [], mode + ' actor return and subsequent wheel cannot use discarded UI handles'); checks++;
+    await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.key('down'); });
+    assert.equal(await page.evaluate(() => novaFixture.currentFocus()), mode === 'filmstrip' ? 'item:0' : 'item:1', mode + ' navigation works after actor return'); checks++;
+    await page.close();
+  }
+  for (const mode of ['credits', 'credits_plus']) {
+    const page = await fixture(mode, { seasons: 32, sources: 32, nativeController: true });
+    if (mode === 'credits_plus') await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.key('right'); });
+    await page.locator('[data-nova-focus="season"]').click();
+    await page.waitForTimeout(60);
+    assert.equal(await page.evaluate(() => novaFixture.state().open), 'season', mode + ' a real mouse click opens the requested setting'); checks++;
+    const panel = page.locator(mode === 'credits' ? '.nova-layout__aside' : '.nova-layout__drawer');
+    assert.equal(await panel.evaluate(node => getComputedStyle(node).overflowY), 'auto', mode + ' settings must allow mouse-wheel scrolling'); checks++;
+    await panel.hover();
+    await page.mouse.wheel(0, 1800);
+    await page.waitForTimeout(100);
+    assert.ok(await panel.evaluate(node => node.scrollTop > 0), mode + ' real wheel scrolls long settings'); checks++;
+    await page.evaluate(() => { novaFixture.focus('season:27'); Lampa.Controller.enter(); });
+    await page.waitForTimeout(80);
+    assert.ok((await page.evaluate(() => fixtureActions)).some(action => action[0] === 'filter' && action[1] === 'filter'), mode + ' the native controller chooses the focused late option'); checks++;
+    assert.deepEqual(browserErrors.get(page), [], mode + ' pointer and native controller errors'); checks++;
+    await page.close();
+  }
+  for (const mode of ['filmstrip', 'credits', 'credits_plus']) {
+    const page = await fixture(mode, { seasons: 32, sources: 32, voices: 32, count: 640, nativeController: true });
+    for (const key of ['source', 'season', 'voice', 'jump']) {
+      if (mode === 'credits_plus') await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.key('right'); });
+      await page.locator('[data-nova-focus="' + key + '"]').click();
+      await page.waitForTimeout(60);
+      assert.equal(await page.evaluate(() => novaFixture.state().open), key, mode + ' mouse opens ' + key); checks++;
+      const panel = page.locator(mode === 'credits' ? '.nova-layout__aside' : mode === 'credits_plus' ? '.nova-layout__drawer' : '.bwv-chips');
+      assert.equal(await panel.evaluate((node, mode) => getComputedStyle(node)[mode === 'filmstrip' ? 'overflowX' : 'overflowY'], mode), 'auto', mode + ' scrollable ' + key); checks++;
+      await panel.hover();
+      await page.mouse.wheel(0, 6000);
+      await page.waitForTimeout(100);
+      const option = page.locator('.nova-drop .nova-chip').last();
+      const optionKey = await option.getAttribute('data-nova-focus');
+      const visible = await option.evaluate((node, selector) => {
+        const bounds = document.querySelector(selector).getBoundingClientRect(), rect = node.getBoundingClientRect();
+        return rect.left >= bounds.left && rect.right <= bounds.right && rect.top >= bounds.top && rect.bottom <= bounds.bottom;
+      }, mode === 'credits' ? '.nova-layout__aside' : mode === 'credits_plus' ? '.nova-layout__drawer' : '.bwv-chips');
+      assert.equal(visible, true, mode + ' wheel brings the final ' + key + ' option into view'); checks++;
+      const changesBefore = (await page.evaluate(() => fixtureActions)).filter(action => action[0] === 'filter').length;
+      await option.click();
+      await page.waitForTimeout(80);
+      assert.equal(await page.evaluate(() => novaFixture.state().open), '', mode + ' click chooses ' + optionKey); checks++;
+      if (key === 'jump') assert.equal(await page.locator('.nova-card').first().getAttribute('data-nova-focus'), optionKey.replace('jump:', 'item:'), mode + ' selected final episode range is rendered');
+      else assert.equal((await page.evaluate(() => fixtureActions)).filter(action => action[0] === 'filter').length, changesBefore + 1, mode + ' final ' + key + ' option invokes the original filter');
+      checks++;
+    }
+    assert.deepEqual(browserErrors.get(page), [], mode + ' all option lists retain mouse handlers'); checks++;
+    await page.close();
+  }
   {
     const page = await fixture('credits', { metadata: true });
     await page.waitForTimeout(50);

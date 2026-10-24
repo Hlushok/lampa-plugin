@@ -130,10 +130,12 @@ test('the generator fails closed on missing or duplicated appearance integration
     const startup = pristine.indexOf('  function start() {', runtimeStart);
     pristine = pristine.slice(0, runtimeStart) + pristine.slice(startup);
     pristine = pristine.replace(/^    installNovaAppearance\(.*\);\n/m, '');
+    pristine = pristine.replace("        var active = Lampa.Activity.active();\n        if (e.object && active && e.object !== active) return;\n", '');
   }
   assert.throws(() => patch(pristine.replace('  function start() {', '  function renamedStart() {')), /appearance|Appearance/);
   assert.throws(() => patch(pristine + '\n  function start() {}'), /appearance|Appearance/);
   assert.throws(() => patch(pristine.replace('  function buildCard(', '  function renamedCard(')), /appearance|Appearance/);
+  assert.throws(() => patch(pristine.replace("      if (e.type === 'destroy') {", "      if (e.type === 'removed') {")), /appearance|Appearance/);
   assert.throws(() => patch(patch(pristine)), /already installed/);
 });
 

@@ -255,6 +255,13 @@ function upstreamFixture(eol = '\r\n') {
     '  }',
     '  function start() {',
     '    settings();',
+    "    Lampa.Listener.follow('activity', function (e) {",
+    "      if (e.type === 'destroy') {",
+    '        if (pendingLive()) {',
+    '          return;',
+    '        }',
+    '      }',
+    '    });',
     '  }',
     '})();',
     ''

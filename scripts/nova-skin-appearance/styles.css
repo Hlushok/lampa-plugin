@@ -10,13 +10,13 @@
 .nova-bwa-scope .nova-bwa-logo-slot{display:block;line-height:1}
 .nova-bwa-scope .nova-bwa-logo-slot img{width:auto;height:auto}
 .nova-bwa-scope .nova-bwa-logo-slot img{filter:none!important;-webkit-filter:none!important}
-.nova-bwa-scope .nova-layout__aside,.nova-bwa-scope .nova-layout__drawer,.nova-bwa-scope .bwv-list,.nova-bwa-scope .bwv-plist{overflow-y:auto;scrollbar-width:none}
+.nova-bwa-scope.nova-bwa-scope .nova-skin-root .nova-layout__aside,.nova-bwa-scope.nova-bwa-scope .nova-skin-root .nova-layout__drawer,.nova-bwa-scope.nova-bwa-scope .nova-skin-root .bwv-list,.nova-bwa-scope.nova-bwa-scope .nova-skin-root .bwv-plist{overflow-y:auto;scrollbar-width:none}
 .nova-bwa-scope .nova-layout__aside::-webkit-scrollbar,.nova-bwa-scope .nova-layout__drawer::-webkit-scrollbar,.nova-bwa-scope .bwv-list::-webkit-scrollbar,.nova-bwa-scope .bwv-plist::-webkit-scrollbar,.nova-bwa-scope .bwv-rail::-webkit-scrollbar{display:none}
-.nova-bwa-scope .bwv-rail{overflow-x:auto;scrollbar-width:none}
+.nova-bwa-scope.nova-bwa-scope .nova-skin-root .bwv-rail{overflow-x:auto;scrollbar-width:none}
 .nova-bwa-scope .bwv-rail>.nova__list{white-space:nowrap;padding-top:.35em;display:flex;align-items:stretch}
 .nova-bwa-scope .bwv-chips--opts>.nova-drop{display:inline-flex;white-space:nowrap;vertical-align:middle}
 .nova-bwa-scope .bwv-chips--opts>.nova-toolbar{display:none}
-.nova-bwa-scope .bwv-chips--opts{overflow-x:auto;scrollbar-width:none}
+.nova-bwa-scope.nova-bwa-scope .nova-skin-root .bwv-chips--opts{overflow-x:auto;scrollbar-width:none}
 .nova-bwa-scope .nova-layout__drawer>.bwa-vlist__track{padding:1.5em 1.2em 3em}
 .nova-bwa-scope .bwv-btns.nova-hero__actions{display:block;min-width:0}
 .nova-bwa-scope .bwv--m .nova-layout__aside,.nova-bwa-scope .bwv--m .bwv-plist,.nova-bwa-scope .bwv--m .bwv-list{overflow:visible}

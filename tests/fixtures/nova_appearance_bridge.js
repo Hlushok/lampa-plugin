@@ -14,7 +14,8 @@ window.novaFixture = {
     }
     save('nova_skin_probe', false);
     save('nova_skin_hero_art', options.art !== false);
-    root = $('.fixture');
+    root = $('.fixture').addClass('explorer');
+    var activityRoot = root;
     host = root.find('.scroll__body')[0];
     movie = {
       id: 39351, name: options.film ? undefined : 'Грімм', title: options.film ? 'Тестовий фільм' : undefined,
@@ -38,7 +39,7 @@ window.novaFixture = {
         setTimeout(function () { done(answer); }, 0);
       } } } };
     }
-    window.fixtureActivity = { component: 'lampac', movie: movie, activity: { render: function () { return root; } } };
+    window.fixtureActivity = { component: 'lampac', movie: movie, activity: { render: function () { return activityRoot; } } };
     groups = {
       sort: [{ title: 'HDVB', source: 'hdvb', selected: true }, { title: 'Другий', source: 'second' }],
       season: { stype: 'season', title: 'Сезон', subtitle: '1 із 6', items: [{ title: '1', selected: true }, { title: '2' }] },
@@ -47,6 +48,14 @@ window.novaFixture = {
     if (options.seasons) {
       groups.season.items = [];
       for (var season = 0; season < options.seasons; season++) groups.season.items.push({ title: String(season + 1), selected: season === 0 });
+    }
+    if (options.sources) {
+      groups.sort = [];
+      for (var source = 0; source < options.sources; source++) groups.sort.push({ title: 'Джерело ' + source, source: 'source' + source, selected: source === 0 });
+    }
+    if (options.voices) {
+      groups.voice.items = [];
+      for (var voice = 0; voice < options.voices; voice++) groups.voice.items.push({ title: 'Доріжка ' + voice, selected: voice === 0 });
     }
     filter = { onSelect: function (type, choice, value) {
       window.fixtureActions.push(['filter', type]);
@@ -58,6 +67,9 @@ window.novaFixture = {
       }
       setTimeout(function () { switchDone(); window.novaFixture.render(); }, 0);
     } };
+    filter.nova_sets = { sort: groups.sort, filter: [groups.season, groups.voice] };
+    filter.render = function () { return activityRoot.find('.native-results'); };
+    filters.unshift(filter);
     extras = [];
     ui = {};
     ui_open = '';
@@ -96,6 +108,7 @@ window.novaFixture = {
     this.render();
     if (options.error) this.showError();
     if (options.loading) this.showLoading();
+    if (options.lifecycle) this.listen();
   },
   render: function () {
     items = collect();
@@ -132,6 +145,20 @@ window.novaFixture = {
     loadingPanel();
   },
   finishLoading: function () { loadingStop(); this.render(); },
+  actorRoundTrip: function () {
+    var online = window.fixtureActivity;
+    var actorRoot = $('<div class="fixture-actor"></div>').appendTo(document.body);
+    var actor = { component: 'actor', activity: { render: function () { return actorRoot; } } };
+    window.fixtureActivity = actor;
+    Lampa.Listener.send('activity', { type: 'start', object: actor });
+    window.fixtureActivity = online;
+    Lampa.Listener.send('activity', { type: 'start', object: online });
+    Lampa.Listener.send('activity', { type: 'archive', object: online });
+    setTimeout(function () {
+      actorRoot.remove();
+      Lampa.Listener.send('activity', { type: 'destroy', object: actor });
+    }, 200);
+  },
   focus: function (key) { return focusNode(seek(key), true); },
   key: function (direction) { return window.fixtureControllers.content[direction](); },
   enter: function (key, long) { var node = seek(key); if (node) node.trigger(long ? 'hover:long' : 'hover:enter'); },
