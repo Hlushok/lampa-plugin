@@ -16,6 +16,7 @@ window.novaFixture = {
     save('nova_skin_probe', false);
     save('nova_skin_hero_art', options.art !== false);
     if (options.language) save('language', options.language);
+    if (options.accent) save('nova_skin_accent', options.accent);
     root = $('.fixture').addClass('explorer');
     var activityRoot = root;
     host = root.find('.scroll__body')[0];
@@ -180,6 +181,8 @@ window.novaFixture = {
   enter: function (key, long) { var node = seek(key); if (node) node.trigger(long ? 'hover:long' : 'hover:enter'); },
   currentFocus: function () { return ui_focus; },
   current: function () { return installNovaAppearance.api.current(); },
+  accent: function () { return installNovaAppearance.api.accent(); },
+  chooseAccent: function (value) { installNovaAppearance.api.accentSetting().onChange(value); },
   choose: function (mode) { installNovaAppearance.api.setting().onChange(mode); },
   apply: function (mode) { this.choose(mode); if (enabled()) this.render(); else refreshCollection(); },
   refreshProgress: function (index, percent) { window.fixtureProgress[index] = percent; refreshMarks(); },

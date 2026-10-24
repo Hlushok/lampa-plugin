@@ -12,14 +12,15 @@ const patchPath = path.join(__dirname, '..', 'scripts', 'nova-skin-appearance.mj
 const source = fs.readFileSync(path.join(__dirname, '..', 'nova_skin_premium.js'), 'utf8');
 const modes = ['native', 'nova', 'poster', 'filmstrip', 'credits', 'credits_plus'];
 
-function harness(initial = {}, access = true) {
+function harness(initial = {}, access = true, css = '') {
   const storage = { language: 'uk', ...initial };
   const added = [];
+  const styles = {};
   let replacements = 0;
   const noop = () => {};
   const context = {
     window: { nova_skin_lampac_access: access, addEventListener: noop },
-    document: {},
+    document: { getElementById: id => styles[id], createElement: () => ({}), head: { appendChild: node => { styles[node.id] = node; } } },
     ENABLED_KEY: 'nova_skin_enabled',
     ui: {}, root: null, host: null, movie: null, last: null, items: [],
     groups: {}, extras: [], ui_open: '', ui_focus: '', ui_lock: '',
@@ -51,11 +52,11 @@ function harness(initial = {}, access = true) {
   const navigation = { up: context.novaUp, down: context.novaDown, left: context.novaLeft, right: context.novaRight };
   vm.createContext(context);
   if (fs.existsSync(runtimePath)) {
-    vm.runInContext(fs.readFileSync(runtimePath, 'utf8') + '\nthis.api = installNovaAppearance("");', context);
+    vm.runInContext(fs.readFileSync(runtimePath, 'utf8') + '\nthis.api = installNovaAppearance(' + JSON.stringify(css) + ');', context);
   }
   context.settings();
   return {
-    context, storage, added, navigation,
+    context, storage, added, navigation, styles,
     setting: added.find(entry => entry.param.name === 'nova_skin_appearance'),
     replacements: () => replacements
   };
@@ -68,6 +69,65 @@ test('appearance menu replaces the boolean toggle with six ordered Ukrainian cho
   assert.deepEqual(Object.keys(state.setting.param.values), modes);
   assert.deepEqual(Object.values(state.setting.param.values), ['Рідний', 'Нова', 'Афіша', 'Плівка', 'Титри', 'Титри+']);
   assert.equal(state.added.some(entry => entry.param.name === 'nova_skin_enabled'), false);
+});
+
+test('accent setting offers lavender by default and all five approved palettes', () => {
+  const state = harness();
+  const accent = state.added.find(entry => entry.param.name === 'nova_skin_accent');
+  assert.ok(accent, 'accent belongs in the plugin settings');
+  assert.equal(accent.field.name, 'Колір акценту');
+  assert.deepEqual(Object.keys(accent.param.values), ['lavender', 'blue', 'mint', 'gold', 'silver']);
+  assert.deepEqual(Object.values(accent.param.values), ['Лавандовий', 'Блакитний', 'М’ятний', 'Золотистий', 'Сріблястий']);
+  assert.equal(accent.param.default, 'lavender');
+  assert.equal(state.context.api.accent(), 'lavender');
+  assert.equal(state.added.indexOf(accent), state.added.indexOf(state.setting) + 1);
+});
+
+test('accent preference persists and changes only the existing stylesheet', () => {
+  const css = '.nova-bwa-scope .focus{color:#ffd400;background:rgba(255,212,0,.06);border:1px solid #8a7d3e;padding:12px}.neutral{color:#f3edd8;background:#0c0c0d}.seen{color:#54e08a}';
+  const state = harness({}, true, css);
+  const style = state.styles['nova-appearance-css'];
+  assert.ok(style.textContent.includes('#a5b4fc'));
+  const originalDirections = state.navigation;
+  state.context.api.accentSetting().onChange('blue');
+  assert.equal(state.storage.nova_skin_accent, 'blue');
+  assert.equal(state.styles['nova-appearance-css'], style, 'keep the original style node');
+  assert.ok(style.textContent.includes('#74b9ff'));
+  assert.ok(style.textContent.includes('rgba(116,185,255,.06)'));
+  assert.ok(style.textContent.includes('padding:12px'));
+  assert.ok(style.textContent.includes('.neutral{color:#f3edd8;background:#0c0c0d}.seen{color:#54e08a}'));
+  assert.equal(state.replacements(), 0, 'changing color never replaces the activity');
+  assert.equal(state.setting.param.default, 'nova', 'appearance remains unchanged');
+  assert.equal(state.context.novaUp, originalDirections.up);
+  state.context.api.accentSetting().onChange('mint');
+  assert.ok(style.textContent.includes('#64d8c3'));
+  assert.equal(style.textContent.includes('#74b9ff'), false, 'always recolor the pristine CSS');
+  const reloaded = harness(state.storage, true, css);
+  assert.equal(reloaded.context.api.accent(), 'mint');
+  assert.equal(reloaded.styles['nova-appearance-css'].textContent, style.textContent);
+  for (const [name, color, rgb] of [['gold','#d8b56a','216,181,106'],['silver','#c7cdd8','199,205,216']]) {
+    state.context.api.accentSetting().onChange(name);
+    assert.ok(style.textContent.includes(color));
+    assert.ok(style.textContent.includes('rgba(' + rgb + ',.06)'));
+    assert.equal(state.replacements(), 0);
+    assert.equal(harness(state.storage).context.api.accent(), name);
+  }
+});
+
+test('invalid saved accents fall back to lavender without affecting the selected appearance', () => {
+  const state = harness({ nova_skin_accent: 'unknown', nova_skin_appearance: 'credits' });
+  assert.equal(state.context.api.accent(), 'lavender');
+  assert.equal(state.context.api.current(), 'credits');
+  state.context.api.accentSetting().onChange('invalid');
+  assert.equal(state.context.api.accent(), 'lavender');
+  assert.equal(state.replacements(), 0);
+});
+
+test('accent setting follows the plugin language and safely falls back to English', () => {
+  for (const [language, title] of [['uk','Колір акценту'],['ua','Колір акценту'],['ru','Цвет акцента'],['en','Accent color'],['unknown','Accent color'],['__proto__','Accent color']]) {
+    const state = harness({ language });
+    assert.equal(state.context.api.accentSetting().field.name, title);
+  }
 });
 
 test('all appearances retain the original Nova directional handlers', () => {

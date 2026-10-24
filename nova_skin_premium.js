@@ -4885,12 +4885,62 @@
   function installNovaAppearance(css) {
     if (installNovaAppearance.api) return installNovaAppearance.api;
     var KEY = 'nova_skin_appearance';
+    var ACCENT_KEY = 'nova_skin_accent';
+    var ACCENTS = { lavender: [165, 180, 252], blue: [116, 185, 255], mint: [100, 216, 195], gold: [216, 181, 106], silver: [199, 205, 216] };
     var ORDER = ['native', 'nova', 'poster', 'filmstrip', 'credits', 'credits_plus'];
     var TEXT = {
       uk: { title: 'Оформлення', description: 'Вигляд картки та списку серій', names: ['Рідний', 'Нова', 'Афіша', 'Плівка', 'Титри', 'Титри+'], settings: 'Налаштування', close: 'Закрити', details: 'Докладніше', creators: 'Творці', cast: 'У ролях', studio: 'Студія', network: 'Канал', settingsHint: 'Оберіть рядок налаштувань і натисніть OK' },
       ru: { title: 'Оформление', description: 'Вид карточки и списка серий', names: ['Родной', 'Нова', 'Афиша', 'Плёнка', 'Титры', 'Титры+'], settings: 'Настройки', close: 'Закрыть', details: 'Подробнее', creators: 'Создатели', cast: 'В ролях', studio: 'Студия', network: 'Канал', settingsHint: 'Выберите строку настроек и нажмите OK' },
       en: { title: 'Appearance', description: 'Movie details and episode layout', names: ['Native', 'Nova', 'Poster', 'Filmstrip', 'Credits', 'Credits+'], settings: 'Settings', close: 'Close', details: 'More details', creators: 'Creators', cast: 'Cast', studio: 'Studio', network: 'Network', settingsHint: 'Select the settings row and press OK' }
     };
+    var ACCENT_TEXT = {
+      uk: { title: 'Колір акценту', description: 'Для оформлень Афіша, Плівка, Титри та Титри+', names: ['Лавандовий', 'Блакитний', 'М’ятний', 'Золотистий', 'Сріблястий'] },
+      ru: { title: 'Цвет акцента', description: 'Для оформлений Афиша, Плёнка, Титры и Титры+', names: ['Лавандовый', 'Голубой', 'Мятный', 'Золотистый', 'Серебристый'] },
+      en: { title: 'Accent color', description: 'For Poster, Filmstrip, Credits and Credits+', names: ['Lavender', 'Blue', 'Mint', 'Gold', 'Silver'] }
+    };
+
+    function accent() {
+      var value = get(ACCENT_KEY, 'lavender');
+      return Object.prototype.hasOwnProperty.call(ACCENTS, value) ? value : 'lavender';
+    }
+    function accentCss(source) {
+      var rgb = ACCENTS[accent()];
+      function mix(base, amount) {
+        return '#' + rgb.map(function (channel, index) {
+          var hex = Math.round(channel * amount + base[index] * (1 - amount)).toString(16);
+          return hex.length === 1 ? '0' + hex : hex;
+        }).join('');
+      }
+      var colors = {
+        ffd400: mix([0, 0, 0], 1), f0a800: mix([0, 0, 0], 0.88),
+        ffe14d: mix([255, 255, 255], 0.75), '3a3300': '#10151b',
+        '3d3820': mix([12, 12, 13], 0.22), '8a7d3e': mix([12, 12, 13], 0.55)
+      };
+      // Repaint only the known accent tokens in the scoped, pristine CSS. Keep
+      // literal colors for old TV engines and leave every layout rule untouched.
+      return source.replace(/#(ffd400|f0a800|ffe14d|3a3300|3d3820|8a7d3e)\b/gi, function (match, color) {
+        return colors[color.toLowerCase()];
+      }).replace(/(\brgba?\(\s*|--bwa-rgb:\s*)255\s*,\s*212\s*,\s*0\b/gi, function (match, prefix) {
+        return prefix + rgb.join(',');
+      });
+    }
+    function accentSetting() {
+      var language = get('language', 'ru');
+      language = language === 'ua' ? 'uk' : language;
+      var text = Object.prototype.hasOwnProperty.call(ACCENT_TEXT, language) ? ACCENT_TEXT[language] : ACCENT_TEXT.en;
+      var values = {};
+      ['lavender', 'blue', 'mint', 'gold', 'silver'].forEach(function (name, index) { values[name] = text.names[index]; });
+      return {
+        component: 'nova_skin',
+        param: { name: ACCENT_KEY, type: 'select', values: values, default: accent() },
+        field: { name: text.title, description: text.description },
+        onChange: function (value) {
+          save(ACCENT_KEY, Object.prototype.hasOwnProperty.call(ACCENTS, value) ? value : 'lavender');
+          var style = document.getElementById('nova-appearance-css');
+          if (style) style.textContent = accentCss(css);
+        }
+      };
+    }
 
     function valid(value) { return ORDER.indexOf(value) !== -1; }
     function current() {
@@ -4931,10 +4981,13 @@
       if (!api || typeof api.addParam !== 'function') return originalSettings.apply(this, arguments);
       var addParam = api.addParam;
       api.addParam = function (entry) {
-        if (entry && entry.component === 'nova_skin' && entry.param && entry.param.name === ENABLED_KEY) {
+        var appearance = entry && entry.component === 'nova_skin' && entry.param && entry.param.name === ENABLED_KEY;
+        if (appearance) {
           entry = setting();
         }
-        return addParam.call(api, entry);
+        var result = addParam.call(api, entry);
+        if (appearance) addParam.call(api, accentSetting());
+        return result;
       };
       try { return originalSettings.apply(this, arguments); }
       finally { api.addParam = addParam; }
@@ -5565,7 +5618,7 @@
     if (css && !document.getElementById('nova-appearance-css')) {
       var style = document.createElement('style');
       style.id = 'nova-appearance-css';
-      style.textContent = css;
+      style.textContent = accentCss(css);
       (document.head || document.body).appendChild(style);
     }
     if (typeof addCSS === 'function') {
@@ -5579,7 +5632,7 @@
     }
     try { window.addEventListener('resize', size, false); } catch (ignore) {}
 
-    installNovaAppearance.api = { current: current, setting: setting };
+    installNovaAppearance.api = { current: current, setting: setting, accent: accent, accentSetting: accentSetting };
     return installNovaAppearance.api;
   }
 

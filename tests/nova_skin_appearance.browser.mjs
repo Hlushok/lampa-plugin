@@ -164,7 +164,11 @@ async function compareOriginalBwa(page, mode) {
   await reference.route('**/*', route => route.abort());
   const base = await page.locator('head style').first().textContent();
   await reference.setContent('<!doctype html><html><head><style>' + base + fontFaces + 'body{font-family:SegoeUI,sans-serif;line-height:1}</style></head><body class="bwa-on"><div class="head">LampaUA · Оформлення</div><div class="fixture bwa-scope"><div class="explorer__files-body"><div class="scroll"><div class="scroll__body">' + markup + '</div></div></div></div></body></html>');
-  await reference.addStyleTag({ content: rawBwa('base') + rawBwa('theme') + (mode === 'credits' ? rawBwa('lite') : '') + (mode === 'poster' ? '' : rawBwa('views')) });
+  const referenceCss = rawBwa('base') + rawBwa('theme') + (mode === 'credits' ? rawBwa('lite') : '') + (mode === 'poster' ? '' : rawBwa('views'));
+  // Only the accent is customized. The original dimensions and all remaining
+  // pixels must still match BWA's reference at the selected accent color.
+  const referenceColors = { ffd400:'#a5b4fc', f0a800:'#919ede', ffe14d:'#bcc7fd', '3a3300':'#10151b', '3d3820':'#2e3142', '8a7d3e':'#606890' };
+  await reference.addStyleTag({ content: referenceCss.replace(/#(ffd400|f0a800|ffe14d|3a3300|3d3820|8a7d3e)\b/gi, (value,key) => referenceColors[key.toLowerCase()]).replace(/255,212,0/g,'165,180,252') });
   await reference.addStyleTag({ content: '*{transition:none!important;animation:none!important}' });
   await reference.evaluate(() => document.fonts.ready);
   const geometry = target => target.evaluate(selectors => selectors.map(selector => {
