@@ -5,6 +5,13 @@ window.novaFixture = {
     save('nova_skin_appearance', mode);
     save('nova_skin_enabled', true);
     save('nova_skin_logo', false);
+    if (options.logo) {
+      save('nova_skin_logo', true);
+      logoPeek = function () { return '/fixture-logo.svg'; };
+      logoFetch = function (target, done) { done('/fixture-logo.svg'); };
+      logoUrl = function () { return 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="500" height="150"><text x="0" y="120" fill="white" font-size="140" font-family="serif">GRIMM</text></svg>'); };
+      logoTone = function (src, path, done) { done('ok'); };
+    }
     save('nova_skin_probe', false);
     save('nova_skin_hero_art', options.art !== false);
     root = $('.fixture');
@@ -16,9 +23,21 @@ window.novaFixture = {
       episode_run_time: [41], backdrop_path: '/fixture-backdrop.jpg',
       overview: 'Детектив розслідує незвичайні події та відкриває таємниці міста. Опис допомагає перевірити пропорції та читабельність оформлення.',
       genres: [{ name: 'Драма' }, { name: 'Детектив' }],
+      origin_country: ['US'], networks: [{ name: 'NBC' }],
+      credits: { cast: [{ name: 'Девід Джинтолі' }, { name: 'Silas Weir Mitchell' }, { name: 'Russell Hornsby' }, { name: 'Sasha Roiz' }] },
       production_companies: [{ name: 'Universal Television' }],
       created_by: [{ name: 'David Greenwalt' }, { name: 'Джим Коуф' }]
     };
+    if (options.metadata) {
+      delete movie.credits;
+      Lampa.Api = { sources: { tmdb: { get: function (url, params, done) {
+        window.fixtureActions.push(['metadata', url]);
+        // Lampa's actual URL builder ignores unknown params; append_to_response must be in the URL.
+        var answer = { id: movie.id };
+        if (url.indexOf('?append_to_response=credits') !== -1) answer.credits = { cast: [{ id: 1, name: 'Отриманий актор' }] };
+        setTimeout(function () { done(answer); }, 0);
+      } } } };
+    }
     window.fixtureActivity = { component: 'lampac', movie: movie, activity: { render: function () { return root; } } };
     groups = {
       sort: [{ title: 'HDVB', source: 'hdvb', selected: true }, { title: 'Другий', source: 'second' }],
@@ -50,6 +69,7 @@ window.novaFixture = {
     nav = !!options.folders;
     var count = options.count || 12;
     var nativeList = $('.native-results').empty();
+    $('<div class="filter--search selector"></div>').on('hover:enter', function () { window.fixtureActions.push(['native-search']); }).appendTo(nativeList);
     for (var i = 0; i < count; i++) {
       var original = $('<div class="online-prestige selector ' + (options.folders ? 'online-prestige--folder' : 'online-prestige--full') + '">' +
         '<div class="online-prestige__img"><img alt=""></div><div class="online-prestige__title"></div>' +
@@ -118,6 +138,7 @@ window.novaFixture = {
   currentFocus: function () { return ui_focus; },
   current: function () { return installNovaAppearance.api.current(); },
   choose: function (mode) { installNovaAppearance.api.setting().onChange(mode); },
+  refreshProgress: function (index, percent) { window.fixtureProgress[index] = percent; refreshMarks(); },
   restoreHiddenControl: function () { lockFocus('source', 1000); ui_focus = 'source'; restoreFocus(ui.play); },
   state: function () { return { mode: this.current(), focus: ui_focus, open: ui_open }; }
 };

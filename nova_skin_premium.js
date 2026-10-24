@@ -4941,6 +4941,8 @@
     };
 
     var state = { root: null, drawer: false, details: false, lastList: '', lastControl: '', returnList: false };
+    var metadata = {};
+    var noGap = null;
     function custom() { return enabled() && current() !== 'nova'; }
     function columns() { return current() === 'credits' || current() === 'credits_plus'; }
     function fixed() { return custom() && current() !== 'poster'; }
@@ -5002,17 +5004,28 @@
 
     function size() {
       if (!custom() || !ui.root) return;
-      var narrow = (ui.root[0].clientWidth || window.innerWidth) < 760;
-      ui.root.toggleClass('nova-layout--narrow', narrow);
-      if (!fixed() || narrow) { ui.root.css('height', ''); return; }
-      var height = window.innerHeight || document.documentElement.clientHeight;
-      var top = Math.max(0, ui.root[0].getBoundingClientRect().top);
-      ui.root.css('height', Math.max(340, height - top - 16) + 'px');
+      var width = window.innerWidth || ui.root[0].clientWidth;
+      var narrow = width < 760 || width < window.innerHeight;
+      ui.root.toggleClass('nova-layout--narrow bwv--m', narrow && fixed());
+      if (!fixed() || narrow) {
+        ui.root.css('height', '');
+        if (fixed()) ui.root.css('font-size', Math.max(13, Math.min(17, Math.round((window.innerWidth || 400) / 26))) + 'px');
+        return;
+      }
+      var scroll = ui.root.closest('.scroll')[0];
+      var height = Math.max(320, Math.round(scroll ? scroll.getBoundingClientRect().height : window.innerHeight * 0.88));
+      ui.root.css({ height: height + 'px', fontSize: (Math.round(height / 47 * 10) / 10) + 'px' });
     }
 
     function frame() {
       if (!custom() || !ui.root) return;
       var mode = current();
+      if (noGap === null) {
+        var test = $('<div style="position:absolute;visibility:hidden;display:flex;flex-direction:column;row-gap:1px"><div></div><div></div></div>').appendTo(document.body);
+        noGap = test[0].scrollHeight !== 1;
+        test.remove();
+      }
+      root.addClass('nova-bwa-scope').toggleClass('nova-bwa-fixed', fixed()).toggleClass('nova-bwa-credits', mode === 'credits').toggleClass('nova-bwa-no-gap', noGap);
       ui.root.addClass('nova-layout nova-layout--' + mode);
       if (state.root !== ui.root[0]) {
         state.root = ui.root[0];
@@ -5021,30 +5034,46 @@
         state.lastList = '';
         state.lastControl = '';
         state.returnList = false;
-        ui.appearanceBackdrop = $('<div class="nova-layout__backdrop" aria-hidden="true"><img alt=""></div>').prependTo(ui.root);
+        if (fixed()) {
+          ui.root.addClass('bwv ' + (mode === 'filmstrip' ? 'bwv--plenka' : mode === 'credits' ? 'bwv--titry' : 'bwv--plus'));
+          ui.appearanceBackdrop = $('<div class="bwv-bd" aria-hidden="true"></div>').prependTo(ui.root);
+          $('<div class="bwv-bdf" aria-hidden="true"></div>').insertAfter(ui.appearanceBackdrop);
+        }
+        if (mode === 'filmstrip') {
+          ui.rows.addClass('bwv-chips');
+          ui.appearanceRail = $('<div class="bwv-rail bwa-strip"></div>').appendTo(ui.root).append(ui.list);
+          ui.list.addClass('bwv-rail__track bwa-strip__track');
+        }
         if (columns()) {
-          ui.appearanceAside = $('<div class="nova-layout__aside"></div>').appendTo(ui.root).append(ui.hero_box);
+          ui.appearanceAside = $('<div class="nova-layout__aside"></div>').addClass(mode === 'credits' ? 'bwv-col bwa-vlist' : 'bwv-left').appendTo(ui.root);
+          var asideTrack = mode === 'credits' ? $('<div class="bwa-vlist__track"></div>').appendTo(ui.appearanceAside) : ui.appearanceAside;
+          asideTrack.append(ui.hero_box);
           ui.appearanceMain = $('<div class="nova-layout__main"></div>').appendTo(ui.root);
-          if (mode === 'credits') ui.appearanceAside.append(ui.rows);
+          if (mode === 'credits') {
+            asideTrack.append(ui.rows);
+            ui.appearanceMain.addClass('bwv-listbox');
+            ui.appearanceHeading = $('<div class="bwv-lh"><span class="bwv-row__n"><i>№</i></span><span class="bwv-row__t"><i class="bwv-lh__t"></i></span><span class="bwv-lh__p"></span><span class="bwv-row__q"><i></i></span><span class="bwv-lh__d"><i></i></span><span class="bwv-lh__m"></span></div>').appendTo(ui.appearanceMain);
+            ui.appearanceHeading.find('.bwv-row__q i').text(get('language', 'uk') === 'uk' ? 'Якість' : get('language', 'uk') === 'ru' ? 'Качество' : 'Quality');
+            ui.appearanceHeading.find('.bwv-lh__d i').text(get('language', 'uk') === 'uk' ? 'Час' : 'Time');
+          }
           else {
-            ui.appearanceSettings = $('<div class="nova-layout__settings selector" data-nova-focus="appearance:settings" role="button" aria-expanded="false"><span></span><b>›</b></div>');
+            ui.appearanceSettings = $('<div class="nova-layout__settings bwv-pline selector" data-nova-focus="appearance:settings" role="button" aria-expanded="false"><span></span></div>');
             ui.appearanceSettings.find('span').text(words().settingsHint);
             bind(ui.appearanceSettings, function () { drawer(!state.drawer); });
             ui.appearanceMain.append(ui.appearanceSettings);
-            ui.appearanceDrawer = $('<div class="nova-layout__drawer nova-layout__drawer--closed" aria-hidden="true"><div class="nova-layout__drawer-head"><span></span></div></div>').appendTo(ui.root);
-            ui.appearanceDrawer.find('.nova-layout__drawer-head > span').text(words().settings);
-            var close = $('<div class="nova-layout__close selector" data-nova-focus="appearance:close" role="button"></div>').text('×').attr('aria-label', words().close);
-            bind(close, function () { drawer(false); });
-            ui.appearanceDrawer.find('.nova-layout__drawer-head').append(close);
-            ui.appearanceDrawer.append(ui.rows);
+            ui.appearanceDrawer = $('<div class="bwv-drawer bwa-vlist nova-layout__drawer nova-layout__drawer--closed" aria-hidden="true"><div class="bwa-vlist__track"><div class="bwv-drawer__t"></div></div></div>').appendTo(ui.root);
+            ui.appearanceDrawer.find('.bwv-drawer__t').text(words().settings);
+            ui.appearanceDrawer.find('.bwa-vlist__track').append(ui.rows);
+            $('<div class="bwv-ptip"></div>').text(words().settingsHint).appendTo(ui.root);
           }
-          ui.appearanceMain.append(ui.list);
+          ui.appearanceList = $('<div class="bwa-vlist"></div>').addClass(mode === 'credits' ? 'bwv-list' : 'bwv-plist').append(ui.list.addClass('bwa-vlist__track'));
+          ui.appearanceMain.append(ui.appearanceList);
         }
         ui.list.on('wheel.novaAppearance', function (event) {
           if (current() !== 'filmstrip') return;
           var wheel = event.originalEvent || event;
           if (Math.abs(wheel.deltaY || 0) > Math.abs(wheel.deltaX || 0)) {
-            this.scrollLeft += wheel.deltaY;
+            ui.appearanceRail[0].scrollLeft += wheel.deltaY;
             event.preventDefault();
           }
         });
@@ -5052,21 +5081,43 @@
       size();
     }
 
+    function data() { return $.extend({}, movie || {}, metadata[tmdbKind() + ':' + tmdbId()] || {}); }
+    function loadMetadata() {
+      var id = tmdbId(), key = tmdbKind() + ':' + id;
+      if (!id || Object.prototype.hasOwnProperty.call(metadata, key)) return;
+      metadata[key] = null;
+      try {
+        var api = Lampa.Api && Lampa.Api.sources && Lampa.Api.sources.tmdb;
+        if (!api || typeof api.get !== 'function') return;
+        api.get(tmdbKind() + '/' + id + '?append_to_response=credits', {}, function (answer) {
+          if (!answer || typeof answer !== 'object') return;
+          metadata[key] = answer;
+          if (custom() && ui.root && movie && key === tmdbKind() + ':' + tmdbId()) {
+            var keep = ui_focus;
+            hero();
+            refreshCollection();
+            if (keep) focusNode(seek(keep), true);
+          }
+        }, function () {});
+      } catch (ignore) {}
+    }
     function creditsInfo() {
-      var box = $('<div class="nova-layout__credits"></div>');
+      var info = data();
+      var box = $('<div class="bwv-cr"></div>');
       var add = function (title, entries, limit) {
         if (Object.prototype.toString.call(entries) !== '[object Array]' || !entries.length) return;
         var names = entries.slice(0, limit || 4).map(function (entry) { return entry && (entry.name || entry.original_name) || ''; }).filter(function (name) { return !!name; });
         if (!names.length) return;
-        var row = $('<div><b></b><span></span></div>');
+        var row = $('<div class="bwv-cr__r"><b></b><span></span></div>');
         row.find('b').text(title);
         row.find('span').text(names.join(', '));
         box.append(row);
       };
-      add(words().creators, movie.created_by);
-      add(words().cast, movie.credits && movie.credits.cast);
-      add(words().studio, movie.production_companies, 2);
-      add(words().network, movie.networks, 2);
+      var crew = info.created_by || (info.credits && info.credits.crew || []).filter(function (entry) { return entry.job === 'Director'; });
+      add(words().creators, crew);
+      add(words().cast, info.credits && info.credits.cast, columns() ? 3 : 4);
+      add(words().studio, info.production_companies, 2);
+      add(words().network, info.networks, 2);
       return box;
     }
 
@@ -5079,89 +5130,255 @@
         return focus(seek('appearance:details'));
       }
       if (ui.appearanceDetails) ui.appearanceDetails.remove();
-      var panel = $('<div class="nova-layout__details"><h2></h2><p></p></div>');
-      panel.find('h2').text(movie.title || movie.name || '');
-      panel.find('p').text(movie.overview || '');
-      panel.append(creditsInfo());
-      var close = $('<div class="nova-btn selector" data-nova-focus="appearance:details-close" role="button"></div>').text(words().close);
-      bind(close, function () { details(false); });
-      panel.append(close).appendTo(ui.root);
+      var info = data();
+      var panel = $('<div class="nova-layout__details bwv-info"><div class="bwv-info__t"></div><div class="bwv-info__d"></div><div class="bwv-info__p bwa-strip"><div class="bwa-strip__track"></div></div><div class="bwv-info__c"></div></div>');
+      panel.find('.bwv-info__t').text((movie.title || movie.name || '') + ' — ' + words().details.toLowerCase());
+      panel.find('.bwv-info__d').text(info.overview || '');
+      var crew = info.created_by || (info.credits && info.credits.crew || []).filter(function (entry) { return entry.job === 'Director'; });
+      var people = crew.concat(info.credits && info.credits.cast || []).slice(0, 10);
+      people.forEach(function (person, index) {
+        if (!person) return;
+        var card = $('<div class="bwv-person selector"><div class="bwv-person__ph"></div><div class="bwv-person__n"></div><div class="bwv-person__r"></div></div>').attr('data-nova-focus', 'appearance:person:' + index);
+        if (person.profile_path) card.find('.bwv-person__ph').css('background-image', 'url("' + Lampa.TMDB.image('t/p/w185' + person.profile_path) + '")');
+        else $('<span></span>').text(String(person.name || '').split(/\s+/).map(function (part) { return part.charAt(0); }).join('').slice(0, 2)).appendTo(card.find('.bwv-person__ph'));
+        card.find('.bwv-person__n').text(person.name || '');
+        card.find('.bwv-person__r').text(person.character || person.job || (index < crew.length ? words().creators : ''));
+        bind(card, function () { try { Lampa.Activity.push({ url: '', component: 'actor', id: person.id, source: 'tmdb' }); } catch (ignore) {} });
+        panel.find('.bwa-strip__track').append(card);
+      });
+      var credits = [];
+      if (info.production_companies && info.production_companies.length) credits.push(words().studio + ' — ' + info.production_companies.map(function (entry) { return entry.name; }).join(', '));
+      if (info.networks && info.networks.length) credits.push(words().network + ' — ' + info.networks.map(function (entry) { return entry.name; }).join(', '));
+      panel.find('.bwv-info__c').text(credits.join(' · '));
+      if (!people.length) {
+        var close = $('<div class="bwv-btn selector" data-nova-focus="appearance:details-close" role="button"></div>').text(words().close);
+        bind(close, function () { details(false); });
+        panel.append(close);
+      }
+      if (ui.root.hasClass('bwv--m')) panel.insertAfter(ui.hero.find('.bwv-btns'));
+      else panel.appendTo(ui.root);
       ui.appearanceDetails = panel;
       refreshCollection();
-      return focus(close);
+      return focus(focusable(panel).first());
     }
 
+    function quality(value) {
+      value = String(value || '');
+      var match = value.match(/(2160|1080|720|480|360)/);
+      return match ? match[1] + 'p' : /UHD|4K/i.test(value) ? '2160p' : /FHD/i.test(value) ? '1080p' : /HD/i.test(value) ? '720p' : value;
+    }
+    function progress(item) {
+      return $('<span class="bwa-ep__prog"><i></i></span>').find('i').css('width', Math.max(0, Math.min(100, item.percent || 0)) + '%').end();
+    }
+    function titleHead() {
+      var info = data(), head = $('<div class="bwv-head"></div>');
+      $('<div class="bwv-title nova-hero__title"></div>').text(movie.title || movie.name || '').appendTo(head);
+      var ratings = $('<div class="bwv-rts"></div>');
+      [['КП', info.kp_rating], ['IMDb', info.imdb_rating], ['TMDB', info.vote_average]].forEach(function (entry) {
+        if (+entry[1] > 0) $('<span class="bwv-rt"><i></i></span>').find('i').text(entry[0]).end().append(document.createTextNode((+entry[1]).toFixed(1))).appendTo(ratings);
+      });
+      if (ratings.children().length) head.append(ratings);
+      var meta = [], year = String(info.release_date || info.first_air_date || '').slice(0, 4);
+      if (year) meta.push(year);
+      if (serial && info.number_of_seasons) meta.push(info.number_of_seasons + ' ' + (get('language', 'uk') === 'uk' ? 'сезонів' : 'сезонов'));
+      var mins = episodeRuntime();
+      if (mins) meta.push(mins + (get('language', 'uk') === 'uk' ? (serial ? ' хв серія' : ' хв') : (serial ? ' мин серия' : ' мин')));
+      var country = (info.origin_country || [])[0] || ((info.production_countries || [])[0] || {}).name;
+      if (country) meta.push(({ US: 'США', GB: 'Велика Британія', UA: 'Україна' })[country] || country);
+      var genres = (info.genres || []).slice(0, 2).map(function (genre) { return (genre.name || '').toLowerCase(); }).filter(Boolean).join(', ');
+      if (genres) meta.push(genres);
+      if (meta.length) $('<div class="bwv-meta"></div>').text(meta.join(' · ')).appendTo(head);
+      head.append(creditsInfo());
+      return head;
+    }
+    function favorite() {
+      var button = $('<div class="bwv-btn selector" data-nova-focus="appearance:favorite" role="button"></div>');
+      function label() {
+        var checked = false;
+        try { checked = !!Lampa.Favorite.check(movie).book; } catch (ignore) {}
+        button.text(checked ? 'В обраному ✓' : 'До обраного');
+      }
+      bind(button, function () { try { Lampa.Favorite.toggle('book', movie); } catch (ignore) {} label(); });
+      label();
+      return button;
+    }
     function hero() {
-      if (!custom() || !ui.hero || !movie) return;
+      if (!custom() || !movie) return null;
       frame();
-      var body = ui.hero.find('.nova-hero__body');
-      if (!body.find('.nova-hero__title').length) {
-        var mark = body.find('.nova-hero__mark');
-        if (mark.length) mark.addClass('nova-hero__title').prependTo(body);
-        else $('<div class="nova-hero__title"></div>').text(movie.title || movie.name || '').prependTo(body);
-        $('<div class="nova-hero__meta"></div>').insertAfter(body.find('.nova-hero__title'));
-      }
-      if (!artEnabled()) {
-        var meta = body.find('.nova-hero__meta').empty();
-        if (movie.vote_average) $('<span></span>').text('★ ' + (+movie.vote_average).toFixed(1)).appendTo(meta);
-        var year = String(movie.first_air_date || movie.release_date || '').slice(0, 4);
-        if (year) $('<span></span>').text(year).appendTo(meta);
-      }
-      ui.hero.find('.nova-layout__genres,.nova-layout__credits').remove();
-      var genres = $('<div class="nova-layout__genres"></div>');
-      var genreList = Object.prototype.toString.call(movie.genres) === '[object Array]' ? movie.genres : [];
-      genreList.slice(0, 4).forEach(function (genre) { if (genre) $('<span></span>').text(genre.name || genre).appendTo(genres); });
-      if (genres.children().length) genres.insertAfter(body.find('.nova-hero__meta'));
-      if (current() !== 'poster') creditsInfo().insertAfter(body.find('.nova-layout__genres,.nova-hero__meta').last());
-      if (!ui.hero.find('[data-nova-focus="appearance:details"]').length) {
-        var more = $('<div class="nova-btn nova-btn--ghost selector" data-nova-focus="appearance:details" role="button"><span class="nova-btn__label"></span></div>');
-        more.find('span').text(words().details);
+      loadMetadata();
+      var info = data(), target = nav ? null : pickResume(items), picture = artEnabled() ? heroArt() : '';
+      ui.root.toggleClass('nova-bwa-no-art', !picture);
+      var started = target && target.percent > 0 && target.percent < SEEN_PERCENT;
+      var label = started ? text('nova_continue', 'nova_skin_continue') : text('nova_watch', 'nova_skin_watch');
+      var voice = groups.voice && groups.voice.subtitle || '';
+      ui.hero_box.empty();
+      ui.next = null;
+      if (current() === 'poster') {
+        ui.hero = $('<div class="bwa-hero"><div class="bwa-hero__bg"><div class="bwa-hero__scrim"></div></div><div class="bwa-hero__content"><div class="bwa-hero__title"></div><div class="bwa-hero__meta"><span class="bwa-hero__q"></span><span></span></div><div class="bwa-hero__chips"></div><div class="bwa-hero__desc"></div><div class="bwa-hero__cta nova-hero__actions"><span class="bwa-play"></span><span class="bwa-hero__voice"></span></div></div><div class="bwa-hero__prog"><i></i></div></div>');
+        if (picture) ui.hero.find('.bwa-hero__bg').css('background-image', 'url("' + picture + '")');
+        ui.hero.find('.bwa-hero__title').text(movie.title || movie.name || '');
+        ui.hero.find('.bwa-hero__q').text((serial ? 'СЕЗОН ' + (seasonNumber() || 1) + ' · ' : '') + (shortQuality(target && target.quality || '') || ''));
+        ui.hero.find('.bwa-hero__meta>span').last().text((+info.vote_average > 0 ? '★ ' + (+info.vote_average).toFixed(1) + ' · ' : '') + String(info.release_date || info.first_air_date || '').slice(0, 4));
+        (info.genres || []).forEach(function (genre) { $('<span class="bwa-chip"></span>').text(genre.name || '').appendTo(ui.hero.find('.bwa-hero__chips')); });
+        ui.hero.find('.bwa-hero__desc').text(info.overview || '');
+        ui.hero.find('.bwa-play').html('<svg width="20" height="20" viewBox="0 0 24 24"><path d="M6 4l14 8-14 8V4z" fill="currentColor"/></svg>').append($('<span class="bwa-play__t"></span>').text(label));
+        ui.hero.find('.bwa-hero__voice').text(voice);
+        ui.hero.find('.bwa-hero__prog>i').css('width', (target && target.percent || 0) + '%');
+        ui.play = target ? ui.hero.addClass('selector').attr('data-nova-focus', 'hero') : null;
+        if (ui.play) bindPlay(ui.play);
+      } else {
+        ui.hero = $('<div class="nova-bwa-hero"></div>').append(titleHead());
+        var actions = $('<div class="bwv-btns nova-hero__actions"></div>').appendTo(ui.hero);
+        ui.play = null;
+        if (target) {
+          ui.play = $('<div class="bwv-btn bwv-btn--play selector" data-nova-focus="hero"><span class="bwv-btn__ico"></span><span class="bwa-play__t"></span><small class="bwa-hero__voice"></small><span class="bwa-hero__prog"><i></i></span></div>');
+          ui.play.find('.bwa-play__t').text(label);
+          ui.play.find('small').text((started && serial ? 'S' + (seasonNumber() || 1) + 'E' + target.num + (voice ? ' · ' : '') : '') + voice);
+          ui.play.find('.bwa-hero__prog>i').css('width', (target.percent || 0) + '%');
+          bindPlay(ui.play);
+          actions.append(ui.play);
+        }
+        var more = $('<div class="bwv-btn selector" data-nova-focus="appearance:details" role="button"></div>');
         bind(more, function () { details(true); });
-        more.insertBefore(ui.hero.find('.nova-hero__hint'));
+        if (current() === 'credits') more.removeClass('bwv-btn').addClass('bwv-it').append($('<span class="bwv-chip__l"></span>').text(words().details), $('<div class="bwv-chip__v"></div>').text('титри, актори, студія'));
+        else more.text(words().details);
+        actions.append(more);
+        if (current() === 'filmstrip') actions.append(favorite());
+        if (ui.appearanceBackdrop) ui.appearanceBackdrop.toggle(!!picture).css('background-image', picture ? 'url("' + picture + '")' : 'none');
       }
-      var picture = ui.hero.find('.nova-hero__bg img').attr('src') || '';
-      if (ui.appearanceBackdrop) {
-        ui.appearanceBackdrop.toggle(!!picture && artEnabled() && current() !== 'poster');
-        if (picture && ui.appearanceBackdrop.find('img').attr('src') !== picture) ui.appearanceBackdrop.find('img').attr('src', picture);
+      ui.hero_box.append(ui.hero);
+      ui.hero_kind = target ? 'full' : 'static';
+      if (current() !== 'poster' && current() !== 'credits') heroLogo();
+      if (ui.appearanceHeading) {
+        ui.appearanceHeading.find('.bwv-lh__t').text(serial ? 'Сезон ' + (seasonNumber() || 1) : 'Доріжки');
+        ui.appearanceHeading.find('.bwv-lh__p,.bwv-lh__d,.bwv-lh__m').toggle(!!serial);
       }
       size();
+      if (fixed() && ui.root.hasClass('bwv--m')) ui.root.css('font-size', Math.max(13, Math.min(17, Math.round((window.innerWidth || 400) / 26))) + 'px');
+      return ui.play;
     }
 
     function rows() {
       if (!custom() || !ui.rows) return;
       frame();
+      var poster = current() === 'poster';
+      var nativeSearch = root.find('.filter--search').first();
+      if (nativeSearch.length && !ui.rows.find('[data-nova-focus="appearance:search"]').length) {
+        var search = $('<div class="nova-chip selector" data-nova-focus="appearance:search" data-bwa-label="Пошук"><span class="nova-chip__label"></span></div>');
+        search.find('span').text((Lampa.Activity.active() || {}).clarification ? 'Уточнений' : 'Звичайний');
+        chip_actions['appearance:search'] = { enter: function () { nativeSearch.trigger('hover:enter'); }, long: null };
+        bind(search, chip_actions['appearance:search'].enter);
+        ui.rows.find('.nova-toolbar').append(search);
+      }
       ui.rows.find('.nova-toolbar__label').each(function () {
         var label = $(this);
         var chip = label.next('.nova-chip');
-        if (chip.length) $('<span class="nova-layout__field"></span>').text(label.text()).prependTo(chip);
+        if (chip.length) chip.attr('data-bwa-label', label.text());
         label.remove();
       });
+      ui.rows.find('.nova-toolbar>.nova-chip').each(function () {
+        var chip = $(this), key = chip.attr('data-nova-focus'), value = chip.find('.nova-chip__label').text();
+        var label = chip.attr('data-bwa-label') || '';
+        chip.empty().addClass(poster ? 'bwa-pill' : current() === 'filmstrip' ? 'bwv-chip' : 'bwv-it');
+        chip.append($('<span></span>').addClass(poster ? 'bwa-pill__k' : 'bwv-chip__l').text(label));
+        var field = $('<span></span>').addClass(poster ? 'bwa-pill__v' : 'bwv-chip__v').text(value).appendTo(chip);
+        if (poster) chip.append('<span class="bwa-pill__c"></span>');
+        else if (key === 'voice' && groups.voice) field.append($('<small></small>').text(' ' + quality(items[0] && items[0].quality || '') + (groups.voice.items.length > 1 ? ' · ' + groups.voice.items.length + ' переклади' : '')));
+        else if (key === 'season') {
+          var parts = String(value).match(/^(\d+)\s*(.*)$/);
+          if (parts) field.text(parts[1]).append($('<small></small>').text(parts[2] ? ' ' + parts[2] : ''));
+        }
+        if (poster && key === 'season') chip.hide();
+      });
+      ui.rows.find('.nova-drop').addClass(columns() ? 'bwv-opts' : 'bwa-strip__track');
+      ui.rows.find('.nova-drop>.nova-chip').each(function () {
+        var chip = $(this), value = chip.find('.nova-chip__label').text();
+        chip.empty().addClass('bwv-opt').toggleClass('is-cur', chip.hasClass('nova-chip--active')).append($('<span class="bwv-opt__v"></span>').text(value));
+      });
+      if (current() === 'filmstrip') {
+        ui.rows.toggleClass('bwv-chips--opts', !!ui_open);
+        if (ui_open) $('<span class="bwv-chips__lab"></span>').text(ui.rows.find('[data-nova-focus="' + ui_open + '"]').attr('data-bwa-label') || '').prependTo(ui.rows);
+      }
+      if (poster) {
+        ui.rows.find('.nova-toolbar').addClass('bwa-pills');
+        if (groups.season && groups.season.items.length > 1) {
+          $('<div class="bwa-note"></div>').text('Сезони').appendTo(ui.rows);
+          var seasons = $('<div class="bwa-seasons"></div>').appendTo(ui.rows);
+          groups.season.items.forEach(function (entry, index) {
+            var season = $('<div class="bwa-season selector"></div>').toggleClass('is-sel', !!entry.selected).attr('data-nova-focus', 'poster-season:' + index).text(entry.title);
+            bind(season, function () { state.returnList = true; chooseOption(groups.season, typeof entry.index === 'number' ? entry.index : index); });
+            seasons.append(season);
+          });
+        }
+      }
       if (columns() && ui_open) {
         var owner = ui.rows.find('.nova-toolbar [data-nova-focus="' + ui_open + '"]').first();
         if (owner.length) ui.rows.find('.nova-drop').insertAfter(owner);
       }
       if (current() === 'credits_plus') {
         var summary = [];
-        if (typeof sourceTitle === 'function') summary.push(sourceTitle());
-        if (groups.season && groups.season.subtitle) summary.push(groups.season.subtitle);
-        if (groups.voice && groups.voice.subtitle) summary.push(groups.voice.subtitle);
-        if (ui.appearanceSettings) ui.appearanceSettings.find('span').text(summary.filter(function (entry) { return !!entry; }).join(' · ') || words().settingsHint);
+        ui.rows.find('.nova-toolbar>.nova-chip').each(function () {
+          var chip = $(this), key = chip.attr('data-nova-focus');
+          if (key === 'extra:search' || key === 'appearance:search') return;
+          summary.push({ label: (chip.attr('data-bwa-label') || '').toLowerCase(), value: chip.find('.bwv-chip__v').text() });
+        });
+        if (ui.appearanceSettings) {
+          ui.appearanceSettings.empty();
+          summary.forEach(function (entry, index) {
+            if (index) ui.appearanceSettings.append(document.createTextNode(' · '));
+            ui.appearanceSettings.append($('<span></span>').text(entry.label + ' '), $('<b></b>').text(entry.value));
+          });
+        }
         if (!state.drawer) drawer(false, false);
       }
       size();
     }
 
     function textCard(item) {
-      var card = $('<div class="nova-card nova-card--credits selector"><div class="nova-card__num"><span></span></div><div class="nova-card__body"><div class="nova-card__title"></div><div class="nova-card__meta"></div><div class="nova-card__line nova-card__line--body"></div></div><div class="nova-card__side"><div class="nova-card__quality"></div><div class="nova-card__time"></div></div></div>');
+      var mode = current(), card, art = ownArt(item) || (artEnabled() ? heroArt() : ''), q = quality(item.quality);
+      if (mode === 'poster') {
+        card = serial ? $('<div class="bwa-ep"><div class="bwa-ep__art"><span class="bwa-ep__badge"></span><span class="bwa-ep__mark"></span><span class="bwa-ep__scrim"></span><span class="bwa-ep__play">▶</span></div><div class="bwa-ep__body"><div class="bwa-ep__top"><div class="bwa-ep__title"></div><span class="bwa-ep__resume"></span><div class="bwa-ep__time"></div></div><div class="bwa-ep__sub"></div></div></div>') : $('<div class="bwa-voice"><span class="bwa-voice__q"></span><span class="bwa-voice__name"></span></div>');
+        card.find('.bwa-ep__badge').text('S' + (seasonNumber() || 1) + 'E' + item.num);
+        card.find('.bwa-ep__title,.bwa-voice__name').text(item.title);
+        card.find('.bwa-ep__sub').text((item.meta || []).join(' · '));
+        card.find('.bwa-voice__q').text(q);
+        card.find('.bwa-ep__art').css('background-image', art ? 'url("' + art + '")' : 'none').append(progress(item));
+      } else if (mode === 'filmstrip' && serial) {
+        card = $('<div class="bwv-card"><div class="bwv-card__im"><span class="bwv-tag bwv-card__n"></span><span class="bwv-tag bwv-card__q"></span><span class="bwa-ep__mark"></span></div><div class="bwv-card__nm"></div><div class="bwv-card__sub"><span class="bwa-ep__time"></span><span class="bwv-card__date"></span></div></div>');
+        card.find('.bwv-card__n').text('S' + (seasonNumber() || 1) + ' E' + item.num);
+        card.find('.bwv-card__q').text(q).toggle(!!q);
+        card.find('.bwv-card__im').css('background-image', art ? 'url("' + art + '")' : 'none').after(progress(item));
+        card.find('.bwv-card__nm').text(item.title);
+        card.find('.bwv-card__date').text(item.meta && item.meta[0] ? ' · ' + item.meta[0] : '');
+      } else if (mode === 'filmstrip') {
+        card = $('<div class="bwv-track"><div class="bwv-track__l"></div><div class="bwv-track__n"></div><div class="bwv-track__tags"><span class="bwv-tag"></span></div></div>');
+        card.find('.bwv-track__l').text('Доріжка ' + (item.index + 1));
+        card.find('.bwv-track__n').text(item.title);
+        card.find('.bwv-tag').text(q).toggle(!!q);
+        if (item.percent) card.append(progress(item));
+      } else if (mode === 'credits_plus') {
+        card = $('<div class="bwv-prow"><div class="bwv-prow__im"><span class="bwv-tag bwv-prow__q"></span><span class="bwa-ep__mark"></span></div><div class="bwv-prow__b"><div class="bwv-prow__h"><span class="bwv-prow__n"></span><span class="bwv-prow__t"></span><span class="bwa-ep__time"></span></div><div class="bwv-prow__p"></div></div></div>');
+        card.find('.bwv-prow__im').css('background-image', art ? 'url("' + art + '")' : 'none');
+        card.find('.bwv-prow__q').text(q).toggle(!!q);
+        card.find('.bwv-prow__n').text('E' + item.num);
+        card.find('.bwv-prow__t').text(item.title);
+        card.find('.bwv-prow__p').text((item.meta || []).join(' · '));
+        card.find('.bwv-prow__b').append(progress(item));
+        if (!serial) card.addClass('bwv-prow--track').find('.bwv-prow__im,.bwv-prow__n').remove();
+      } else {
+        card = $('<div class="bwv-row"><span class="bwv-row__n"></span><span class="bwv-row__t"></span><span class="bwv-row__q"><span class="bwv-tag"></span></span><span class="bwa-ep__time"></span><span class="bwa-ep__mark"></span></div>');
+        card.find('.bwv-row__n').text(item.num || item.index + 1);
+        card.find('.bwv-row__t').text(item.title);
+        card.find('.bwv-tag').text(q).toggle(!!q);
+        if (serial) card.find('.bwv-row__q').before(progress(item));
+        else card.find('.bwa-ep__time,.bwa-ep__mark').remove();
+      }
+      card.addClass('nova-card selector').toggleClass('nova-card--nav', !!item.folder);
       card.attr('data-nova-focus', 'item:' + item.index);
-      card.find('.nova-card__num span').text(item.num || item.index + 1);
-      card.find('.nova-card__title').text(item.title || movie.title || movie.name || '');
-      card.find('.nova-card__quality').text(shortQuality(item.quality) || '');
-      card.find('.nova-card__time').text(item.time || '');
-      if (item.line && item.line.length) card.find('.nova-card__line').append(item.line.clone());
-      if (item.viewed || isSeen(item)) card.find('.nova-card__side').append('<div class="nova-card__eye">' + ICON.eye + '</div>');
-      if (item.soon) card.addClass('nova-card--soon').removeClass('selector');
-      else bind(card, function () { play(item); }, function () { longPress(item); });
+      card.find('.bwa-ep__time').text(item.time || '');
+      card.find('.bwa-ep__mark').text(item.viewed || isSeen(item) ? '✓' : '');
+      if (item.soon) card.addClass('is-dim').removeClass('selector');
+      else bind(card, function () { play(item); }, item.folder ? null : function () { longPress(item); });
       item.card = card;
       return card;
     }
@@ -5171,11 +5388,11 @@
       var node = element instanceof jQuery ? element[0] : element;
       if (!node || !$.contains(ui.root[0], node)) return false;
       // In column layouts rows grow inside the scrolling aside/drawer.
-      var panel = $(node).closest(columns() ? '.nova-layout__drawer,.nova-layout__aside,.nova__list' : '.nova__list,.nova__rows');
+      var panel = $(node).closest(columns() ? '.bwv-info__p,.nova-layout__drawer,.nova-layout__aside,.bwv-list,.bwv-plist' : '.bwv-info__p,.bwv-rail,.nova__rows');
       if (!panel.length) return true;
       var target = node.getBoundingClientRect();
       var seat = panel[0].getBoundingClientRect();
-      if (current() === 'filmstrip' && panel.is('.nova__list')) {
+      if ((current() === 'filmstrip' && panel.is('.bwv-rail')) || panel.is('.bwv-info__p')) {
         if (target.left < seat.left + 8) panel[0].scrollLeft -= seat.left - target.left + 12;
         if (target.right > seat.right - 8) panel[0].scrollLeft += target.right - seat.right + 12;
       } else {
@@ -5201,7 +5418,10 @@
 
     function navigate(direction) {
       if (!custom() || current() === 'poster' || !inSkin() || !last) return false;
-      if (state.details) return true;
+      if (state.details) {
+        if (direction === 'left' || direction === 'right') return step(focusable(ui.appearanceDetails), direction === 'left' ? -1 : 1);
+        return true;
+      }
       var box = $(last);
       var mode = current();
       var listItem = listMember(last);
@@ -5264,15 +5484,15 @@
     var originalFrame = uiFrame;
     uiFrame = function () { var result = originalFrame.apply(this, arguments); frame(); return result; };
     var originalHero = buildHero;
-    buildHero = function () { var result = originalHero.apply(this, arguments); hero(); return result; };
+    buildHero = function () { return custom() ? hero() : originalHero.apply(this, arguments); };
     var originalRows = buildRows;
     buildRows = function () { var result = originalRows.apply(this, arguments); rows(); return result; };
     var originalCard = buildCard;
     buildCard = function (item) {
-      return custom() && current() === 'credits' && !item.folder ? textCard(item) : originalCard.apply(this, arguments);
+      return custom() ? textCard(item) : originalCard.apply(this, arguments);
     };
     var originalView = viewMode;
-    viewMode = function () { return custom() ? (current() === 'filmstrip' ? 'grid' : 'list') : originalView.apply(this, arguments); };
+    viewMode = function () { return custom() ? 'list' : originalView.apply(this, arguments); };
     var originalStamp = stamp;
     stamp = function () { return originalStamp.apply(this, arguments) + '|' + current(); };
     var originalScroll = scrollTo;
@@ -5311,6 +5531,34 @@
     };
     var originalFit = typeof fitToolbar === 'function' ? fitToolbar : null;
     if (originalFit) fitToolbar = function () { if (!custom()) return originalFit.apply(this, arguments); };
+    if (typeof logoDraw === 'function') {
+      var originalLogoDraw = logoDraw;
+      logoDraw = function (box) {
+        var result = originalLogoDraw.apply(this, arguments);
+        if (custom() && box && box.length) {
+          var image = box.find('img');
+          box.toggleClass('bwv-title', !image.length).toggleClass('nova-bwa-logo-slot', !!image.length);
+          image.addClass('bwv-logo');
+          image.on('error.novaBwa', function () { box.addClass('bwv-title').removeClass('nova-bwa-logo-slot'); });
+        }
+        return result;
+      };
+    }
+    var originalMarks = refreshMarks;
+    refreshMarks = function () {
+      var result = originalMarks.apply(this, arguments);
+      if (custom()) items.forEach(function (item) {
+        if (!item.card) return;
+        item.card.find('.bwa-ep__prog>i').css('width', Math.max(0, Math.min(100, item.percent || 0)) + '%');
+        item.card.find('.bwa-ep__mark').text(item.viewed || isSeen(item) ? '✓' : '');
+      });
+      return result;
+    };
+    function clearScope() { if (root) root.removeClass('nova-bwa-scope nova-bwa-fixed nova-bwa-credits nova-bwa-no-gap'); }
+    var originalRecover = searchRecover;
+    searchRecover = function () { clearScope(); return originalRecover.apply(this, arguments); };
+    var originalForget = forget;
+    forget = function () { if (!pendingLive()) clearScope(); return originalForget.apply(this, arguments); };
     var originalUp = novaUp, originalDown = novaDown, originalLeft = novaLeft, originalRight = novaRight;
     novaUp = function () { return navigate('up') || originalUp.apply(this, arguments); };
     novaDown = function () { return navigate('down') || originalDown.apply(this, arguments); };
@@ -5356,7 +5604,7 @@
   }
 
   function start() {
-    installNovaAppearance("/* BWA-inspired layouts implemented against Nova's existing controls and data. */\n.nova-layout{position:relative;z-index:0;isolation:isolate;color:#eee9dc;box-sizing:border-box}\n.nova-layout *{box-sizing:border-box}\n.nova-layout .nova-btn,.nova-layout .nova-chip{box-shadow:none!important;text-shadow:none!important;transition:none!important}\n.nova-layout .nova-btn{border:1px solid #4c4b44;background:#141413;color:#eee9dc;border-radius:.4em;min-height:3em}\n.nova-layout .nova-btn.focus,.nova-layout .nova-chip.focus,.nova-layout .nova-card.focus{outline:none!important;background:#ffd400!important;color:#111!important;border-color:#ffd400!important;box-shadow:0 0 0 .12em #ffd400!important}\n.nova-layout .nova-btn.focus *,.nova-layout .nova-chip.focus *{color:#111!important}\n.nova-layout .nova-btn__label{font-size:1em}\n.nova-layout .nova-hero__title,.nova-layout .nova-hero__title--logo{min-height:0}\n.nova-layout .nova-hero__hint{flex:0 1 auto;margin-left:0}\n.nova-layout .nova-badge,.nova-layout .nova-card__quality{background:#11120f;color:#ffd400;border:1px solid #4e4824;border-radius:.2em;font-size:.8em}\n.nova-layout .nova-card__line>div>div,.nova-layout .nova-hero__progress>div>div{background:#ffd400!important}\n.nova-layout .nova-card.focus .nova-card__line>div>div{background:#262308!important}\n.nova-layout .nova-toolbar{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;white-space:normal;font-size:1em!important;padding:0;overflow:visible}\n.nova-layout .nova-toolbar .nova-chip{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;flex:none;max-width:23em;min-width:7em;margin:0 .7em .6em 0;padding:.65em 1em;background:#141413;border:1px solid #393933;border-radius:.35em}\n.nova-layout .nova-layout__field{display:block;opacity:.58;font-size:.68em;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.3em}\n.nova-layout .nova-chip__label{font-size:1em;max-width:100%;white-space:normal}\n.nova-layout .nova-chip__value{font-size:1em}\n.nova-layout .nova-chip__arrow{position:absolute;right:.5em;bottom:.8em}\n.nova-layout .nova-drop{margin:.1em 0 .8em;padding:.35em;background:#121310;border:1px solid #4c4824;border-radius:.35em}\n.nova-layout .nova-drop .nova-chip{border-radius:.25em;background:#1a1a17;border:1px solid transparent;color:#eee9dc;margin:.15em;padding:.6em .8em}\n.nova-layout__backdrop{position:absolute;top:0;right:0;bottom:0;left:20%;overflow:hidden;z-index:-1;pointer-events:none}\n.nova-layout__backdrop img{width:100%;height:100%;object-fit:cover;opacity:.62}\n.nova-layout__backdrop:after{content:\"\";position:absolute;top:0;right:0;bottom:0;left:0;background:linear-gradient(90deg,#0b0b0c 0%,rgba(11,11,12,.65) 28%,rgba(11,11,12,.08) 75%),linear-gradient(0deg,#0b0b0c,rgba(11,11,12,0) 65%)}\n.nova-layout__genres{display:flex;flex-wrap:wrap;margin:.6em 0}\n.nova-layout__genres>span{font-size:.8em;margin:0 .6em .35em 0;padding:.25em .7em;border:1px solid #33343c;border-radius:2em;background:rgba(32,33,39,.75)}\n.nova-layout__genres>span:before{content:\"•\";color:#ffd400;margin-right:.5em}\n.nova-layout__credits{margin:.9em 0;font-size:.85em;line-height:1.5}\n.nova-layout__credits>div{display:flex;max-width:100%}\n.nova-layout__credits b{flex:0 0 7.5em;color:#979387;font-size:.76em;font-weight:400;letter-spacing:.06em;text-transform:uppercase;padding-top:.2em}\n.nova-layout__credits span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}\n.nova-layout__details{position:absolute;z-index:12;left:0;right:0;bottom:0;max-height:75%;overflow:auto;background:#10110f;border-top:2px solid #ffd400;padding:1.5em 2em;box-shadow:0 -2em 5em rgba(0,0,0,.5)}\n.nova-layout__details h2{margin:0 0 .6em;font-size:1.5em}\n.nova-layout__details p{line-height:1.5;max-width:75em}\n.nova-layout__details .nova-btn{display:inline-flex;margin-top:1em}\n\n/* Poster: a wide hero, then provider controls and vertical episode cards. */\n.nova-layout--poster .nova__hero{margin-bottom:1.2em}\n.nova-layout--poster .nova-hero{border:1px solid #27292d;border-radius:1.4em;min-height:24em;overflow:hidden;background:#0b0c12;box-shadow:0 .25em 0 #292a2e}\n.nova-layout--poster .nova-hero__bg{width:100%;left:0;right:0;opacity:1}\n.nova-layout--poster .nova-hero__bg img{object-position:center 30%}\n.nova-layout--poster .nova-hero__shade{background:linear-gradient(0deg,rgba(6,7,15,.98),rgba(6,7,15,.15) 90%),linear-gradient(90deg,rgba(6,7,15,.72),rgba(6,7,15,0) 85%)}\n.nova-layout--poster .nova-hero__body{min-height:24em;padding:7.5em 2em 1.5em;max-width:65em;justify-content:flex-end}\n.nova-layout--poster .nova-hero__title{font-size:2.7em;margin-bottom:.25em}\n.nova-layout--poster .nova-hero__descr{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:48em;line-height:1.4;font-size:.97em;color:#b0b0bd}\n.nova-layout--poster .nova-hero__actions{margin-top:1.2em;display:flex;flex-wrap:wrap;align-items:center}\n.nova-layout--poster .nova-btn--main{background:#ffdf2e;color:#101010;border-color:#ffdf2e;border-radius:2em;padding:.7em 1.6em}\n.nova-layout--poster .nova-layout__field{display:none}\n.nova-layout--poster .nova-toolbar .nova-chip{flex-direction:row;align-items:center;min-width:0;border-radius:2em;padding:.6em 1.1em}\n.nova-layout--poster .nova__list{padding-top:.6em}\n.nova-layout--poster .nova-card{border-radius:1em;margin-bottom:.6em;background:linear-gradient(#191919,#101010);border:1px solid #2b2b2b}\n.nova-layout--poster .nova-card__thumb{width:13em;min-height:7.3em;flex:none}\n.nova-layout--poster .nova-card.focus{background:#20201b!important;color:#eee9dc!important}\n\n/* Filmstrip: metadata and controls over a backdrop, with a horizontal rail. */\n/* The provider's native-content mask sets its direct Nova child to block!important. */\n.nova-skin-scope .explorer__files-body .scroll__body>.nova-skin-root.nova-layout--filmstrip:not(.nova-layout--narrow),\n.nova-skin-scope .explorer__files-body .scroll__body>.nova-skin-root.nova-layout--credits:not(.nova-layout--narrow),\n.nova-skin-scope .explorer__files-body .scroll__body>.nova-skin-root.nova-layout--credits_plus:not(.nova-layout--narrow){display:flex!important}\n.nova-layout--filmstrip{display:flex;flex-direction:column;min-height:34em;overflow:hidden;padding:.7em 0 0}\n.nova-layout--filmstrip>.nova__hero,.nova-layout--filmstrip>.nova__rows{flex:none;position:relative;z-index:1}\n.nova-layout--filmstrip .nova-hero,.nova-layout--credits .nova-hero,.nova-layout--credits_plus .nova-hero{background:none;border:0;border-radius:0;box-shadow:none;min-height:0;overflow:visible}\n.nova-layout--filmstrip .nova-hero__bg,.nova-layout--filmstrip .nova-hero__shade,.nova-layout--credits .nova-hero__bg,.nova-layout--credits .nova-hero__shade,.nova-layout--credits_plus .nova-hero__bg,.nova-layout--credits_plus .nova-hero__shade{display:none}\n.nova-layout--filmstrip .nova-hero__body,.nova-layout--credits .nova-hero__body,.nova-layout--credits_plus .nova-hero__body{padding:0;max-width:none;min-height:0;display:block}\n.nova-layout--filmstrip .nova-hero__title{font-size:3.2em;max-width:20em;margin-bottom:.4em}\n.nova-layout--filmstrip .nova-hero__title>img{max-height:3.3em;max-width:70%}\n.nova-layout--filmstrip .nova-hero__meta{font-size:.95em}\n.nova-layout--filmstrip .nova-hero__descr,.nova-layout--filmstrip .nova-hero__season,.nova-layout--credits .nova-hero__descr,.nova-layout--credits .nova-hero__season,.nova-layout--credits_plus .nova-hero__descr,.nova-layout--credits_plus .nova-hero__season{display:none!important}\n.nova-layout--filmstrip .nova-hero__actions{margin:1em 0 .8em}\n.nova-layout--filmstrip .nova-hero__actions .nova-btn{margin:0 .7em .4em 0;font-size:1em}\n.nova-layout--filmstrip .nova-hero__hint{font-size:.75em;color:#b7b0a0}\n.nova-layout--filmstrip .nova__list{display:flex!important;flex-wrap:nowrap!important;align-items:stretch;flex:1 1 auto;min-height:10em;width:100%;overflow-x:auto;overflow-y:hidden;padding:.45em .35em 1em;margin:0;scrollbar-width:thin}\n.nova-layout--filmstrip .nova__list>.nova-card{flex:0 0 17em!important;width:17em!important;min-width:0!important;margin:0 1em 0 0!important;display:flex!important;flex-direction:column;background:none;border:2px solid transparent;border-radius:.35em;overflow:hidden;padding:0}\n.nova-layout--filmstrip .nova-card__thumb{width:100%;height:auto;aspect-ratio:16/9;min-height:0;max-height:13em;flex:1 1 0;border-radius:.25em;position:relative;padding-top:0!important}\n.nova-layout--filmstrip .nova-card__thumb img{width:100%;height:100%;object-fit:cover}\n.nova-layout--filmstrip .nova-card__body{flex:none;min-height:3em;padding:.65em 0 0;width:100%}\n.nova-layout--filmstrip .nova-card__title{font-size:1em;line-height:1.25}\n.nova-layout--filmstrip .nova-card__meta{font-size:.75em;margin-top:.2em}\n.nova-layout--filmstrip .nova-card__side{position:absolute;top:.35em;right:.35em;max-width:5em}\n.nova-layout--filmstrip .nova-card__time{display:none}\n.nova-layout--filmstrip .nova-card.focus{background:rgba(11,11,12,.7)!important;color:#eee9dc!important}\n.nova-layout .nova__list--grid .nova-card.focus .nova-card__thumb{box-shadow:0 0 0 .12em #ffd400!important}\n.nova-layout--filmstrip .nova-card__num{top:.3em;left:.3em;bottom:auto;font-size:.75em;background:#11120e;color:#ffd400}\n.nova-layout--filmstrip .nova__rows{max-height:12em;overflow:auto}\n\n/* Credits and Credits+: independently scrollable information and episode columns. */\n.nova-layout--credits,.nova-layout--credits_plus{display:flex;align-items:stretch;min-height:34em;overflow:hidden}\n.nova-layout__aside{position:relative;z-index:1;flex:0 0 38%;min-width:0;padding:.7em 2.2em .8em 0;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin}\n.nova-layout__main{position:relative;z-index:1;flex:1 1 auto;min-width:0;padding:.7em .35em .35em;display:flex;flex-direction:column}\n.nova-layout--credits .nova-hero__title{font-size:2.1em;margin:.15em 0 .5em}\n.nova-layout--credits_plus .nova-hero__title{font-size:2.8em;margin:.15em 0 .5em}\n.nova-layout--credits .nova-hero__meta,.nova-layout--credits_plus .nova-hero__meta{font-size:.85em;flex-wrap:wrap}\n.nova-layout--credits .nova-hero__actions,.nova-layout--credits_plus .nova-hero__actions{display:flex;flex-wrap:wrap;margin:1em 0 .7em}\n.nova-layout--credits .nova-hero__actions .nova-btn,.nova-layout--credits_plus .nova-hero__actions .nova-btn{margin:0 .65em .65em 0;max-width:100%;font-size:.95em;padding:.65em 1em}\n.nova-layout--credits .nova-hero__actions .nova-btn--main{width:100%;justify-content:flex-start}\n.nova-layout--credits .nova-hero__hint,.nova-layout--credits_plus .nova-hero__hint{font-size:.75em;color:#b7b0a0;white-space:normal}\n.nova-layout--credits .nova-toolbar{display:block}\n.nova-layout--credits .nova-toolbar .nova-chip{width:100%;max-width:100%;border:0;border-bottom:1px solid #534916;border-radius:0;background:none;display:block;padding:.65em .8em;margin:0}\n.nova-layout--credits .nova-drop{display:flex;flex-direction:column}\n.nova-layout--credits .nova-layout__genres,.nova-layout--credits_plus .nova-layout__genres{font-size:.85em}\n.nova-layout__main>.nova__list{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding:.2em .3em 2em;margin:0;scrollbar-width:thin}\n.nova-layout--credits .nova-card{display:flex;align-items:center;min-height:3.2em;border:1px solid transparent;border-radius:.3em;background:transparent;box-shadow:none;margin:0 0 .15em;padding:.6em .65em}\n.nova-layout--credits .nova-card__num{position:static;flex:0 0 2.7em;width:2.7em;height:auto;font-size:1em;background:none;color:#ffd400;border:0;padding:0;text-align:left}\n.nova-layout--credits .nova-card__body{padding:0;flex:1;min-width:0}\n.nova-layout--credits .nova-card__title{font-size:1em;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.nova-layout--credits .nova-card__meta{display:none}\n.nova-layout--credits .nova-card__side{position:static;display:flex;align-items:center;flex:none;margin-left:.8em;max-width:14em}\n.nova-layout--credits .nova-card__time{font-size:.8em;margin-left:2em;color:#a6a092;white-space:nowrap}\n.nova-layout--credits .nova-card__eye{width:1em;margin-left:.5em}\n.nova-layout--credits .nova-card__line{height:.15em;margin-top:.25em;background:none}\n.nova-layout--credits .nova-card.focus{background:rgba(11,11,12,.8)!important;color:#eee9dc!important}\n.nova-layout--credits_plus .nova-layout__aside{flex-basis:35%}\n.nova-layout__settings{display:flex;flex:none;justify-content:space-between;align-items:center;min-height:2.4em;margin:0 0 .65em;padding:.5em .8em;color:#b7b0a0;border:1px solid #514a27;border-radius:.3em;font-size:.8em;cursor:pointer}\n.nova-layout__settings b{color:#ffd400;font-size:1.6em;line-height:.8}\n.nova-layout__settings.focus{border-color:#ffd400;background:#1c1d17;outline:1px solid #ffd400}\n.nova-layout--credits_plus .nova-card{display:flex;align-items:stretch;background:rgba(11,11,12,.78);padding:.5em;border:1px solid transparent;border-radius:.35em;margin:0 0 .45em;min-height:7em;box-shadow:none}\n.nova-layout--credits_plus .nova-card__thumb{flex:0 0 11em;width:11em;min-height:6.2em;border-radius:.25em}\n.nova-layout--credits_plus .nova-card__num{top:.3em;left:.3em;right:auto;bottom:auto;width:auto;height:auto;background:#11120f;color:#ffd400;border-radius:.2em;font-size:.75em;padding:.15em .3em}\n.nova-layout--credits_plus .nova-card__body{flex:1;min-width:0;padding:.1em .8em}\n.nova-layout--credits_plus .nova-card__title{font-size:1em;line-height:1.35}\n.nova-layout--credits_plus .nova-card__meta{font-size:.8em;line-height:1.4;max-height:4.2em;overflow:hidden;margin-top:.35em}\n.nova-layout--credits_plus .nova-card__side{position:static;flex:none;align-self:flex-start;max-width:6em;font-size:.8em}\n.nova-layout--credits_plus .nova-card__time{white-space:nowrap;color:#b0a99a;margin-top:.45em}\n.nova-layout--credits_plus .nova-card.focus{background:#191a12!important;color:#eee9dc!important}\n.nova-layout__drawer{position:absolute;z-index:8;right:0;top:0;bottom:0;width:25em;max-width:85%;padding:1em;background:#0e0f0d;border-left:2px solid #ffd400;overflow-y:auto;overflow-x:hidden;box-shadow:-2em 0 5em rgba(0,0,0,.5)}\n.nova-layout__drawer--closed{display:none!important}\n.nova-layout__drawer-head{display:flex;align-items:center;justify-content:space-between;margin:0 .2em 1em;font-size:1.1em}\n.nova-layout__close{font-size:1.6em;line-height:1.2;padding:0 .25em;cursor:pointer}\n.nova-layout__close.focus{outline:1px solid #ffd400;color:#ffd400}\n.nova-layout__drawer .nova-toolbar{display:block}\n.nova-layout__drawer .nova-toolbar .nova-chip{width:100%;max-width:100%;margin:0 0 .6em;min-height:3.2em}\n.nova-layout__drawer .nova-drop{display:flex;flex-direction:column;margin:0 0 1em}\n.nova-layout .nova-card--soon{opacity:.45}\n\n/* A narrow container keeps all controls in document flow. */\n.nova-layout--narrow{display:block!important;height:auto!important;min-height:0;overflow:visible}\n.nova-layout--narrow .nova-layout__aside,.nova-layout--narrow .nova-layout__main{width:100%;padding:.5em 0;overflow:visible}\n.nova-layout--narrow .nova-layout__backdrop{left:0;height:28em}\n.nova-layout--narrow .nova-hero__title{font-size:2em}\n.nova-layout--narrow .nova-layout__credits{font-size:.8em}\n.nova-layout--narrow .nova__list{overflow-y:visible;height:auto;min-height:0}\n.nova-layout--narrow.nova-layout--filmstrip .nova__list{min-height:14em;overflow-x:auto;overflow-y:hidden}\n.nova-layout--narrow.nova-layout--credits_plus .nova-card__thumb{flex-basis:7.5em;width:7.5em;min-height:4.2em}\n.nova-layout--narrow.nova-layout--credits .nova-card__time{margin-left:.6em}\n.nova-layout--narrow .nova-layout__drawer{position:fixed;top:0;right:0;bottom:0;width:25em;max-width:92vw}\n.nova-layout--narrow .nova-layout__details{position:fixed;left:1em;right:1em;bottom:1em;max-height:80vh}\n.nova-layout--narrow.nova-layout--poster .nova-hero,.nova-layout--narrow.nova-layout--poster .nova-hero__body{min-height:20em}\n.nova-layout--narrow.nova-layout--poster .nova-hero__body{padding:5em 1.2em 1.2em}\n.nova-layout--narrow.nova-layout--poster .nova-card__thumb{width:8em;min-height:4.5em}\n@media(prefers-reduced-motion:reduce){.nova-layout *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}");
+    installNovaAppearance("/* Integration only. All visual dimensions/colors come from the vendored BWA CSS. */\n.nova-bwa-scope{background:#0c0c0d}\n.nova-bwa-scope .nova-layout{padding:0;box-sizing:border-box;color:inherit}\n.nova-bwa-scope .nova-layout *{box-sizing:border-box;outline:none}\n.nova-bwa-scope .nova-card,.nova-bwa-scope .nova-chip,.nova-bwa-scope .nova-btn,.nova-bwa-scope .nova-toolbar,.nova-bwa-scope .nova-drop,.nova-bwa-scope .nova-hero__title{all:unset;display:block;box-sizing:border-box}\n.nova-bwa-scope .nova-toolbar{display:block}\n.nova-bwa-scope .bwv>.nova__hero,.nova-bwa-scope .bwv .nova-bwa-hero,.nova-bwa-scope .bwv .nova-toolbar,.nova-bwa-scope .bwv-col .nova__hero,.nova-bwa-scope .bwv-col .nova__rows,.nova-bwa-scope .bwv--titry .nova-hero__actions{display:contents}\n.nova-bwa-scope .nova-layout__drawer--closed{display:none!important}\n.nova-bwa-scope .nova-layout__disabled-selector{pointer-events:none}\n.nova-bwa-scope .nova-bwa-logo-slot{display:block;line-height:1}\n.nova-bwa-scope .nova-bwa-logo-slot img{width:auto;height:auto}\n.nova-bwa-scope .nova-bwa-logo-slot img{filter:none!important;-webkit-filter:none!important}\n.nova-bwa-scope .nova-layout__aside,.nova-bwa-scope .nova-layout__drawer,.nova-bwa-scope .bwv-list,.nova-bwa-scope .bwv-plist{overflow-y:auto;scrollbar-width:none}\n.nova-bwa-scope .nova-layout__aside::-webkit-scrollbar,.nova-bwa-scope .nova-layout__drawer::-webkit-scrollbar,.nova-bwa-scope .bwv-list::-webkit-scrollbar,.nova-bwa-scope .bwv-plist::-webkit-scrollbar,.nova-bwa-scope .bwv-rail::-webkit-scrollbar{display:none}\n.nova-bwa-scope .bwv-rail{overflow-x:auto;scrollbar-width:none}\n.nova-bwa-scope .bwv-rail>.nova__list{white-space:nowrap;padding-top:.35em;display:flex;align-items:stretch}\n.nova-bwa-scope .bwv-chips--opts>.nova-drop{display:inline-flex;white-space:nowrap;vertical-align:middle}\n.nova-bwa-scope .bwv-chips--opts>.nova-toolbar{display:none}\n.nova-bwa-scope .bwv-chips--opts{overflow-x:auto;scrollbar-width:none}\n.nova-bwa-scope .nova-layout__drawer>.bwa-vlist__track{padding:1.5em 1.2em 3em}\n.nova-bwa-scope .bwv-btns.nova-hero__actions{display:block;min-width:0}\n.nova-bwa-scope .bwv--m .nova-layout__aside,.nova-bwa-scope .bwv--m .bwv-plist,.nova-bwa-scope .bwv--m .bwv-list{overflow:visible}\n.nova-bwa-scope .nova-layout__details{overflow-y:auto}\n.nova-bwa-scope .nova-layout__details>.bwv-btn{margin-top:.7em}\n.nova-bwa-scope .bwv--m.nova-bwa-no-art .bwv-head{margin-top:1em!important}\n.nova-bwa-scope .nova-layout--poster>.nova__hero{margin:0}\n.nova-bwa-scope .bwa-note{margin:0}\n.nova-bwa-scope .nova-loading{color:#f3edd8}\n.nova-bwa-scope .nova-note__actions .nova-btn{display:inline-block;padding:.7em 1.1em;margin:.3em .7em .3em 0;border:1px solid #8f8a7c;border-radius:.42em;background:#141414;color:#f3edd8}\n.nova-bwa-scope .nova-note__actions .nova-btn.focus{border-color:#ffd400}\n.nova-bwa-scope .nova-skin-root.bwv.bwv--plenka:not(.bwv--m){display:flex!important}\n.nova-bwa-scope .nova-skin-root.bwv.bwv--m{display:block!important}\n.nova-bwa-scope .nova-layout--poster .bwa-seasons{padding-top:.2em}\n@media(prefers-reduced-motion:reduce){.nova-bwa-scope *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}\n.nova-bwa-scope.nova-bwa-scope{--bwa-bg:#0a0b12;--bwa-accent:#5b6cff;--bwa-accent2:#d05185;--bwa-rgb:91,108,255;--bwa-accent-lt:#7b86ff;--bwa-glow:rgba(255,212,0,.5);--bwa-glass:rgba(255,255,255,.055);--bwa-line:rgba(255,255,255,.09);--bwa-info:#8f909a;--bwa-text:#eceefb}.nova-bwa-scope .explorer__left{display:none!important}.nova-bwa-scope .explorer__files{width:100%!important;left:0!important}.nova-bwa-scope .explorer__files-head{display:none!important}.nova-bwa-scope.nova-bwa-scope .bwa-voices{display:flex;flex-wrap:wrap;gap:.7em;padding:.2em .2em 1.4em}.nova-bwa-scope.nova-bwa-scope .bwa-voice{display:inline-flex;align-items:center;gap:.7em;padding:.7em 1.15em;border-radius:1em;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);transition:transform .2s,background .2s,border-color .2s,box-shadow .2s}.nova-bwa-scope.nova-bwa-scope .bwa-voice.focus{background:rgba(255,212,0,.12);border-color:transparent;transform:scale(1.03);box-shadow:0 0 0 2px #ffd400,0 0 2em rgba(0,0,0,0)}.nova-bwa-scope.nova-bwa-scope .bwa-voice.is-sel{border-color:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwa-voice__q{color:#fff;background:linear-gradient(120deg,#ffd400,#ffe14d);padding:.16em .52em;border-radius:.42em;font-size:.78em;font-weight:800;letter-spacing:.02em}.nova-bwa-scope.nova-bwa-scope .bwa-voice__name{font-weight:600;color:#eceefb}.nova-bwa-scope.nova-bwa-scope .bwa-seasons{display:flex;flex-wrap:wrap;gap:.55em;padding:.2em .2em 1.3em}.nova-bwa-scope.nova-bwa-scope .bwa-season{display:inline-flex;align-items:center;justify-content:center;min-width:2.2em;padding:.55em 1.05em;border-radius:1em;font-size:.95em;font-weight:700;color:#eceefb;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);transition:transform .2s,background .2s,border-color .2s,box-shadow .2s}.nova-bwa-scope.nova-bwa-scope .bwa-season.focus{background:rgba(255,212,0,.12);border-color:transparent;transform:scale(1.06);box-shadow:0 0 0 2px #ffd400,0 0 2em rgba(0,0,0,0)}.nova-bwa-scope.nova-bwa-scope .bwa-season.is-sel{border-color:#ffd400;background:rgba(255,212,0,.16)}.nova-bwa-scope.nova-bwa-scope .bwa-pills{display:flex;flex-wrap:wrap;gap:.6em;padding:.1em .2em 1.1em}.nova-bwa-scope.nova-bwa-scope .bwa-pill{display:inline-flex;align-items:center;gap:.5em;padding:.55em 1.1em;border-radius:2em;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);color:#eceefb;transition:none}.nova-bwa-scope.nova-bwa-scope .bwa-pill.focus{background:rgba(255,212,0,.16);border-color:transparent;transform:scale(1.05);box-shadow:0 0 0 2px #ffd400}.nova-bwa-scope.nova-bwa-scope .bwa-pill__k{font-size:.72em;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#8f909a}.nova-bwa-scope.nova-bwa-scope .bwa-pill__v{font-size:.95em;font-weight:700;max-width:14em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.nova-bwa-scope.nova-bwa-scope .bwa-pill__c{display:inline-block;width:0;height:0;opacity:.55;border-left:.3em solid transparent;border-right:.3em solid transparent;border-top:.36em solid currentColor}.nova-bwa-scope.nova-bwa-scope .bwa-pill__badge{display:inline-flex;align-items:center;justify-content:center;min-width:1.35em;height:1.35em;padding:0 .35em;border-radius:1em;background:rgba(84,224,138,.16);color:#54e08a;font-size:.8em;font-weight:800;line-height:1}.nova-bwa-scope.nova-bwa-scope .bwa-pill__badge::after{content:\"\";display:block;width:.3em;height:.6em;margin-top:-.15em;border:solid #54e08a;border-width:0 .16em .16em 0;transform:rotate(45deg);-webkit-transform:rotate(45deg)}.nova-bwa-scope.nova-bwa-scope .selectbox.bwa-skin .selectbox__content{background:#0c0d14 !important}.nova-bwa-scope.nova-bwa-scope .selectbox.bwa-skin .selectbox__title{color:#ffd400 !important;text-transform:uppercase;letter-spacing:.05em;font-weight:700}.nova-bwa-scope.nova-bwa-scope .selectbox.bwa-skin .selectbox-item{background:transparent !important;border:0 !important;border-radius:.9em;margin:.15em .55em;color:#eceefb !important;transition:background .15s ease,box-shadow .15s ease}.nova-bwa-scope.nova-bwa-scope .selectbox.bwa-skin .selectbox-item.focus{background:rgba(255,212,0,.18) !important;box-shadow:0 0 0 2px #ffd400,0 0 1.4em rgba(0,0,0,0) !important}.nova-bwa-scope.nova-bwa-scope .selectbox.bwa-skin .selectbox-item.selected{box-shadow:inset .22em 0 0 #ffd400 !important}.nova-bwa-scope.nova-bwa-scope .selectbox.bwa-skin .selectbox-item.selected.focus{background:rgba(255,212,0,.24) !important;box-shadow:inset .22em 0 0 #ffd400,0 0 0 2px #ffd400,0 0 1.4em rgba(0,0,0,0) !important}.nova-bwa-scope.nova-bwa-scope .selectbox.bwa-skin .selectbox-item--checkbox{position:relative;padding-right:3.2em}.nova-bwa-scope.nova-bwa-scope .selectbox.bwa-skin .selectbox-item__checkbox{position:absolute;right:1.1em;top:50%;transform:translateY(-50%);width:1.5em;height:1.5em;border-radius:.42em;border:.14em solid rgba(255,212,0,.55);background:transparent;box-sizing:border-box;margin:0}.nova-bwa-scope.nova-bwa-scope .selectbox.bwa-skin .selectbox-item--checked .selectbox-item__checkbox{background:#ffd400 !important;border-color:#ffd400 !important}.nova-bwa-scope.nova-bwa-scope .selectbox.bwa-skin .selectbox-item--checked .selectbox-item__checkbox::after{content:\"\";position:absolute;left:.46em;top:.18em;width:.34em;height:.66em;border:solid #0b0d17;border-width:0 .2em .2em 0;transform:rotate(45deg)}.nova-bwa-scope.nova-bwa-scope .bwa-hero{position:relative;display:block;height:23em;margin:.4em .4em 1em;border-radius:1.4em;overflow:hidden;background-size:cover;background-position:center 20%;background-color:#12131b;border:1px solid rgba(255,255,255,.09);background-clip:padding-box;transition:none}.nova-bwa-scope.nova-bwa-scope .bwa-hero.focus{border-color:transparent;box-shadow:0 0 0 2px #ffd400}.nova-bwa-scope.nova-bwa-scope .bwa-hero__bg{position:absolute;top:0;right:0;bottom:0;left:0;background-size:cover;background-position:center 20%;border-radius:inherit;-webkit-transform:translateZ(0);transform:translateZ(0)}.nova-bwa-scope.nova-bwa-scope .bwa-hero__scrim{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;background:linear-gradient(0deg,rgba(8,9,16,.98),rgba(8,9,16,.4) 48%,rgba(8,9,16,.03) 78%),linear-gradient(90deg,rgba(8,9,16,.72),transparent 62%),radial-gradient(120% 90% at 92% 8%,rgba(255,212,0,.16),transparent 55%)}.nova-bwa-scope.nova-bwa-scope .bwa-hero__content{position:absolute;left:1.7em;right:1.7em;bottom:1.4em;z-index:2;display:flex;flex-direction:column;gap:.6em}.nova-bwa-scope.nova-bwa-scope .bwa-hero__title{font-size:2.7em;font-weight:800;letter-spacing:-.015em;line-height:1.03;color:#fff;text-shadow:0 2px 16px rgba(0,0,0,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nova-bwa-scope.nova-bwa-scope .bwa-hero__meta{display:flex;align-items:center;gap:.85em;font-size:.95em;color:#c9cad6;font-weight:600}.nova-bwa-scope.nova-bwa-scope .bwa-hero__q{color:#fff;background:linear-gradient(120deg,#ffd400,#ffe14d);padding:.2em .62em;border-radius:.5em;font-size:.8em;font-weight:800;letter-spacing:.03em;box-shadow:0 .2em .8em rgba(0,0,0,0)}.nova-bwa-scope.nova-bwa-scope .bwa-hero__chips{display:flex;gap:.5em;flex-wrap:wrap}.nova-bwa-scope.nova-bwa-scope .bwa-chip{display:inline-flex;align-items:center;gap:.45em;font-size:.82em;font-weight:600;color:#d8d9e6;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.09);padding:.3em .8em .3em .7em;border-radius:1.2em}.nova-bwa-scope.nova-bwa-scope .bwa-chip::before{content:\"\";width:.42em;height:.42em;border-radius:50%;background:#ffd400;box-shadow:0 0 .5em rgba(0,0,0,0)}.nova-bwa-scope.nova-bwa-scope .bwa-hero__desc{font-size:.92em;line-height:1.42;color:#b3b4c2;max-width:46em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.nova-bwa-scope.nova-bwa-scope .bwa-hero__desc:empty{display:none}.nova-bwa-scope.nova-bwa-scope .bwa-hero__cta{display:flex;align-items:center;gap:1.1em;margin-top:.55em}.nova-bwa-scope.nova-bwa-scope .bwa-play{display:inline-flex;align-items:center;gap:.5em;font-size:1.05em;font-weight:800;color:#fff;background:linear-gradient(120deg,#ffd400,#ffe14d);padding:.62em 1.5em;border-radius:2em;box-shadow:0 .4em 1.4em rgba(0,0,0,0);transition:none}.nova-bwa-scope.nova-bwa-scope .bwa-play svg{width:20px!important;height:20px!important;flex:none!important;display:block!important}.nova-bwa-scope.nova-bwa-scope .bwa-hero.focus .bwa-play{transform:scale(1.05);box-shadow:0 0 0 .18em #0b0d17,0 0 0 .36em #fff}.nova-bwa-scope.nova-bwa-scope .bwa-hero__voice{font-size:.92em;color:#9a9ba7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nova-bwa-scope.nova-bwa-scope .bwa-hero__prog{position:absolute;left:0;right:0;bottom:0;z-index:3;height:.3em;background:rgba(255,255,255,.14)}.nova-bwa-scope.nova-bwa-scope .bwa-hero__prog>i{display:block;height:100%;background:linear-gradient(90deg,#ffd400,#f0a800)}.nova-bwa-scope.nova-bwa-scope .bwa-ep{display:flex;align-items:center;gap:1.2em;padding:.6em .75em;margin:.45em .2em;border-radius:1.1em;background:rgba(255,255,255,.055);border:1px solid rgba(255,255,255,.09);transition:transform .2s ease,background .2s ease,border-color .2s ease,box-shadow .2s ease}.nova-bwa-scope.nova-bwa-scope .bwa-ep.focus{background:rgba(255,212,0,.1);border-color:transparent;transform:scale(1.01);box-shadow:0 .8em 2.2em rgba(0,0,0,.55),0 0 0 2px #ffd400,0 0 2.2em rgba(0,0,0,0)}.nova-bwa-scope.nova-bwa-scope .bwa-ep__art{position:relative;flex:0 0 auto;width:11em;height:6.2em;border-radius:.8em;overflow:hidden;background-size:cover;background-position:center;background-image:linear-gradient(135deg,#2b2d3a,#181924)}.nova-bwa-scope.nova-bwa-scope .bwa-ep__scrim{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;background:linear-gradient(90deg,rgba(0,0,0,.15),transparent 55%),linear-gradient(0deg,rgba(0,0,0,.45),transparent 55%)}.nova-bwa-scope.nova-bwa-scope .bwa-ep__badge{position:absolute;left:.5em;top:.45em;z-index:2;font-size:.85em;font-weight:800;color:#fff;background:rgba(255,212,0,.85);padding:.12em .55em;border-radius:.45em;box-shadow:0 .2em .6em rgba(0,0,0,.4)}.nova-bwa-scope.nova-bwa-scope .bwa-ep__badge:empty{display:none}.nova-bwa-scope.nova-bwa-scope .bwa-ep__play{position:absolute;top:0;right:0;bottom:0;left:0;inset:0;z-index:2;display:flex;align-items:center;justify-content:center;color:#fff;opacity:0;transition:opacity .2s;text-shadow:0 2px 10px rgba(0,0,0,.7),0 0 1em rgba(0,0,0,0)}.nova-bwa-scope.nova-bwa-scope .bwa-ep__play svg{width:30px!important;height:30px!important;flex:none!important;display:block!important}.nova-bwa-scope.nova-bwa-scope .bwa-ep.focus .bwa-ep__play{opacity:1}.nova-bwa-scope.nova-bwa-scope .bwa-ep__prog{position:absolute;left:0;right:0;bottom:0;z-index:2;height:.32em;background:rgba(255,255,255,.16)}.nova-bwa-scope.nova-bwa-scope .bwa-ep__prog>i{display:block;height:100%;background:linear-gradient(90deg,#ffd400,#f0a800)}.nova-bwa-scope.nova-bwa-scope .bwa-ep__body{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:.32em}.nova-bwa-scope.nova-bwa-scope .bwa-ep__top{display:flex;align-items:baseline;gap:1em}.nova-bwa-scope.nova-bwa-scope .bwa-ep__title{flex:1 1 auto;min-width:0;font-size:1.35em;font-weight:700;color:#eceefb;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nova-bwa-scope.nova-bwa-scope .bwa-ep__time{flex:0 0 auto;font-size:.9em;color:#8f909a}.nova-bwa-scope.nova-bwa-scope .bwa-ep__sub{font-size:.9em;color:#8f909a;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.nova-bwa-scope.nova-bwa-scope .bwa-ep__mark{position:absolute;right:.5em;top:.45em;z-index:2;width:1.7em;height:1.7em;border-radius:50%;background:#54e08a;color:#0b0d17;display:flex;align-items:center;justify-content:center;font-size:.9em;font-weight:800;box-shadow:0 .2em .6em rgba(0,0,0,.5)}.nova-bwa-scope.nova-bwa-scope .bwa-ep__mark:empty{display:none}.nova-bwa-scope.nova-bwa-scope .bwa-ep__resume{flex:0 0 auto;padding:.16em .7em;border-radius:1em;background:#ffd400;color:#0b0d17;font-size:.72em;font-weight:800;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;align-self:center}.nova-bwa-scope.nova-bwa-scope .bwa-ep__resume:empty{display:none}.nova-bwa-scope.nova-bwa-scope .bwa-ep--watched .bwa-ep__art{opacity:.6}.nova-bwa-scope.nova-bwa-scope .bwa-ep--watched .bwa-ep__title{color:#8f909a}.nova-bwa-scope.nova-bwa-scope .bwa-ep--soon{opacity:.5}.nova-bwa-scope.nova-bwa-scope .bwa-ep--soon .bwa-ep__play{display:none!important}.nova-bwa-scope.nova-bwa-scope .bwa-empty{padding:2.8em 1.4em;text-align:center;line-height:1.5}.nova-bwa-scope.nova-bwa-scope .bwa-empty__main{color:#eceefb;font-size:1.25em;font-weight:700}.nova-bwa-scope.nova-bwa-scope .bwa-empty__hint{margin-top:.7em;color:#9a9ba7;font-size:1.02em}.nova-bwa-scope.nova-bwa-scope .bwa-empty__btn{display:inline-block;margin-top:1.5em;padding:.7em 1.7em;border-radius:2em;background:rgba(255,212,0,.14);border:1px solid rgba(255,255,255,.09);color:#eceefb;font-weight:700;font-size:1.05em}.nova-bwa-scope.nova-bwa-scope .bwa-empty__btn.focus{background:rgba(255,212,0,.2);border-color:transparent;box-shadow:0 0 0 2px #ffd400,0 0 1.6em rgba(0,0,0,0)}.nova-bwa-scope.nova-bwa-scope .bwa-skel{display:flex;align-items:center;gap:1.2em;padding:.6em .75em;margin:.45em .2em;border-radius:1.1em;background:rgba(255,255,255,.055);pointer-events:none}.nova-bwa-scope.nova-bwa-scope .bwa-skel__art{flex:0 0 auto;width:11em;height:6.2em;border-radius:.8em;background:rgba(255,255,255,.06)}.nova-bwa-scope.nova-bwa-scope .bwa-skel__l{height:1em;border-radius:.4em;margin:.3em 0;background:rgba(255,255,255,.06)}.nova-bwa-scope.nova-bwa-scope .bwa-shine{position:relative;overflow:hidden}.nova-bwa-scope.nova-bwa-scope .bwa-shine:after{content:\"\";position:absolute;top:0;right:0;bottom:0;left:0;inset:0;transform:translateX(-100%);background:linear-gradient(90deg,transparent,rgba(255,212,0,.14),transparent);animation:novaBwaShine 1.3s infinite}@keyframes novaBwaShine{100%{transform:translateX(100%)}}.nova-bwa-scope.nova-bwa-scope .bwa-note{display:flex;align-items:center;gap:.5em;padding:.9em 1em .25em;color:#aeb0c8;font-size:.82em;font-weight:700;text-transform:uppercase;letter-spacing:.09em}.nova-bwa-scope.nova-bwa-scope .bwa-note::before{content:\"\";width:.35em;height:1em;border-radius:.2em;background:linear-gradient(#ffd400,#f0a800);box-shadow:0 0 .6em rgba(0,0,0,0)}.nova-bwa-scope.nova-bwa-scope .bwa-actors{padding:.3em .2em 1.2em;overflow:hidden}.nova-bwa-scope.nova-bwa-scope .bwa-actors__track{display:flex;gap:1.2em}.nova-bwa-scope.nova-bwa-scope .bwa-actor{flex:0 0 auto;width:6.4em;text-align:center;border-radius:1em;padding:.4em .2em;transition:transform .2s,background .2s}.nova-bwa-scope.nova-bwa-scope .bwa-actor.focus{background:rgba(255,212,0,.1);transform:translateY(-.25em)}.nova-bwa-scope.nova-bwa-scope .bwa-actor__ava{width:5em;height:5em;margin:0 auto .55em;border-radius:50%;background-size:cover;background-position:center;background-color:#20222e;box-shadow:0 .4em 1.2em rgba(0,0,0,.5)}.nova-bwa-scope.nova-bwa-scope .bwa-actor.focus .bwa-actor__ava{box-shadow:0 0 0 .16em #ffd400,0 0 1.6em rgba(0,0,0,0)}.nova-bwa-scope.nova-bwa-scope .bwa-actor__name{font-size:.86em;font-weight:600;color:#eceefb;line-height:1.15;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.nova-bwa-scope.nova-bwa-scope .bwa-actor__role{font-size:.78em;color:#8f909a;margin-top:.15em;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}.nova-bwa-scope.nova-bwa-scope .bwa-info{display:flex;flex-wrap:wrap;gap:1.4em 2.4em;padding:.3em 1em 1.6em}.nova-bwa-scope.nova-bwa-scope .bwa-info__it{min-width:7em}.nova-bwa-scope.nova-bwa-scope .bwa-info__k{font-size:.72em;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:#7d7f8c}.nova-bwa-scope.nova-bwa-scope .bwa-info__v{font-size:.98em;color:#eceefb;margin-top:.2em}.nova-bwa-scope.nova-bwa-scope .view--bwa{display:inline-flex!important;align-items:center;gap:.5em;background:linear-gradient(120deg,#ffd400,#f0a800)!important;border:0!important;color:#fff!important;box-shadow:0 .35em 1em rgba(0,0,0,0)!important}.nova-bwa-scope.nova-bwa-scope .view--bwa .bwa-btn__ico{width:1.5em!important;height:1.5em!important;flex:0 0 auto!important;display:block!important;color:#fff}.nova-bwa-scope.nova-bwa-scope .view--bwa span,.nova-bwa-scope.nova-bwa-scope .view--bwa .full-start__button-text{font-weight:800!important;letter-spacing:.08em;color:#fff!important}.nova-bwa-scope.nova-bwa-scope .view--bwa.focus{box-shadow:0 0 0 .16em #fff,0 0 1.8em rgba(0,0,0,0)!important;transform:translateY(-.05em) scale(1.02)}@media screen and (max-width:600px){.nova-bwa-scope.nova-bwa-scope .bwa-ep__art,.nova-bwa-scope.nova-bwa-scope .bwa-skel__art{width:7.5em;height:4.3em}.nova-bwa-scope.nova-bwa-scope .bwa-hero{height:15em;margin-top:.6em}.nova-bwa-scope.nova-bwa-scope .bwa-hero__title{font-size:1.5em}.nova-bwa-scope.nova-bwa-scope .bwa-hero__desc{-webkit-line-clamp:1}.nova-bwa-scope.nova-bwa-scope .bwa-ep__title{font-size:1.15em}.nova-bwa-scope.nova-bwa-scope .bwa-ep__sub{font-size:.85em}}\n.nova-bwa-scope.nova-bwa-scope{--bwa-accent:#ffd400 !important;--bwa-a:#ffd400 !important;--bwa-accent2:#f0a800 !important;--bwa-a2:#f0a800 !important;--bwa-accent-lt:#ffe14d !important;--bwa-rgb:255,212,0 !important;--bwa-glow:rgba(0,0,0,0) !important}.nova-bwa-scope.nova-bwa-scope .head,.nova-bwa-scope.nova-bwa-scope .head__body{background:#0c0c0d !important}body .nova-bwa-scope{background:#0c0c0d}.nova-bwa-scope.nova-bwa-scope .background{background:#0c0c0d}.nova-bwa-scope.nova-bwa-scope .background canvas{opacity:0 !important}.nova-bwa-scope.nova-bwa-scope .bwa-voice__q,.nova-bwa-scope.nova-bwa-scope .bwa-hero__q,.nova-bwa-scope.nova-bwa-scope .bwa-play,.nova-bwa-scope.nova-bwa-scope .bwa-ep__badge,.nova-bwa-scope.nova-bwa-scope .view--bwa,.nova-bwa-scope.nova-bwa-scope .bwa-shell-on .card__quality>div,.nova-bwa-scope.nova-bwa-scope .bwa-shell-on .full-start__button.button--play,.nova-bwa-scope.nova-bwa-scope .bwa-shell-on .bwa-hero-shell__b{color:#0b0d17 !important;text-shadow:none !important;box-shadow:0 .25em .9em rgba(0,0,0,.6) !important}.nova-bwa-scope.nova-bwa-scope .bwa-hero.focus .bwa-play{box-shadow:0 0 0 .18em #0b0d17,0 0 0 .36em #fff !important}.nova-bwa-scope.nova-bwa-scope .bwa-voice.focus,.nova-bwa-scope.nova-bwa-scope .bwa-ep.focus,.nova-bwa-scope.nova-bwa-scope .bwa-season.focus,.nova-bwa-scope.nova-bwa-scope .bwa-pill.focus,.nova-bwa-scope.nova-bwa-scope .bwa-actor.focus,.nova-bwa-scope.nova-bwa-scope .bwa-empty__btn.focus,.nova-bwa-scope.nova-bwa-scope .selectbox.bwa-skin .selectbox-item.focus,.nova-bwa-scope.nova-bwa-scope .selectbox.bwa-skin .selectbox-item.selected.focus{background:rgba(12,12,13,.86) !important}body .nova-bwa-scope .bwa-voice.focus,body .nova-bwa-scope .bwa-ep.focus,body .nova-bwa-scope .bwa-season.focus,body .nova-bwa-scope .bwa-pill.focus,body .nova-bwa-scope .bwa-actor.focus,body .nova-bwa-scope .bwa-empty__btn.focus,body .nova-bwa-scope .bwa-hero.focus{background:rgba(12,12,13,.86) !important}\n.nova-bwa-credits *,.nova-bwa-credits *::before,.nova-bwa-credits *::after{box-shadow:none!important;text-shadow:none!important;transition:none!important;animation:none!important;filter:none!important;backdrop-filter:none!important}.nova-bwa-credits *:not(.scroll__content):not(.scroll__body):not(.bwa-actors__track):not(.bwa-vlist__track):not(.bwa-strip__track){transform:none!important}.nova-bwa-credits .bwa-hero{height:auto!important;min-height:0!important;background-image:none!important;background:rgba(255,255,255,.05)!important;border:1px solid rgba(255,255,255,.09)!important}.nova-bwa-credits .bwa-hero__scrim,.nova-bwa-credits .bwa-hero__bg{display:none!important}.nova-bwa-credits .bwa-hero__content{position:static!important;padding:1em!important}.nova-bwa-credits .bwa-hero__title{white-space:normal!important}.nova-bwa-credits .bwa-voice.focus,.nova-bwa-credits .bwa-ep.focus,.nova-bwa-credits .bwa-season.focus,.nova-bwa-credits .bwa-pill.focus,.nova-bwa-credits .bwa-actor.focus,.nova-bwa-credits .bwa-hero.focus,.nova-bwa-credits .bwa-empty__btn.focus,.nova-bwa-credits .bwa-play.focus{outline:.14em solid #ffd400!important;background:rgba(255,212,0,.14)!important}.nova-bwa-credits .bwa-hero.focus .bwa-play{outline:.14em solid #fff!important;outline-offset:.14em;box-shadow:none!important}.nova-bwa-credits .selectbox.bwa-skin .selectbox-item{transition:none!important}.nova-bwa-credits .selectbox.bwa-skin .selectbox-item.focus{box-shadow:0 0 0 2px #ffd400!important}.nova-bwa-credits .selectbox.bwa-skin .selectbox-item.selected.focus{box-shadow:inset .22em 0 0 #ffd400,0 0 0 2px #ffd400!important}.nova-bwa-credits .view--bwa{box-shadow:none!important;transition:none!important}.nova-bwa-credits .view--bwa.focus{box-shadow:0 0 0 .16em #fff!important;transform:none!important}\n.nova-bwa-fixed .scroll--mask{-webkit-mask-image:none!important;mask-image:none!important}.nova-bwa-fixed .scroll__content{padding:0!important}.nova-bwa-fixed .scroll__body{padding:0!important;margin:0!important}.nova-bwa-scope.nova-bwa-scope .bwv{position:relative;overflow:hidden;background:#0c0c0d;color:#f3edd8;box-sizing:border-box}.nova-bwa-scope.nova-bwa-scope .bwv-bd{position:absolute;top:0;right:0;width:69%;height:72%;background-size:cover;background-position:center 25%}.nova-bwa-scope.nova-bwa-scope .bwv-bdf{position:absolute;top:0;right:0;width:69%;height:calc(72% + 2px);background:linear-gradient(90deg,#0c0c0d 0%,rgba(12,12,13,.85) 28%,rgba(12,12,13,0) 62%),linear-gradient(0deg,#0c0c0d 0%,rgba(12,12,13,0) 40%)}.nova-bwa-scope.nova-bwa-scope .bwv-head{position:relative;z-index:2;max-width:46em}.nova-bwa-scope.nova-bwa-scope .bwv-title{font-size:3.1em;font-weight:700;line-height:1.05}.nova-bwa-scope.nova-bwa-scope .bwv-logo{display:block;max-width:28em;max-height:6.6em}.nova-bwa-scope.nova-bwa-scope .bwv-rts{margin-top:.9em}.nova-bwa-scope.nova-bwa-scope .bwv-rt{display:inline-block;margin-right:.6em;font-size:1em;font-weight:600;border:1px solid rgba(243,237,216,.28);border-radius:.3em;padding:.3em .55em;line-height:1}.nova-bwa-scope.nova-bwa-scope .bwv-rt i{font-style:normal;color:#ffd400;margin-right:.4em}.nova-bwa-scope.nova-bwa-scope .bwv-meta{margin-top:.75em;font-size:1.02em;color:#bdb6a4}.nova-bwa-scope.nova-bwa-scope .bwv-meta span{white-space:nowrap}.nova-bwa-scope.nova-bwa-scope .bwv-cr{margin-top:.75em;font-size:1em;color:#d9d3c2}.nova-bwa-scope.nova-bwa-scope .bwv-cr__r{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.55}.nova-bwa-scope.nova-bwa-scope .bwv-cr__r b{display:inline-block;width:7.6em;font-size:.78em;font-weight:500;text-transform:uppercase;letter-spacing:.08em;color:#8f8a7c}.nova-bwa-scope.nova-bwa-scope .bwv-btn{position:relative;display:inline-block;height:3.1em;line-height:3.1em;padding:0 1.35em;margin-right:.8em;border-radius:.42em;border:.1em solid rgba(243,237,216,.25);background:#141414;font-weight:600;font-size:1.1em;white-space:nowrap;vertical-align:top}.nova-bwa-scope.nova-bwa-scope .bwv-btn small{font-size:.74em;font-weight:500;color:#bdb6a4;margin-left:.55em}.nova-bwa-scope.nova-bwa-scope .bwv-btn.focus{background:#ffd400;border-color:#ffd400;color:#111}.nova-bwa-scope.nova-bwa-scope .bwv-btn.focus small{color:#3a3300}.nova-bwa-scope.nova-bwa-scope .bwv-btn__ico{display:inline-block;width:0;height:0;border-left:.62em solid currentColor;border-top:.4em solid transparent;border-bottom:.4em solid transparent;margin-right:.55em;vertical-align:-.05em}.nova-bwa-scope.nova-bwa-scope .bwv .bwa-hero__prog{position:absolute;left:.7em;right:.7em;bottom:.3em;height:.16em;background:transparent;border-radius:0;margin:0;overflow:hidden}.nova-bwa-scope.nova-bwa-scope .bwv .bwa-hero__prog>i{display:block;height:100%;background:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv .bwv-btn.focus .bwa-hero__prog>i{background:#111}.nova-bwa-scope.nova-bwa-scope .bwv-tag{display:inline-block;font-size:.82em;font-weight:700;line-height:1;padding:.28em .42em;border-radius:.22em;background:#0c0c0d;color:#ffd400;border:1px solid #3d3820}.nova-bwa-scope.nova-bwa-scope .bwv .bwa-ep__prog{position:relative;display:block;left:auto;right:auto;bottom:auto;height:.2em;background:rgba(243,237,216,.14);margin:0;overflow:hidden}.nova-bwa-scope.nova-bwa-scope .bwv .bwa-ep__prog>i{display:block;height:100%;background:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv .bwa-ep__time{font-size:1em;color:inherit;flex:none}.nova-bwa-scope.nova-bwa-scope .bwv .is-dim{opacity:.42}.nova-bwa-scope.nova-bwa-scope .bwv-empty{padding:2em 0;color:#8f8a7c}.nova-bwa-scope.nova-bwa-scope .bwv-info{position:absolute;left:0;right:0;bottom:0;height:52%;z-index:5;background:#0c0c0d;border-top:.14em solid #ffd400;padding:1.4em 3.9em 0;box-sizing:border-box}.nova-bwa-scope.nova-bwa-scope .bwv-info__t{font-size:1.5em;font-weight:700}.nova-bwa-scope.nova-bwa-scope .bwv-info__d{margin-top:.4em;font-size:1em;color:#cfc9b8;max-width:70em;line-height:1.4;max-height:2.8em;overflow:hidden}.nova-bwa-scope.nova-bwa-scope .bwv-info__p{margin-top:1em;overflow:hidden}.nova-bwa-scope.nova-bwa-scope .bwv-info__p .bwa-strip__track{white-space:nowrap}.nova-bwa-scope.nova-bwa-scope .bwv-person{display:inline-block;vertical-align:top;width:8.2em;margin-right:1em;padding:.4em;border:.1em solid transparent;border-radius:.42em;white-space:normal}.nova-bwa-scope.nova-bwa-scope .bwv-person.focus{border-color:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-person__ph{width:7.2em;height:8.8em;border-radius:.3em;background:#1c1c1c center/cover;text-align:center;line-height:8.8em}.nova-bwa-scope.nova-bwa-scope .bwv-person__ph span{font-size:2.2em;line-height:4em;color:#8f8a7c}.nova-bwa-scope.nova-bwa-scope .bwv-person__n{margin-top:.4em;font-size:.92em;line-height:1.2}.nova-bwa-scope.nova-bwa-scope .bwv-person__r{font-size:.78em;color:#8f8a7c;margin-top:.15em;line-height:1.2}.nova-bwa-scope.nova-bwa-scope .bwv-info__c{margin-top:.6em;font-size:.88em;color:#bdb6a4}.nova-bwa-scope.nova-bwa-scope .bwv--plenka{display:flex;flex-direction:column;padding:1.5em 0 0 3.9em}.nova-bwa-scope.nova-bwa-scope .bwv--plenka .bwv-head,.nova-bwa-scope.nova-bwa-scope .bwv--plenka .bwv-btns,.nova-bwa-scope.nova-bwa-scope .bwv--plenka .bwv-chips{flex:0 0 auto}.nova-bwa-scope.nova-bwa-scope .bwv--plenka .bwv-rail{flex:1 1 auto;min-height:0}.nova-bwa-scope.nova-bwa-scope .bwv--plenka .bwv-chips{margin-top:.9em}.nova-bwa-scope.nova-bwa-scope .bwv--plenka .bwv-btns{position:relative;z-index:2;margin-top:1.25em;white-space:normal}.nova-bwa-scope.nova-bwa-scope .bwv--plenka .bwv-btn.focus{box-shadow:0 0 0 .14em #ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-chips{position:relative;z-index:2;margin-top:auto;margin-bottom:1.1em;white-space:nowrap;min-height:3.9em}.nova-bwa-scope.nova-bwa-scope .bwv-chip{display:inline-block;vertical-align:top;height:3.9em;padding:.62em 1.1em 0;margin-right:.8em;box-sizing:border-box;border-radius:.42em;background:#141414;border:.1em solid rgba(243,237,216,.16);white-space:nowrap}.nova-bwa-scope.nova-bwa-scope .bwv-chip__l{display:block;font-size:.76em;text-transform:uppercase;letter-spacing:.1em;color:#8f8a7c;line-height:1}.nova-bwa-scope.nova-bwa-scope .bwv-chip__v{display:block;margin-top:.35em;font-size:1.12em;font-weight:600;line-height:1.1}.nova-bwa-scope.nova-bwa-scope .bwv-chip__v small{font-size:.74em;font-weight:500;color:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-chip.focus{border-color:#ffd400;box-shadow:0 0 0 .14em #ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-chip.focus .bwv-chip__l{color:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-chips--opts{overflow:hidden;margin-right:2em}.nova-bwa-scope.nova-bwa-scope .bwv-chips__lab{display:inline-block;vertical-align:middle;margin-right:.8em;font-size:.8em;text-transform:uppercase;letter-spacing:.1em;color:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-chips--opts .bwa-strip__track{display:inline-block;vertical-align:middle;white-space:nowrap}.nova-bwa-scope.nova-bwa-scope .bwv-opt{display:inline-block;vertical-align:middle;height:3.3em;line-height:3.3em;padding:0 1.1em;margin-right:.6em;border-radius:.42em;background:#141414;border:.1em solid rgba(243,237,216,.16);white-space:nowrap}.nova-bwa-scope.nova-bwa-scope .bwv-opt.is-cur{border-color:#8a7d3e}.nova-bwa-scope.nova-bwa-scope .bwv-opt.focus{border-color:#ffd400;box-shadow:0 0 0 .14em #ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-opt__v{font-weight:600}.nova-bwa-scope.nova-bwa-scope .bwv-opt__c{margin-left:.6em;font-size:.8em;color:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-rail{position:relative;z-index:2;height:16.4em;overflow:hidden;margin-left:-.4em;padding-left:.4em}.nova-bwa-scope.nova-bwa-scope .bwv-rail .bwa-strip__track{white-space:nowrap;padding-top:.35em;display:flex;align-items:stretch}.nova-bwa-scope.nova-bwa-scope .bwv-rail .bwv-track{display:flex;flex-direction:column;flex:0 0 auto;height:auto}.nova-bwa-scope.nova-bwa-scope .bwv-rail .bwv-card{flex:none}.nova-bwa-scope.nova-bwa-scope .bwv-card{display:inline-block;vertical-align:top;width:17.4em;margin-right:1.2em;padding:.35em;box-sizing:border-box;border:.1em solid transparent;border-radius:.42em;white-space:normal}.nova-bwa-scope.nova-bwa-scope .bwv-card.focus{border-color:#ffd400;box-shadow:0 0 0 .14em #ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-card__im{position:relative;height:9.3em;border-radius:.3em;background:#1a1a1a center/cover}.nova-bwa-scope.nova-bwa-scope .bwv-card__n{position:absolute;left:.42em;top:.42em}.nova-bwa-scope.nova-bwa-scope .bwv-card__q{position:absolute;right:.42em;top:.42em}.nova-bwa-scope.nova-bwa-scope .bwv-card .bwa-ep__mark{top:auto;bottom:.42em;right:.42em}.nova-bwa-scope.nova-bwa-scope .bwv-card .bwa-ep__prog{margin-top:.45em;background:transparent}.nova-bwa-scope.nova-bwa-scope .bwv-card__nm{margin-top:.45em;font-size:1.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nova-bwa-scope.nova-bwa-scope .bwv-card__sub{margin-top:.15em;font-size:.84em;color:#8f8a7c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nova-bwa-scope.nova-bwa-scope .bwv-track{display:inline-block;vertical-align:top;width:12.5em;min-height:6.4em;margin-right:.9em;padding:.7em .9em 1em;box-sizing:border-box;border:.1em solid rgba(243,237,216,.14);border-radius:.42em;background:#121212;white-space:normal;position:relative}.nova-bwa-scope.nova-bwa-scope .bwv-track.is-cur{border-color:#8a7d3e}.nova-bwa-scope.nova-bwa-scope .bwv-track.focus{border-color:#ffd400;box-shadow:0 0 0 .14em #ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-track__l{font-size:.76em;text-transform:uppercase;letter-spacing:.1em;color:#8f8a7c}.nova-bwa-scope.nova-bwa-scope .bwv-track__n{margin-top:.3em;font-size:1.02em;font-weight:700;line-height:1.25;max-height:3.75em;overflow:hidden}.nova-bwa-scope.nova-bwa-scope .bwv-track__tags{margin-top:.5em}.nova-bwa-scope.nova-bwa-scope .bwv-track__at{margin-top:.5em;font-size:.8em;color:#bdb6a4}.nova-bwa-scope.nova-bwa-scope .bwv-track .bwa-ep__prog{position:absolute;left:1em;right:1em;bottom:.6em}.nova-bwa-scope.nova-bwa-scope .bwv--titry .bwv-bd{width:100%;height:100%;opacity:.2}.nova-bwa-scope.nova-bwa-scope .bwv--titry .bwv-bdf{display:none}.nova-bwa-scope.nova-bwa-scope .bwv-col{position:absolute;left:3.1em;top:1.4em;bottom:0;width:35%;overflow:hidden;z-index:2}.nova-bwa-scope.nova-bwa-scope .bwv-col .bwa-vlist__track{padding-bottom:3em}.nova-bwa-scope.nova-bwa-scope .bwv--titry .bwv-title{font-size:2.3em}.nova-bwa-scope.nova-bwa-scope .bwv--titry .bwv-btn--play{display:block;margin:1em 0 .4em;text-align:left}.nova-bwa-scope.nova-bwa-scope .bwv-it{padding:.55em 1em;margin-top:.15em;border:.1em solid transparent;border-radius:.42em}.nova-bwa-scope.nova-bwa-scope .bwv-it .bwv-chip__v{font-weight:500}.nova-bwa-scope.nova-bwa-scope .bwv-it.focus{border-color:#ffd400;background:rgba(255,212,0,.06)}.nova-bwa-scope.nova-bwa-scope .bwv-it.focus .bwv-chip__l{color:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-opts{margin:.1em 0 .4em}.nova-bwa-scope.nova-bwa-scope .bwv-opts .bwv-opt{display:block;height:auto;line-height:1.3;padding:.5em 1em .5em 2em;margin:0 0 .12em;background:none;border-color:transparent}.nova-bwa-scope.nova-bwa-scope .bwv-opts .bwv-opt.is-cur .bwv-opt__v{color:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-opts .bwv-opt.focus{border-color:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-listbox{position:absolute;left:40%;right:2.5em;top:1.4em;bottom:0;z-index:2}.nova-bwa-scope.nova-bwa-scope .bwv-lh{display:flex;align-items:flex-end;font-size:1.08em;padding:0 1em .45em}.nova-bwa-scope.nova-bwa-scope .bwv-lh i{font-style:normal;font-size:.7em;text-transform:uppercase;letter-spacing:.1em;color:#8f8a7c;white-space:nowrap}.nova-bwa-scope.nova-bwa-scope .bwv-lh .bwv-row__n i{color:#8f8a7c}.nova-bwa-scope.nova-bwa-scope .bwv-lh__p{width:4.2em;flex:none;margin:0 .9em}.nova-bwa-scope.nova-bwa-scope .bwv-lh__d{width:8.6em;flex:none;text-align:right}.nova-bwa-scope.nova-bwa-scope .bwv-lh__m{width:1.5em;flex:none}.nova-bwa-scope.nova-bwa-scope .bwv-list{position:absolute;top:2.4em;bottom:0;left:0;right:0;overflow:hidden}.nova-bwa-scope.nova-bwa-scope .bwv-list .bwa-vlist__track{padding-bottom:3em}.nova-bwa-scope.nova-bwa-scope .bwv-row{display:flex;align-items:center;padding:.62em .9em;border:.1em solid transparent;border-radius:.42em;font-size:1.08em}.nova-bwa-scope.nova-bwa-scope .bwv-row.focus{border-color:#ffd400;background:rgba(12,12,13,.86)}.nova-bwa-scope.nova-bwa-scope .bwv-row.is-cur .bwv-row__t{color:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-row__n{width:2.7em;flex:none;color:#ffd400;font-weight:600}.nova-bwa-scope.nova-bwa-scope .bwv-row__t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nova-bwa-scope.nova-bwa-scope .bwv-row .bwa-ep__prog{width:4.2em;flex:none;margin:0 .9em;background:transparent}.nova-bwa-scope.nova-bwa-scope .bwv-row__q{width:6.5em;flex:none;text-align:right}.nova-bwa-scope.nova-bwa-scope .bwv-row .bwa-ep__time{width:10.5em;flex:none;text-align:right;font-size:.82em;color:#8f8a7c;white-space:nowrap}.nova-bwa-scope.nova-bwa-scope .bwv-row .bwa-ep__mark{position:static;width:1.5em;height:auto;margin:0;background:none;color:#ffd400;box-shadow:none;display:inline-block;flex:none;text-align:right}.nova-bwa-scope.nova-bwa-scope .bwv--titry .bwa-hero__prog{display:none}.nova-bwa-scope.nova-bwa-scope .bwv--plus .bwv-bd{width:59%;height:100%;opacity:.55}.nova-bwa-scope.nova-bwa-scope .bwv--plus .bwv-bdf{width:59%;height:100%}.nova-bwa-scope.nova-bwa-scope .bwv-left{position:absolute;left:3.1em;top:1.6em;width:30.5em;z-index:2}.nova-bwa-scope.nova-bwa-scope .bwv--plus .bwv-title{font-size:2.6em}.nova-bwa-scope.nova-bwa-scope .bwv--plus .bwv-logo{max-width:24em;max-height:5.6em}.nova-bwa-scope.nova-bwa-scope .bwv--plus .bwv-btns{margin-top:1.2em;white-space:normal}.nova-bwa-scope.nova-bwa-scope .bwv--plus .bwv-btn{max-width:100%;box-sizing:border-box;overflow:hidden;text-overflow:ellipsis;margin-bottom:.7em}.nova-bwa-scope.nova-bwa-scope .bwv--plus .bwv-btn.focus{box-shadow:0 0 0 .14em #ffd400}.nova-bwa-scope.nova-bwa-scope .bwv--plus .bwa-hero__prog{display:none}.nova-bwa-scope.nova-bwa-scope .bwv-pline{position:absolute;left:42.2em;right:2.8em;top:1.5em;font-size:.86em;color:#8f8a7c;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;z-index:2}.nova-bwa-scope.nova-bwa-scope .bwv-pline b{color:#f3edd8;font-weight:500}.nova-bwa-scope.nova-bwa-scope .bwv-plist{position:absolute;left:36.1em;right:2.3em;top:3.1em;bottom:2em;overflow:hidden;z-index:2;background:rgba(12,12,13,.86)}.nova-bwa-scope.nova-bwa-scope .bwv-plist .bwa-vlist__track{padding:.3em .3em 3em}.nova-bwa-scope.nova-bwa-scope .bwv-prow{display:flex;padding:.55em;margin-bottom:.25em;border:.1em solid transparent;border-radius:.42em}.nova-bwa-scope.nova-bwa-scope .bwv-prow.focus{border-color:#ffd400;box-shadow:0 0 0 .14em #ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-prow__im{position:relative;flex:none;width:11em;height:6.15em;border-radius:.3em;background:#1a1a1a center/cover}.nova-bwa-scope.nova-bwa-scope .bwv-prow__q{position:absolute;right:.35em;top:.35em}.nova-bwa-scope.nova-bwa-scope .bwv-prow .bwa-ep__mark{top:auto;bottom:.35em;right:.35em}.nova-bwa-scope.nova-bwa-scope .bwv-prow__b{flex:1;min-width:0;margin-left:.9em}.nova-bwa-scope.nova-bwa-scope .bwv-prow__h{display:flex;align-items:baseline;font-size:1.1em;font-weight:600}.nova-bwa-scope.nova-bwa-scope .bwv-prow__n{flex:none;margin-right:.45em;color:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-prow__t{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.nova-bwa-scope.nova-bwa-scope .bwv-prow .bwa-ep__time{flex:none;margin-left:.8em;font-size:.74em;font-weight:400;color:#8f8a7c;white-space:nowrap}.nova-bwa-scope.nova-bwa-scope .bwv-prow__p{margin-top:.3em;font-size:.88em;color:#cfc9b8;line-height:1.35;max-height:2.7em;overflow:hidden}.nova-bwa-scope.nova-bwa-scope .bwv-prow .bwa-ep__prog{margin-top:.45em;background:transparent}.nova-bwa-scope.nova-bwa-scope .bwv-prow--track{align-items:center;padding:.8em 1em}.nova-bwa-scope.nova-bwa-scope .bwv-prow--track .bwv-prow__b{margin-left:0}.nova-bwa-scope.nova-bwa-scope .bwv-prow--track.is-cur .bwv-prow__t{color:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv-prow__tags{flex:none;margin-left:1em}.nova-bwa-scope.nova-bwa-scope .bwv-ptip{position:absolute;left:45.8em;bottom:.7em;font-size:.8em;color:#7d786b;z-index:2}.nova-bwa-scope.nova-bwa-scope .bwv-drawer{position:absolute;top:0;right:0;bottom:0;width:25em;z-index:6;background:#0c0c0d;border-left:.14em solid #ffd400;overflow:hidden}.nova-bwa-scope.nova-bwa-scope .bwv-drawer .bwa-vlist__track{padding:1.5em 1.2em 3em}.nova-bwa-scope.nova-bwa-scope .bwv-drawer__t{margin:0 0 .6em 1em;font-size:.8em;text-transform:uppercase;letter-spacing:.1em;color:#8f8a7c}.nova-bwa-scope.nova-bwa-scope .bwv--m{height:auto!important;display:block!important;padding:0 0 2.5em!important}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-bd{position:relative!important;display:block;width:100%!important;height:56vw!important;opacity:1!important;background-position:center 20%}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-bdf{position:absolute;top:0;left:0;width:100%!important;height:56vw!important;display:block!important;background:linear-gradient(0deg,#0c0c0d 2%,rgba(12,12,13,0) 65%)!important}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-head,.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-left,.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-col,.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-listbox,.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-list,.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-plist,.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-pline,.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-info,.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-drawer{position:relative!important;left:auto!important;right:auto!important;top:auto!important;bottom:auto!important;width:auto!important;max-width:none!important;height:auto!important}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-head{margin:-3em 1em 0;z-index:2}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-left,.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-col{margin:0}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-title{font-size:2em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-logo{max-width:72%;max-height:5em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-cr__r{white-space:normal;display:flex}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-cr__r b{flex:none;padding-top:.15em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-cr__r span{flex:1;min-width:0}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-btns{margin:1em 1em 0;white-space:normal}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-btn{margin-bottom:.6em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-col .bwv-btn--play{margin:1em 1em .4em!important}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-it{margin:.15em .6em 0}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwa-vlist{overflow:visible!important}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwa-vlist__track,.nova-bwa-scope.nova-bwa-scope .bwv--m .bwa-strip__track{transform:none!important}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwa-strip{overflow-x:auto!important;-webkit-overflow-scrolling:touch}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-chips{margin:1em 0 .8em;padding-left:1em;overflow-x:auto;min-height:0}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-rail{height:auto;margin:0;padding-left:.6em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-card,.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-track{width:13.5em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-card__im{height:7.6em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-listbox{margin:1.2em .4em 0}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-lh__p,.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-row .bwa-ep__prog{display:none}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-row{padding:.6em .5em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-row__q{width:5.2em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-row .bwa-ep__time{width:7em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-lh__d{width:5.7em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-lh{padding:0 .6em .45em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-pline{margin:1.2em 1em .4em;padding:.6em .8em;white-space:normal;border:1px solid rgba(243,237,216,.18);border-radius:.42em;font-size:.95em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-pline:after{content:\"  ▾ настройки\";color:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-pline.focus{border-color:#ffd400}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-plist{margin:0 .4em;background:none}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-prow__im{width:8.5em;height:4.8em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-ptip{display:none}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-drawer{margin:0 1em .6em;border-left:none;border:1px solid #ffd400;border-radius:.42em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-drawer .bwa-vlist__track{padding:.8em .4em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-info{margin:1em 0 0;border-top:.14em solid #ffd400;padding:1em}.nova-bwa-scope.nova-bwa-scope .bwv--m .bwv-info__p{overflow-x:auto}\n.nova-bwa-scope.nova-bwa-no-gap .bwa-hero__content>*+*{margin-top:.6em}.nova-bwa-scope.nova-bwa-no-gap .bwa-hero__meta>*+*{margin-left:.85em}.nova-bwa-scope.nova-bwa-no-gap .bwa-hero__chips>*+*{margin-left:.5em}.nova-bwa-scope.nova-bwa-no-gap .bwa-hero__chips>*{margin-bottom:.5em}.nova-bwa-scope.nova-bwa-no-gap .bwa-chip::before{margin-right:.45em}.nova-bwa-scope.nova-bwa-no-gap .bwa-hero__cta>*+*{margin-left:1.1em}.nova-bwa-scope.nova-bwa-no-gap .bwa-play>*+*{margin-left:.5em}.nova-bwa-scope.nova-bwa-no-gap .bwa-ep>*+*{margin-left:1.2em}.nova-bwa-scope.nova-bwa-no-gap .bwa-ep__body>*+*{margin-top:.32em}.nova-bwa-scope.nova-bwa-no-gap .bwa-ep__top>*+*{margin-left:1em}.nova-bwa-scope.nova-bwa-no-gap .bwa-note::before{margin-right:.5em}.nova-bwa-scope.nova-bwa-no-gap .bwa-actors__track>*+*{margin-left:1.2em}.nova-bwa-scope.nova-bwa-no-gap .bwa-info>*+*{margin-left:2.4em}.nova-bwa-scope.nova-bwa-no-gap .bwa-info>*{margin-bottom:1.4em}.nova-bwa-scope.nova-bwa-no-gap .view--bwa>*+*{margin-left:.5em}.nova-bwa-scope.nova-bwa-no-gap .bwa-voice>*+*{margin-left:.7em}.nova-bwa-scope.nova-bwa-no-gap .bwa-voices>*+*{margin-left:.7em}.nova-bwa-scope.nova-bwa-no-gap .bwa-voices>*{margin-bottom:.7em}.nova-bwa-scope.nova-bwa-no-gap .bwa-seasons>*+*{margin-left:.55em}.nova-bwa-scope.nova-bwa-no-gap .bwa-seasons>*{margin-bottom:.55em}.nova-bwa-scope.nova-bwa-no-gap .bwa-pill>*+*{margin-left:.5em}.nova-bwa-scope.nova-bwa-no-gap .bwa-pills>*+*{margin-left:.6em}.nova-bwa-scope.nova-bwa-no-gap .bwa-pills>*{margin-bottom:.6em}.nova-bwa-scope.nova-bwa-no-gap .bwa-skel>*+*{margin-left:1.2em}");
     settings();
     hookLogo();
     addCSS();

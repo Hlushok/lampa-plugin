@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { buildAppearanceCss } from './nova-skin-appearance/bwa-styles.mjs';
 
 const startAnchor = '  function start() {\n    settings();';
 export const appearanceAnchors = [
@@ -12,7 +13,9 @@ export const appearanceFunctions = [
   'novaUp', 'novaDown', 'novaLeft', 'novaRight', 'hookController', 'addCSS',
   'fitToolbar', 'get', 'save', 'pickResume', 'seek', 'lockRelease',
   'refreshCollection', 'inSkin', 'sourceTitle', 'shortQuality', 'isSeen',
-  'play', 'longPress', 'keyIndex', 'preselectPage', 'probeStop', 'searchRecover'
+  'play', 'longPress', 'keyIndex', 'preselectPage', 'probeStop', 'searchRecover',
+  'forget', 'pendingLive', 'refreshMarks', 'tmdbId', 'tmdbKind', 'episodeRuntime',
+  'seasonNumber', 'heroArt', 'heroLogo', 'logoDraw', 'bindPlay', 'chooseOption', 'ownArt'
 ];
 
 export function patchAppearance(source) {
@@ -28,7 +31,7 @@ export function patchAppearance(source) {
     if (count !== 1) throw new Error(`Appearance function must occur exactly once; found ${count}: ${name}`);
   }
   const runtime = readFileSync(new URL('./nova-skin-appearance/runtime.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n').trimEnd();
-  const css = readFileSync(new URL('./nova-skin-appearance/styles.css', import.meta.url), 'utf8').replace(/\r\n/g, '\n').trim();
+  const css = buildAppearanceCss();
   return source.replace(startAnchor,
     runtime.split('\n').map(line => line ? '  ' + line : '').join('\n') + '\n\n' +
     '  function start() {\n    installNovaAppearance(' + JSON.stringify(css) + ');\n    settings();');
