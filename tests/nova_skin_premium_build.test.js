@@ -243,6 +243,14 @@ function upstreamFixture(eol = '\r\n') {
     '  }',
     '',
     '  function freshItem() {}',
+    '  function settings() {',
+    '    Lampa.SettingsApi.addParam({',
+    "      param: { name: ENABLED_KEY, type: 'trigger', default: true }",
+    '    });',
+    '  }',
+    '  function start() {',
+    '    settings();',
+    '  }',
     '})();',
     ''
   ].join(eol);

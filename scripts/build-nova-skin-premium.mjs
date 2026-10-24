@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { createHash } from 'node:crypto';
 import { patchSearchReliability } from './nova-skin-search-reliability.mjs';
+import { patchAppearance } from './nova-skin-appearance.mjs';
 
 const markerAnchor = `(function () {
   'use strict';`;
@@ -600,7 +601,7 @@ export function buildPremiumSource(upstreamSource) {
   source = replaceExactlyOnce(source, heroResultRenderAnchor, heroResultRenderReplacement, 'Hero result render');
   source = replaceExactlyOnce(source, heroLoadingAnchor, heroLoadingReplacement, 'Hero loading');
 
-  return patchSearchReliability(source);
+  return patchAppearance(patchSearchReliability(source));
 }
 
 const invokedPath = process.argv[1] ? pathToFileURL(resolve(process.argv[1])).href : '';
