@@ -27,8 +27,8 @@ export function patchAppearance(source) {
     const count = [...source.matchAll(new RegExp(`\\bfunction ${name}\\s*\\(`, 'g'))].length;
     if (count !== 1) throw new Error(`Appearance function must occur exactly once; found ${count}: ${name}`);
   }
-  const runtime = readFileSync(new URL('./nova-skin-appearance/runtime.js', import.meta.url), 'utf8').trimEnd();
-  const css = readFileSync(new URL('./nova-skin-appearance/styles.css', import.meta.url), 'utf8').trim();
+  const runtime = readFileSync(new URL('./nova-skin-appearance/runtime.js', import.meta.url), 'utf8').replace(/\r\n/g, '\n').trimEnd();
+  const css = readFileSync(new URL('./nova-skin-appearance/styles.css', import.meta.url), 'utf8').replace(/\r\n/g, '\n').trim();
   return source.replace(startAnchor,
     runtime.split('\n').map(line => '  ' + line).join('\n') + '\n\n' +
     '  function start() {\n    installNovaAppearance(' + JSON.stringify(css) + ');\n    settings();');

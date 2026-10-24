@@ -4881,7 +4881,474 @@
     } catch (err) {}
   }
 
+  // LampaUA appearance adapters. Local to the generated Nova Skin IIFE.
+  function installNovaAppearance(css) {
+    if (installNovaAppearance.api) return installNovaAppearance.api;
+    var KEY = 'nova_skin_appearance';
+    var ORDER = ['native', 'nova', 'poster', 'filmstrip', 'credits', 'credits_plus'];
+    var TEXT = {
+      uk: { title: 'Оформлення', description: 'Вигляд картки та списку серій', names: ['Рідний', 'Нова', 'Афіша', 'Плівка', 'Титри', 'Титри+'], settings: 'Налаштування', close: 'Закрити', details: 'Докладніше', creators: 'Творці', cast: 'У ролях', studio: 'Студія', network: 'Канал', settingsHint: 'Праворуч — налаштування' },
+      ru: { title: 'Оформление', description: 'Вид карточки и списка серий', names: ['Родной', 'Нова', 'Афиша', 'Плёнка', 'Титры', 'Титры+'], settings: 'Настройки', close: 'Закрыть', details: 'Подробнее', creators: 'Создатели', cast: 'В ролях', studio: 'Студия', network: 'Канал', settingsHint: 'Вправо — настройки' },
+      en: { title: 'Appearance', description: 'Movie details and episode layout', names: ['Native', 'Nova', 'Poster', 'Filmstrip', 'Credits', 'Credits+'], settings: 'Settings', close: 'Close', details: 'More details', creators: 'Creators', cast: 'Cast', studio: 'Studio', network: 'Network', settingsHint: 'Right — settings' }
+    };
+  
+    function valid(value) { return ORDER.indexOf(value) !== -1; }
+    function current() {
+      var value = get(KEY, '');
+      return valid(value) ? value : (get(ENABLED_KEY, true) === false ? 'native' : 'nova');
+    }
+    function words() {
+      var language = get('language', 'ru');
+      language = language === 'ua' ? 'uk' : language;
+      return Object.prototype.hasOwnProperty.call(TEXT, language) ? TEXT[language] : TEXT.en;
+    }
+    function setting() {
+      var text = words();
+      var values = {};
+      ORDER.forEach(function (mode, index) { values[mode] = text.names[index]; });
+      return {
+        component: 'nova_skin',
+        param: { name: KEY, type: 'select', values: values, default: current() },
+        field: { name: text.title, description: text.description },
+        onChange: function (value) {
+          var mode = valid(value) ? value : current();
+          save(KEY, mode);
+          save(ENABLED_KEY, mode !== 'native');
+          // Restore native nodes before an activity replacement can detach them.
+          if (root && ui.root) searchRecover(null);
+          try { Lampa.Activity.replace(); } catch (error) {}
+        }
+      };
+    }
+  
+    enabled = function () {
+      return window.nova_skin_lampac_access === true && current() !== 'native';
+    };
+  
+    var originalSettings = settings;
+    settings = function () {
+      var api = Lampa.SettingsApi;
+      if (!api || typeof api.addParam !== 'function') return originalSettings.apply(this, arguments);
+      var addParam = api.addParam;
+      api.addParam = function (entry) {
+        if (entry && entry.component === 'nova_skin' && entry.param && entry.param.name === ENABLED_KEY) {
+          entry = setting();
+        }
+        return addParam.call(api, entry);
+      };
+      try { return originalSettings.apply(this, arguments); }
+      finally { api.addParam = addParam; }
+    };
+  
+    var state = { root: null, drawer: false, details: false, lastList: '', lastControl: '', returnList: false };
+    function custom() { return enabled() && current() !== 'nova'; }
+    function columns() { return current() === 'credits' || current() === 'credits_plus'; }
+    function fixed() { return custom() && current() !== 'poster'; }
+  
+    function focusable(box) {
+      return box && box.length ? box.find('.selector').filter(function () {
+        return $(this).is(':visible') && !$(this).closest('.nova-layout__drawer--closed').length;
+      }) : $();
+    }
+    function listTarget() {
+      var wanted = state.lastList ? seek(state.lastList) : null;
+      if (wanted && wanted.length && wanted.is(':visible')) return wanted;
+      var target = pickResume(items);
+      if (target && target.card && target.card.is(':visible')) return target.card;
+      return focusable(ui.list).first();
+    }
+    function controlTarget() {
+      var wanted = state.lastControl ? seek(state.lastControl) : null;
+      if (wanted && wanted.length && wanted.is(':visible')) return wanted;
+      return focusable(ui.rows).first();
+    }
+    function focus(target) {
+      if (!target || !target.length) return true;
+      lockRelease();
+      focusNode(target, true);
+      return true;
+    }
+    function drawer(show, restore) {
+      if (!ui.appearanceDrawer) return false;
+      var wasOpen = state.drawer;
+      state.drawer = !!show;
+      if (show) {
+        ui.appearanceDrawer.removeClass('nova-layout__drawer--closed').attr('aria-hidden', 'false');
+        ui.appearanceDrawer.find('.nova-layout__disabled-selector').addClass('selector').removeClass('nova-layout__disabled-selector');
+        ui.appearanceSettings.attr('aria-expanded', 'true');
+        refreshCollection();
+        return focus(controlTarget());
+      }
+      if (wasOpen && ui_open) {
+        ui_open = '';
+        lockRelease();
+        if (typeof probeStop === 'function') probeStop();
+        buildRows();
+      }
+      ui.appearanceDrawer.addClass('nova-layout__drawer--closed').attr('aria-hidden', 'true');
+      ui.appearanceDrawer.find('.selector').addClass('nova-layout__disabled-selector').removeClass('selector');
+      if (ui.appearanceSettings) ui.appearanceSettings.attr('aria-expanded', 'false');
+      refreshCollection();
+      if (restore !== false) focus(listTarget());
+      return true;
+    }
+  
+    function size() {
+      if (!custom() || !ui.root) return;
+      var narrow = (ui.root[0].clientWidth || window.innerWidth) < 760;
+      ui.root.toggleClass('nova-layout--narrow', narrow);
+      if (!fixed() || narrow) { ui.root.css('height', ''); return; }
+      var height = window.innerHeight || document.documentElement.clientHeight;
+      var top = Math.max(0, ui.root[0].getBoundingClientRect().top);
+      ui.root.css('height', Math.max(340, height - top - 16) + 'px');
+    }
+  
+    function frame() {
+      if (!custom() || !ui.root) return;
+      var mode = current();
+      ui.root.addClass('nova-layout nova-layout--' + mode);
+      if (state.root !== ui.root[0]) {
+        state.root = ui.root[0];
+        state.drawer = false;
+        state.details = false;
+        state.lastList = '';
+        state.lastControl = '';
+        state.returnList = false;
+        ui.appearanceBackdrop = $('<div class="nova-layout__backdrop" aria-hidden="true"><img alt=""></div>').prependTo(ui.root);
+        if (columns()) {
+          ui.appearanceAside = $('<div class="nova-layout__aside"></div>').appendTo(ui.root).append(ui.hero_box);
+          ui.appearanceMain = $('<div class="nova-layout__main"></div>').appendTo(ui.root);
+          if (mode === 'credits') ui.appearanceAside.append(ui.rows);
+          else {
+            ui.appearanceSettings = $('<div class="nova-layout__settings selector" data-nova-focus="appearance:settings" role="button" aria-expanded="false"><span></span><b>›</b></div>');
+            ui.appearanceSettings.find('span').text(words().settingsHint);
+            bind(ui.appearanceSettings, function () { drawer(!state.drawer); });
+            ui.appearanceMain.append(ui.appearanceSettings);
+            ui.appearanceDrawer = $('<div class="nova-layout__drawer nova-layout__drawer--closed" aria-hidden="true"><div class="nova-layout__drawer-head"><span></span></div></div>').appendTo(ui.root);
+            ui.appearanceDrawer.find('.nova-layout__drawer-head > span').text(words().settings);
+            var close = $('<div class="nova-layout__close selector" data-nova-focus="appearance:close" role="button"></div>').text('×').attr('aria-label', words().close);
+            bind(close, function () { drawer(false); });
+            ui.appearanceDrawer.find('.nova-layout__drawer-head').append(close);
+            ui.appearanceDrawer.append(ui.rows);
+          }
+          ui.appearanceMain.append(ui.list);
+        }
+        ui.list.on('wheel.novaAppearance', function (event) {
+          if (current() !== 'filmstrip') return;
+          var wheel = event.originalEvent || event;
+          if (Math.abs(wheel.deltaY || 0) > Math.abs(wheel.deltaX || 0)) {
+            this.scrollLeft += wheel.deltaY;
+            event.preventDefault();
+          }
+        });
+      }
+      size();
+    }
+  
+    function creditsInfo() {
+      var box = $('<div class="nova-layout__credits"></div>');
+      var add = function (title, entries, limit) {
+        if (Object.prototype.toString.call(entries) !== '[object Array]' || !entries.length) return;
+        var names = entries.slice(0, limit || 4).map(function (entry) { return entry && (entry.name || entry.original_name) || ''; }).filter(function (name) { return !!name; });
+        if (!names.length) return;
+        var row = $('<div><b></b><span></span></div>');
+        row.find('b').text(title);
+        row.find('span').text(names.join(', '));
+        box.append(row);
+      };
+      add(words().creators, movie.created_by);
+      add(words().cast, movie.credits && movie.credits.cast);
+      add(words().studio, movie.production_companies, 2);
+      add(words().network, movie.networks, 2);
+      return box;
+    }
+  
+    function details(show) {
+      state.details = show;
+      if (!show) {
+        if (ui.appearanceDetails) ui.appearanceDetails.remove();
+        ui.appearanceDetails = null;
+        refreshCollection();
+        return focus(seek('appearance:details'));
+      }
+      if (ui.appearanceDetails) ui.appearanceDetails.remove();
+      var panel = $('<div class="nova-layout__details"><h2></h2><p></p></div>');
+      panel.find('h2').text(movie.title || movie.name || '');
+      panel.find('p').text(movie.overview || '');
+      panel.append(creditsInfo());
+      var close = $('<div class="nova-btn selector" data-nova-focus="appearance:details-close" role="button"></div>').text(words().close);
+      bind(close, function () { details(false); });
+      panel.append(close).appendTo(ui.root);
+      ui.appearanceDetails = panel;
+      refreshCollection();
+      return focus(close);
+    }
+  
+    function hero() {
+      if (!custom() || !ui.hero || !movie) return;
+      frame();
+      var body = ui.hero.find('.nova-hero__body');
+      if (!body.find('.nova-hero__title').length) {
+        var mark = body.find('.nova-hero__mark');
+        if (mark.length) mark.addClass('nova-hero__title').prependTo(body);
+        else $('<div class="nova-hero__title"></div>').text(movie.title || movie.name || '').prependTo(body);
+        $('<div class="nova-hero__meta"></div>').insertAfter(body.find('.nova-hero__title'));
+      }
+      if (!artEnabled()) {
+        var meta = body.find('.nova-hero__meta').empty();
+        if (movie.vote_average) $('<span></span>').text('★ ' + (+movie.vote_average).toFixed(1)).appendTo(meta);
+        var year = String(movie.first_air_date || movie.release_date || '').slice(0, 4);
+        if (year) $('<span></span>').text(year).appendTo(meta);
+      }
+      ui.hero.find('.nova-layout__genres,.nova-layout__credits').remove();
+      var genres = $('<div class="nova-layout__genres"></div>');
+      var genreList = Object.prototype.toString.call(movie.genres) === '[object Array]' ? movie.genres : [];
+      genreList.slice(0, 4).forEach(function (genre) { if (genre) $('<span></span>').text(genre.name || genre).appendTo(genres); });
+      if (genres.children().length) genres.insertAfter(body.find('.nova-hero__meta'));
+      if (current() !== 'poster') creditsInfo().insertAfter(body.find('.nova-layout__genres,.nova-hero__meta').last());
+      if (!ui.hero.find('[data-nova-focus="appearance:details"]').length) {
+        var more = $('<div class="nova-btn nova-btn--ghost selector" data-nova-focus="appearance:details" role="button"><span class="nova-btn__label"></span></div>');
+        more.find('span').text(words().details);
+        bind(more, function () { details(true); });
+        more.insertBefore(ui.hero.find('.nova-hero__hint'));
+      }
+      var picture = ui.hero.find('.nova-hero__bg img').attr('src') || '';
+      if (ui.appearanceBackdrop) {
+        ui.appearanceBackdrop.toggle(!!picture && artEnabled() && current() !== 'poster');
+        if (picture && ui.appearanceBackdrop.find('img').attr('src') !== picture) ui.appearanceBackdrop.find('img').attr('src', picture);
+      }
+      size();
+    }
+  
+    function rows() {
+      if (!custom() || !ui.rows) return;
+      frame();
+      ui.rows.find('.nova-toolbar__label').each(function () {
+        var label = $(this);
+        var chip = label.next('.nova-chip');
+        if (chip.length) $('<span class="nova-layout__field"></span>').text(label.text()).prependTo(chip);
+        label.remove();
+      });
+      if (columns() && ui_open) {
+        var owner = ui.rows.find('.nova-toolbar [data-nova-focus="' + ui_open + '"]').first();
+        if (owner.length) ui.rows.find('.nova-drop').insertAfter(owner);
+      }
+      if (current() === 'credits_plus') {
+        var summary = [];
+        if (typeof sourceTitle === 'function') summary.push(sourceTitle());
+        if (groups.season && groups.season.subtitle) summary.push(groups.season.subtitle);
+        if (groups.voice && groups.voice.subtitle) summary.push(groups.voice.subtitle);
+        if (ui.appearanceSettings) ui.appearanceSettings.find('span').text(summary.filter(function (entry) { return !!entry; }).join(' · ') || words().settingsHint);
+        if (!state.drawer) drawer(false, false);
+      }
+      size();
+    }
+  
+    function textCard(item) {
+      var card = $('<div class="nova-card nova-card--credits selector"><div class="nova-card__num"><span></span></div><div class="nova-card__body"><div class="nova-card__title"></div><div class="nova-card__meta"></div><div class="nova-card__line nova-card__line--body"></div></div><div class="nova-card__side"><div class="nova-card__quality"></div><div class="nova-card__time"></div></div></div>');
+      card.attr('data-nova-focus', 'item:' + item.index);
+      card.find('.nova-card__num span').text(item.num || item.index + 1);
+      card.find('.nova-card__title').text(item.title || movie.title || movie.name || '');
+      card.find('.nova-card__quality').text(shortQuality(item.quality) || '');
+      card.find('.nova-card__time').text(item.time || '');
+      if (item.line && item.line.length) card.find('.nova-card__line').append(item.line.clone());
+      if (item.viewed || isSeen(item)) card.find('.nova-card__side').append('<div class="nova-card__eye">' + ICON.eye + '</div>');
+      if (item.soon) card.addClass('nova-card--soon').removeClass('selector');
+      else bind(card, function () { play(item); }, function () { longPress(item); });
+      item.card = card;
+      return card;
+    }
+  
+    function scroll(element) {
+      if (!fixed() || !ui.root || ui.root.hasClass('nova-layout--narrow')) return false;
+      var node = element instanceof jQuery ? element[0] : element;
+      if (!node || !$.contains(ui.root[0], node)) return false;
+      var panel = $(node).closest('.nova-layout__drawer,.nova-layout__aside,.nova__list,.nova__rows');
+      if (!panel.length) return true;
+      var target = node.getBoundingClientRect();
+      var seat = panel[0].getBoundingClientRect();
+      if (current() === 'filmstrip' && panel.is('.nova__list')) {
+        if (target.left < seat.left + 8) panel[0].scrollLeft -= seat.left - target.left + 12;
+        if (target.right > seat.right - 8) panel[0].scrollLeft += target.right - seat.right + 12;
+      } else {
+        if (target.top < seat.top + 8) panel[0].scrollTop -= seat.top - target.top + 12;
+        if (target.bottom > seat.bottom - 8) panel[0].scrollTop += target.bottom - seat.bottom + 12;
+      }
+      return true;
+    }
+  
+    function step(nodes, delta) {
+      var at = -1;
+      nodes.each(function (index) { if (this === last) at = index; });
+      if (at < 0) return focus(nodes.first());
+      var next = at + delta;
+      if (next >= 0 && next < nodes.length) return focus(nodes.eq(next));
+      if ($(last).hasClass('nova-card')) {
+        var index = keyIndex(ui_focus);
+        var wanted = index + delta;
+        if (wanted >= 0 && wanted < items.length && preselectPage('item:' + wanted)) return true;
+      }
+      return true;
+    }
+  
+    function navigate(direction) {
+      if (!custom() || current() === 'poster' || !inSkin() || !last) return false;
+      if (state.details) return true;
+      var box = $(last);
+      var mode = current();
+      var card = box.closest('.nova-card').length > 0;
+      var inRows = $.contains(ui.rows[0], last);
+      if (mode === 'credits_plus' && state.drawer) {
+        if (direction === 'left') return drawer(false);
+        if (direction === 'up' || direction === 'down') return step(focusable(ui.appearanceDrawer), direction === 'up' ? -1 : 1);
+        return true;
+      }
+      if (mode === 'credits' || mode === 'credits_plus') {
+        if (card) {
+          state.lastList = ui_focus;
+          if (direction === 'up' || direction === 'down') return step(focusable(ui.list), direction === 'up' ? -1 : 1);
+          if (direction === 'right' && mode === 'credits_plus') return drawer(true);
+          return focus(mode === 'credits' ? (controlTarget().length ? controlTarget() : ui.play) : ui.play);
+        }
+        if (direction === 'right') {
+          if (box.is('[data-nova-focus="appearance:settings"]')) return drawer(true);
+          return focus(listTarget());
+        }
+        if (direction === 'left') return focus(listTarget());
+        if (direction === 'down' && box.is('[data-nova-focus="appearance:settings"]')) return focus(listTarget());
+        return step(focusable(mode === 'credits' ? ui.appearanceAside : ui.hero_box), direction === 'up' ? -1 : 1);
+      }
+      if (mode === 'filmstrip') {
+        if (card) {
+          state.lastList = ui_focus;
+          if (direction === 'left' || direction === 'right') return step(focusable(ui.list), direction === 'left' ? -1 : 1);
+          return direction === 'up' ? focus(controlTarget().length ? controlTarget() : ui.play) : true;
+        }
+        if (direction === 'left' || direction === 'right') {
+          return step(focusable(box.closest('.nova-drop').length ? box.closest('.nova-drop') : (inRows ? ui.rows.find('.nova-toolbar') : ui.hero_box)), direction === 'left' ? -1 : 1);
+        }
+        if (direction === 'down') {
+          if (inRows) {
+            if (ui_open && !box.closest('.nova-drop').length) return focus(focusable(ui.rows.find('.nova-drop')).first());
+            return focus(listTarget());
+          }
+          return focus(controlTarget().length ? controlTarget() : listTarget());
+        }
+        if (direction === 'up' && inRows) return focus(ui.play && ui.play.length ? ui.play : focusable(ui.hero_box).first());
+      }
+      return false;
+    }
+  
+    function back() {
+      if (!custom() || !inSkin()) return false;
+      if (state.details) return details(false);
+      if (state.drawer) return drawer(false);
+      if (ui_open) {
+        var key = ui_open;
+        ui_open = '';
+        buildRows();
+        return focus(seek(key));
+      }
+      if (columns() && last && $(last).closest('.nova-card').length && ui.play && ui.play.length) return focus(ui.play);
+      return false;
+    }
+  
+    var originalFrame = uiFrame;
+    uiFrame = function () { var result = originalFrame.apply(this, arguments); frame(); return result; };
+    var originalHero = buildHero;
+    buildHero = function () { var result = originalHero.apply(this, arguments); hero(); return result; };
+    var originalRows = buildRows;
+    buildRows = function () { var result = originalRows.apply(this, arguments); rows(); return result; };
+    var originalCard = buildCard;
+    buildCard = function (item) {
+      return custom() && current() === 'credits' && !item.folder ? textCard(item) : originalCard.apply(this, arguments);
+    };
+    var originalView = viewMode;
+    viewMode = function () { return custom() ? (current() === 'filmstrip' ? 'grid' : 'list') : originalView.apply(this, arguments); };
+    var originalStamp = stamp;
+    stamp = function () { return originalStamp.apply(this, arguments) + '|' + current(); };
+    var originalScroll = scrollTo;
+    scrollTo = function (element) { if (!scroll(element)) return originalScroll.apply(this, arguments); };
+    var originalFocus = focusNode;
+    focusNode = function (target) {
+      var result = originalFocus.apply(this, arguments);
+      if (custom() && target && result) {
+        var node = $(target);
+        if (node.closest('.nova-card').length) state.lastList = ui_focus;
+        else if (node.closest('.nova-toolbar').length) state.lastControl = ui_focus;
+      }
+      return result;
+    };
+    var originalBind = bind;
+    bind = function (element, enter, long) {
+      return originalBind(element, function () {
+        if (custom() && element.closest('.nova-drop').length) state.returnList = true;
+        return enter();
+      }, long);
+    };
+    var originalRestore = restoreFocus;
+    restoreFocus = function (fallback) {
+      if (custom() && current() === 'credits_plus' && !state.drawer) {
+        var locked = seek(ui_lock || ui_focus);
+        if (locked && locked.closest('.nova-layout__drawer').length) state.returnList = true;
+      }
+      if (custom() && state.returnList && !ui_open && ui.list && focusable(ui.list).length) {
+        var target = fallback && $(fallback).hasClass('nova-card') ? $(fallback) : listTarget();
+        if (state.drawer) drawer(false, false);
+        state.returnList = false;
+        lockRelease();
+        if (target && target.length) ui_focus = target.attr('data-nova-focus') || '';
+      }
+      return originalRestore.apply(this, arguments);
+    };
+    var originalFit = typeof fitToolbar === 'function' ? fitToolbar : null;
+    if (originalFit) fitToolbar = function () { if (!custom()) return originalFit.apply(this, arguments); };
+    var originalUp = novaUp, originalDown = novaDown, originalLeft = novaLeft, originalRight = novaRight;
+    novaUp = function () { return navigate('up') || originalUp.apply(this, arguments); };
+    novaDown = function () { return navigate('down') || originalDown.apply(this, arguments); };
+    novaLeft = function () { return navigate('left') || originalLeft.apply(this, arguments); };
+    novaRight = function () { return navigate('right') || originalRight.apply(this, arguments); };
+  
+    var originalHook = hookController;
+    hookController = function () {
+      originalHook.apply(this, arguments);
+      var api = Lampa.Controller;
+      if (!api || api.nova_appearance_back) return;
+      api.nova_appearance_back = true;
+      var add = api.add;
+      api.add = function (name, object) {
+        if (name === 'content' && object && typeof object.back === 'function' && !object.nova_appearance_back) {
+          object.nova_appearance_back = true;
+          var originalBack = object.back;
+          object.back = function () { if (!back()) return originalBack.apply(this, arguments); };
+        }
+        return add.apply(this, arguments);
+      };
+    };
+  
+    if (css && !document.getElementById('nova-appearance-css')) {
+      var style = document.createElement('style');
+      style.id = 'nova-appearance-css';
+      style.textContent = css;
+      (document.head || document.body).appendChild(style);
+    }
+    if (typeof addCSS === 'function') {
+      var originalCSS = addCSS;
+      addCSS = function () {
+        var result = originalCSS.apply(this, arguments);
+        var style = document.getElementById('nova-appearance-css');
+        if (style) (document.body || document.head).appendChild(style);
+        return result;
+      };
+    }
+    try { window.addEventListener('resize', size, false); } catch (ignore) {}
+  
+    installNovaAppearance.api = { current: current, setting: setting };
+    return installNovaAppearance.api;
+  }
+
   function start() {
+    installNovaAppearance("/* BWA-inspired layouts implemented against Nova's existing controls and data. */\n.nova-layout{position:relative;z-index:0;isolation:isolate;color:#eee9dc;box-sizing:border-box}\n.nova-layout *{box-sizing:border-box}\n.nova-layout .nova-btn,.nova-layout .nova-chip{box-shadow:none!important;text-shadow:none!important;transition:none!important}\n.nova-layout .nova-btn{border:1px solid #4c4b44;background:#141413;color:#eee9dc;border-radius:.4em;min-height:3em}\n.nova-layout .nova-btn.focus,.nova-layout .nova-chip.focus,.nova-layout .nova-card.focus{outline:none!important;background:#ffd400!important;color:#111!important;border-color:#ffd400!important;box-shadow:0 0 0 .12em #ffd400!important}\n.nova-layout .nova-btn.focus *,.nova-layout .nova-chip.focus *{color:#111!important}\n.nova-layout .nova-btn__label{font-size:1em}\n.nova-layout .nova-hero__title,.nova-layout .nova-hero__title--logo{min-height:0}\n.nova-layout .nova-hero__hint{flex:0 1 auto;margin-left:0}\n.nova-layout .nova-badge,.nova-layout .nova-card__quality{background:#11120f;color:#ffd400;border:1px solid #4e4824;border-radius:.2em;font-size:.8em}\n.nova-layout .nova-card__line>div>div,.nova-layout .nova-hero__progress>div>div{background:#ffd400!important}\n.nova-layout .nova-card.focus .nova-card__line>div>div{background:#262308!important}\n.nova-layout .nova-toolbar{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;white-space:normal;font-size:1em!important;padding:0;overflow:visible}\n.nova-layout .nova-toolbar .nova-chip{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;flex:none;max-width:23em;min-width:7em;margin:0 .7em .6em 0;padding:.65em 1em;background:#141413;border:1px solid #393933;border-radius:.35em}\n.nova-layout .nova-layout__field{display:block;opacity:.58;font-size:.68em;text-transform:uppercase;letter-spacing:.08em;margin-bottom:.3em}\n.nova-layout .nova-chip__label{font-size:1em;max-width:100%;white-space:normal}\n.nova-layout .nova-chip__value{font-size:1em}\n.nova-layout .nova-chip__arrow{position:absolute;right:.5em;bottom:.8em}\n.nova-layout .nova-drop{margin:.1em 0 .8em;padding:.35em;background:#121310;border:1px solid #4c4824;border-radius:.35em}\n.nova-layout .nova-drop .nova-chip{border-radius:.25em;background:#1a1a17;border:1px solid transparent;color:#eee9dc;margin:.15em;padding:.6em .8em}\n.nova-layout__backdrop{position:absolute;top:0;right:0;bottom:0;left:20%;overflow:hidden;z-index:-1;pointer-events:none}\n.nova-layout__backdrop img{width:100%;height:100%;object-fit:cover;opacity:.62}\n.nova-layout__backdrop:after{content:\"\";position:absolute;top:0;right:0;bottom:0;left:0;background:linear-gradient(90deg,#0b0b0c 0%,rgba(11,11,12,.65) 28%,rgba(11,11,12,.08) 75%),linear-gradient(0deg,#0b0b0c,rgba(11,11,12,0) 65%)}\n.nova-layout__genres{display:flex;flex-wrap:wrap;margin:.6em 0}\n.nova-layout__genres>span{font-size:.8em;margin:0 .6em .35em 0;padding:.25em .7em;border:1px solid #33343c;border-radius:2em;background:rgba(32,33,39,.75)}\n.nova-layout__genres>span:before{content:\"•\";color:#ffd400;margin-right:.5em}\n.nova-layout__credits{margin:.9em 0;font-size:.85em;line-height:1.5}\n.nova-layout__credits>div{display:flex;max-width:100%}\n.nova-layout__credits b{flex:0 0 7.5em;color:#979387;font-size:.76em;font-weight:400;letter-spacing:.06em;text-transform:uppercase;padding-top:.2em}\n.nova-layout__credits span{overflow:hidden;white-space:nowrap;text-overflow:ellipsis}\n.nova-layout__details{position:absolute;z-index:12;left:0;right:0;bottom:0;max-height:75%;overflow:auto;background:#10110f;border-top:2px solid #ffd400;padding:1.5em 2em;box-shadow:0 -2em 5em rgba(0,0,0,.5)}\n.nova-layout__details h2{margin:0 0 .6em;font-size:1.5em}\n.nova-layout__details p{line-height:1.5;max-width:75em}\n.nova-layout__details .nova-btn{display:inline-flex;margin-top:1em}\n\n/* Poster: a wide hero, then provider controls and vertical episode cards. */\n.nova-layout--poster .nova__hero{margin-bottom:1.2em}\n.nova-layout--poster .nova-hero{border:1px solid #27292d;border-radius:1.4em;min-height:24em;overflow:hidden;background:#0b0c12;box-shadow:0 .25em 0 #292a2e}\n.nova-layout--poster .nova-hero__bg{width:100%;left:0;right:0;opacity:1}\n.nova-layout--poster .nova-hero__bg img{object-position:center 30%}\n.nova-layout--poster .nova-hero__shade{background:linear-gradient(0deg,rgba(6,7,15,.98),rgba(6,7,15,.15) 90%),linear-gradient(90deg,rgba(6,7,15,.72),rgba(6,7,15,0) 85%)}\n.nova-layout--poster .nova-hero__body{min-height:24em;padding:7.5em 2em 1.5em;max-width:65em;justify-content:flex-end}\n.nova-layout--poster .nova-hero__title{font-size:2.7em;margin-bottom:.25em}\n.nova-layout--poster .nova-hero__descr{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;max-width:48em;line-height:1.4;font-size:.97em;color:#b0b0bd}\n.nova-layout--poster .nova-hero__actions{margin-top:1.2em;display:flex;flex-wrap:wrap;align-items:center}\n.nova-layout--poster .nova-btn--main{background:#ffdf2e;color:#101010;border-color:#ffdf2e;border-radius:2em;padding:.7em 1.6em}\n.nova-layout--poster .nova-layout__field{display:none}\n.nova-layout--poster .nova-toolbar .nova-chip{flex-direction:row;align-items:center;min-width:0;border-radius:2em;padding:.6em 1.1em}\n.nova-layout--poster .nova__list{padding-top:.6em}\n.nova-layout--poster .nova-card{border-radius:1em;margin-bottom:.6em;background:linear-gradient(#191919,#101010);border:1px solid #2b2b2b}\n.nova-layout--poster .nova-card__thumb{width:13em;min-height:7.3em;flex:none}\n.nova-layout--poster .nova-card.focus{background:#20201b!important;color:#eee9dc!important}\n\n/* Filmstrip: metadata and controls over a backdrop, with a horizontal rail. */\n.nova-layout--filmstrip{display:flex;flex-direction:column;min-height:34em;overflow:hidden;padding:.7em 0 0}\n.nova-layout--filmstrip>.nova__hero,.nova-layout--filmstrip>.nova__rows{flex:none;position:relative;z-index:1}\n.nova-layout--filmstrip .nova-hero,.nova-layout--credits .nova-hero,.nova-layout--credits_plus .nova-hero{background:none;border:0;border-radius:0;box-shadow:none;min-height:0;overflow:visible}\n.nova-layout--filmstrip .nova-hero__bg,.nova-layout--filmstrip .nova-hero__shade,.nova-layout--credits .nova-hero__bg,.nova-layout--credits .nova-hero__shade,.nova-layout--credits_plus .nova-hero__bg,.nova-layout--credits_plus .nova-hero__shade{display:none}\n.nova-layout--filmstrip .nova-hero__body,.nova-layout--credits .nova-hero__body,.nova-layout--credits_plus .nova-hero__body{padding:0;max-width:none;min-height:0;display:block}\n.nova-layout--filmstrip .nova-hero__title{font-size:3.2em;max-width:20em;margin-bottom:.4em}\n.nova-layout--filmstrip .nova-hero__title>img{max-height:3.3em;max-width:70%}\n.nova-layout--filmstrip .nova-hero__meta{font-size:.95em}\n.nova-layout--filmstrip .nova-hero__descr,.nova-layout--filmstrip .nova-hero__season,.nova-layout--credits .nova-hero__descr,.nova-layout--credits .nova-hero__season,.nova-layout--credits_plus .nova-hero__descr,.nova-layout--credits_plus .nova-hero__season{display:none!important}\n.nova-layout--filmstrip .nova-hero__actions{margin:1em 0 .8em}\n.nova-layout--filmstrip .nova-hero__actions .nova-btn{margin:0 .7em .4em 0;font-size:1em}\n.nova-layout--filmstrip .nova-hero__hint{font-size:.75em;color:#b7b0a0}\n.nova-layout--filmstrip .nova__list{display:flex!important;flex-wrap:nowrap!important;align-items:stretch;flex:1 1 auto;min-height:10em;width:100%;overflow-x:auto;overflow-y:hidden;padding:.45em .35em 1em;margin:0;scrollbar-width:thin}\n.nova-layout--filmstrip .nova__list>.nova-card{flex:0 0 17em!important;width:17em!important;min-width:0!important;margin:0 1em 0 0!important;display:flex!important;flex-direction:column;background:none;border:2px solid transparent;border-radius:.35em;overflow:hidden;padding:0}\n.nova-layout--filmstrip .nova-card__thumb{width:100%;height:auto;aspect-ratio:16/9;min-height:0;max-height:13em;flex:1 1 0;border-radius:.25em;position:relative;padding-top:0!important}\n.nova-layout--filmstrip .nova-card__thumb img{width:100%;height:100%;object-fit:cover}\n.nova-layout--filmstrip .nova-card__body{flex:none;min-height:3em;padding:.65em 0 0;width:100%}\n.nova-layout--filmstrip .nova-card__title{font-size:1em;line-height:1.25}\n.nova-layout--filmstrip .nova-card__meta{font-size:.75em;margin-top:.2em}\n.nova-layout--filmstrip .nova-card__side{position:absolute;top:.35em;right:.35em;max-width:5em}\n.nova-layout--filmstrip .nova-card__time{display:none}\n.nova-layout--filmstrip .nova-card.focus{background:rgba(11,11,12,.7)!important;color:#eee9dc!important}\n.nova-layout .nova__list--grid .nova-card.focus .nova-card__thumb{box-shadow:0 0 0 .12em #ffd400!important}\n.nova-layout--filmstrip .nova-card__num{top:.3em;left:.3em;bottom:auto;font-size:.75em;background:#11120e;color:#ffd400}\n.nova-layout--filmstrip .nova__rows{max-height:12em;overflow:auto}\n\n/* Credits and Credits+: independently scrollable information and episode columns. */\n.nova-layout--credits,.nova-layout--credits_plus{display:flex;align-items:stretch;min-height:34em;overflow:hidden}\n.nova-layout__aside{position:relative;z-index:1;flex:0 0 38%;min-width:0;padding:.7em 2.2em .8em 0;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin}\n.nova-layout__main{position:relative;z-index:1;flex:1 1 auto;min-width:0;padding:.7em .35em .35em;display:flex;flex-direction:column}\n.nova-layout--credits .nova-hero__title{font-size:2.1em;margin:.15em 0 .5em}\n.nova-layout--credits_plus .nova-hero__title{font-size:2.8em;margin:.15em 0 .5em}\n.nova-layout--credits .nova-hero__meta,.nova-layout--credits_plus .nova-hero__meta{font-size:.85em;flex-wrap:wrap}\n.nova-layout--credits .nova-hero__actions,.nova-layout--credits_plus .nova-hero__actions{display:flex;flex-wrap:wrap;margin:1em 0 .7em}\n.nova-layout--credits .nova-hero__actions .nova-btn,.nova-layout--credits_plus .nova-hero__actions .nova-btn{margin:0 .65em .65em 0;max-width:100%;font-size:.95em;padding:.65em 1em}\n.nova-layout--credits .nova-hero__actions .nova-btn--main{width:100%;justify-content:flex-start}\n.nova-layout--credits .nova-hero__hint,.nova-layout--credits_plus .nova-hero__hint{font-size:.75em;color:#b7b0a0;white-space:normal}\n.nova-layout--credits .nova-toolbar{display:block}\n.nova-layout--credits .nova-toolbar .nova-chip{width:100%;max-width:100%;border:0;border-bottom:1px solid #534916;border-radius:0;background:none;display:block;padding:.65em .8em;margin:0}\n.nova-layout--credits .nova-drop{display:flex;flex-direction:column}\n.nova-layout--credits .nova-layout__genres,.nova-layout--credits_plus .nova-layout__genres{font-size:.85em}\n.nova-layout__main>.nova__list{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding:.2em .3em 2em;margin:0;scrollbar-width:thin}\n.nova-layout--credits .nova-card{display:flex;align-items:center;min-height:3.2em;border:1px solid transparent;border-radius:.3em;background:transparent;box-shadow:none;margin:0 0 .15em;padding:.6em .65em}\n.nova-layout--credits .nova-card__num{position:static;flex:0 0 2.7em;width:2.7em;height:auto;font-size:1em;background:none;color:#ffd400;border:0;padding:0;text-align:left}\n.nova-layout--credits .nova-card__body{padding:0;flex:1;min-width:0}\n.nova-layout--credits .nova-card__title{font-size:1em;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}\n.nova-layout--credits .nova-card__meta{display:none}\n.nova-layout--credits .nova-card__side{position:static;display:flex;align-items:center;flex:none;margin-left:.8em;max-width:14em}\n.nova-layout--credits .nova-card__time{font-size:.8em;margin-left:2em;color:#a6a092;white-space:nowrap}\n.nova-layout--credits .nova-card__eye{width:1em;margin-left:.5em}\n.nova-layout--credits .nova-card__line{height:.15em;margin-top:.25em;background:none}\n.nova-layout--credits .nova-card.focus{background:rgba(11,11,12,.8)!important;color:#eee9dc!important}\n.nova-layout--credits_plus .nova-layout__aside{flex-basis:35%}\n.nova-layout__settings{display:flex;flex:none;justify-content:space-between;align-items:center;min-height:2.4em;margin:0 0 .65em;padding:.5em .8em;color:#b7b0a0;border:1px solid #514a27;border-radius:.3em;font-size:.8em;cursor:pointer}\n.nova-layout__settings b{color:#ffd400;font-size:1.6em;line-height:.8}\n.nova-layout__settings.focus{border-color:#ffd400;background:#1c1d17;outline:1px solid #ffd400}\n.nova-layout--credits_plus .nova-card{display:flex;align-items:stretch;background:rgba(11,11,12,.78);padding:.5em;border:1px solid transparent;border-radius:.35em;margin:0 0 .45em;min-height:7em;box-shadow:none}\n.nova-layout--credits_plus .nova-card__thumb{flex:0 0 11em;width:11em;min-height:6.2em;border-radius:.25em}\n.nova-layout--credits_plus .nova-card__num{top:.3em;left:.3em;right:auto;bottom:auto;width:auto;height:auto;background:#11120f;color:#ffd400;border-radius:.2em;font-size:.75em;padding:.15em .3em}\n.nova-layout--credits_plus .nova-card__body{flex:1;min-width:0;padding:.1em .8em}\n.nova-layout--credits_plus .nova-card__title{font-size:1em;line-height:1.35}\n.nova-layout--credits_plus .nova-card__meta{font-size:.8em;line-height:1.4;max-height:4.2em;overflow:hidden;margin-top:.35em}\n.nova-layout--credits_plus .nova-card__side{position:static;flex:none;align-self:flex-start;max-width:6em;font-size:.8em}\n.nova-layout--credits_plus .nova-card__time{white-space:nowrap;color:#b0a99a;margin-top:.45em}\n.nova-layout--credits_plus .nova-card.focus{background:#191a12!important;color:#eee9dc!important}\n.nova-layout__drawer{position:absolute;z-index:8;right:0;top:0;bottom:0;width:25em;max-width:85%;padding:1em;background:#0e0f0d;border-left:2px solid #ffd400;overflow-y:auto;overflow-x:hidden;box-shadow:-2em 0 5em rgba(0,0,0,.5)}\n.nova-layout__drawer--closed{display:none!important}\n.nova-layout__drawer-head{display:flex;align-items:center;justify-content:space-between;margin:0 .2em 1em;font-size:1.1em}\n.nova-layout__close{font-size:1.6em;line-height:1.2;padding:0 .25em;cursor:pointer}\n.nova-layout__close.focus{outline:1px solid #ffd400;color:#ffd400}\n.nova-layout__drawer .nova-toolbar{display:block}\n.nova-layout__drawer .nova-toolbar .nova-chip{width:100%;max-width:100%;margin:0 0 .6em;min-height:3.2em}\n.nova-layout__drawer .nova-drop{display:flex;flex-direction:column;margin:0 0 1em}\n.nova-layout .nova-card--soon{opacity:.45}\n\n/* A narrow container keeps all controls in document flow. */\n.nova-layout--narrow{display:block!important;height:auto!important;min-height:0;overflow:visible}\n.nova-layout--narrow .nova-layout__aside,.nova-layout--narrow .nova-layout__main{width:100%;padding:.5em 0;overflow:visible}\n.nova-layout--narrow .nova-layout__backdrop{left:0;height:28em}\n.nova-layout--narrow .nova-hero__title{font-size:2em}\n.nova-layout--narrow .nova-layout__credits{font-size:.8em}\n.nova-layout--narrow .nova__list{overflow-y:visible;height:auto;min-height:0}\n.nova-layout--narrow.nova-layout--filmstrip .nova__list{min-height:14em;overflow-x:auto;overflow-y:hidden}\n.nova-layout--narrow.nova-layout--credits_plus .nova-card__thumb{flex-basis:7.5em;width:7.5em;min-height:4.2em}\n.nova-layout--narrow.nova-layout--credits .nova-card__time{margin-left:.6em}\n.nova-layout--narrow .nova-layout__drawer{position:fixed;top:0;right:0;bottom:0;width:25em;max-width:92vw}\n.nova-layout--narrow .nova-layout__details{position:fixed;left:1em;right:1em;bottom:1em;max-height:80vh}\n.nova-layout--narrow.nova-layout--poster .nova-hero,.nova-layout--narrow.nova-layout--poster .nova-hero__body{min-height:20em}\n.nova-layout--narrow.nova-layout--poster .nova-hero__body{padding:5em 1.2em 1.2em}\n.nova-layout--narrow.nova-layout--poster .nova-card__thumb{width:8em;min-height:4.5em}\n@media(prefers-reduced-motion:reduce){.nova-layout *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}");
     settings();
     hookLogo();
     addCSS();

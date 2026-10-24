@@ -24,7 +24,7 @@
 - Long seasons and folder/film results must remain reachable and invoke original actions (Task 2 navigation/action tests).
 - Missing artwork and narrow viewports must leave usable controls (Task 2 browser fixture checks).
 
-### Task 1: Generator integration and preference migration
+### Task 1: Generator integration and preference migration — complete
 
 **Files:** Create `scripts/nova-skin-appearance.mjs`, `scripts/nova-skin-appearance/runtime.js`, `scripts/nova-skin-appearance/styles.css`, `tests/nova_skin_appearance.test.js`; modify `scripts/build-nova-skin-premium.mjs` and baseline builder fixture.
 **Interfaces:** Produces `patchAppearance(source: string): string` and embedded `installNovaAppearance(css: string)`; the latter returns its setting/current helpers for direct behavior testing and installs local Nova adapters once.
@@ -34,7 +34,7 @@
 - [ ] Verify with `node --test tests/nova_skin_appearance.test.js tests/nova_skin_premium_build.test.js tests/nova_skin_lampac.test.js tests/nova_skin_search_reliability.test.js`. Expected: all pass.
 - [ ] Commit the preference/build integration.
 
-### Task 2: Four layouts, drawer and focus
+### Task 2: Four layouts, drawer and focus — complete
 
 **Files:** Extend appearance runtime/CSS; add real DOM fixture and browser verification under `tests/fixtures/` and `tests/`.
 **Interfaces:** Consumes the installed runtime; wraps local uiFrame/buildHero/buildRows/buildCard/stamp/focus/scroll/controller functions, preserving their public behavior for `nova` and delegating actions to existing Nova handlers.
