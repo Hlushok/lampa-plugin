@@ -53,6 +53,10 @@
 .nova-layout--poster .nova-card.focus{background:#20201b!important;color:#eee9dc!important}
 
 /* Filmstrip: metadata and controls over a backdrop, with a horizontal rail. */
+/* The provider's native-content mask sets its direct Nova child to block!important. */
+.nova-skin-scope .explorer__files-body .scroll__body>.nova-skin-root.nova-layout--filmstrip:not(.nova-layout--narrow),
+.nova-skin-scope .explorer__files-body .scroll__body>.nova-skin-root.nova-layout--credits:not(.nova-layout--narrow),
+.nova-skin-scope .explorer__files-body .scroll__body>.nova-skin-root.nova-layout--credits_plus:not(.nova-layout--narrow){display:flex!important}
 .nova-layout--filmstrip{display:flex;flex-direction:column;min-height:34em;overflow:hidden;padding:.7em 0 0}
 .nova-layout--filmstrip>.nova__hero,.nova-layout--filmstrip>.nova__rows{flex:none;position:relative;z-index:1}
 .nova-layout--filmstrip .nova-hero,.nova-layout--credits .nova-hero,.nova-layout--credits_plus .nova-hero{background:none;border:0;border-radius:0;box-shadow:none;min-height:0;overflow:visible}

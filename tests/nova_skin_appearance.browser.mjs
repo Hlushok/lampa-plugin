@@ -23,7 +23,7 @@ async function fixture(mode, options = {}, width = 1600) {
   await page.route('**/*', route => route.abort());
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
-  await page.setContent('<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;height:100%;background:#0b0b0c;color:#eee;font:18px Arial}body{overflow:hidden}*{box-sizing:border-box}.head{height:80px;border-bottom:1px solid #333;padding:20px 36px;font-size:30px}.fixture{height:calc(100vh - 80px)}.scroll{height:100%;width:100%;overflow:auto}.scroll__body{min-height:100%;width:100%;padding:26px 36px}.focus{outline:2px solid #fff}</style></head><body><div class="head">LampaUA · Оформлення</div><div class="fixture"><div class="scroll"><div class="scroll__body"><div class="native-results"></div></div></div></div></body></html>');
+  await page.setContent('<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;height:100%;background:#0b0b0c;color:#eee;font:18px Arial}body{overflow:hidden}*{box-sizing:border-box}.head{height:80px;border-bottom:1px solid #333;padding:20px 36px;font-size:30px}.fixture{height:calc(100vh - 80px)}.explorer__files-body,.scroll{height:100%;width:100%;overflow:auto}.scroll__body{min-height:100%;width:100%;padding:26px 36px}.focus{outline:2px solid #fff}</style></head><body><div class="head">LampaUA · Оформлення</div><div class="fixture"><div class="explorer__files-body"><div class="scroll"><div class="scroll__body"><div class="native-results"></div></div></div></div></div></body></html>');
   await page.addScriptTag({ content: jquery });
   await page.evaluate(() => {
     const values = { language: 'uk', nova_skin_logo: false, nova_skin_view: 'grid', nova_skin_probe: false };
@@ -72,6 +72,9 @@ try {
     const hasLayout = await page.locator('.nova-layout--' + mode).count();
     assert.equal(hasLayout, mode === 'nova' ? 0 : 1, mode + ' layout'); checks++;
     assert.equal(await page.locator('.nova-card').count(), 12, mode + ' cards'); checks++;
+    if (['filmstrip', 'credits', 'credits_plus'].includes(mode)) {
+      assert.equal(await page.locator('.nova-skin-root').evaluate(node => getComputedStyle(node).display), 'flex', mode + ' retains flex layout inside the real provider hierarchy'); checks++;
+    }
     await page.screenshot({ path: join(output, mode + '.png'), fullPage: false });
     if (mode === 'filmstrip') {
       const titleFits = await page.evaluate(() => {
@@ -132,9 +135,61 @@ try {
     assert.equal(await page.evaluate(() => novaFixture.currentFocus()), 'item:20', mode + ' next episode page'); checks++;
     await page.close();
   }
+  for (const mode of ['credits', 'credits_plus']) {
+    const page = await fixture(mode, { seasons: 32 });
+    await page.evaluate(mode => {
+      if (mode === 'credits_plus') { novaFixture.focus('item:0'); novaFixture.key('right'); }
+      novaFixture.enter('season');
+      for (let index = 0; index < 27; index++) novaFixture.key('down');
+    }, mode);
+    assert.equal(await page.evaluate(() => novaFixture.currentFocus()), 'season:27', mode + ' late season reached with remote'); checks++;
+    const visibility = await page.evaluate(mode => {
+      const option = document.querySelector('[data-nova-focus="season:27"]').getBoundingClientRect();
+      const panel = document.querySelector(mode === 'credits' ? '.nova-layout__aside' : '.nova-layout__drawer');
+      const bounds = panel.getBoundingClientRect();
+      return { scrolled: panel.scrollTop > 0, visible: option.top >= bounds.top && option.bottom <= bounds.bottom };
+    }, mode);
+    assert.deepEqual(visibility, { scrolled: true, visible: true }, mode + ' late season scrolls into the actual visible control panel'); checks++;
+    await page.close();
+  }
+  for (const mode of ['filmstrip', 'credits', 'credits_plus']) {
+    const page = await fixture(mode, { error: true });
+    assert.equal(await page.locator('.nova-note__actions .selector').count(), 4, mode + ' real error renderer exposes recovery actions'); checks++;
+    await page.evaluate(mode => {
+      novaFixture.focus('note:0');
+      novaFixture.key(mode === 'filmstrip' ? 'right' : 'down');
+    }, mode);
+    assert.equal(await page.evaluate(() => novaFixture.currentFocus()), 'note:1', mode + ' remote reaches second error action'); checks++;
+    await page.evaluate(mode => novaFixture.key(mode === 'filmstrip' ? 'right' : 'down'), mode);
+    assert.equal(await page.evaluate(() => novaFixture.currentFocus()), 'note:2', mode + ' remote reaches retry'); checks++;
+    await page.evaluate(() => novaFixture.enter('note:2'));
+    assert.ok((await page.evaluate(() => fixtureActions)).some(action => action[0] === 'replace'), mode + ' retry retains original action'); checks++;
+    await page.evaluate(mode => novaFixture.key(mode === 'filmstrip' ? 'right' : 'down'), mode);
+    assert.equal(await page.evaluate(() => novaFixture.currentFocus()), 'note:clarify', mode + ' remote reaches search clarification'); checks++;
+    await page.evaluate(() => novaFixture.enter('note:clarify'));
+    assert.ok((await page.evaluate(() => fixtureActions)).some(action => action[0] === 'clarify'), mode + ' clarify retains provider search action'); checks++;
+    await page.evaluate(mode => { novaFixture.key(mode === 'filmstrip' ? 'up' : 'left'); novaFixture.key(mode === 'filmstrip' ? 'down' : 'right'); }, mode);
+    assert.equal(await page.evaluate(() => novaFixture.currentFocus()), 'note:clarify', mode + ' returns to the selected recovery action'); checks++;
+    await page.close();
+  }
+  for (const mode of ['poster', 'filmstrip', 'credits', 'credits_plus']) {
+    const folderPage = await fixture(mode, { folders: true, count: 3 });
+    assert.equal(await folderPage.locator('.nova-card--nav:visible').count(), 3, mode + ' preserves native folder cards'); checks++;
+    await folderPage.evaluate(() => { novaFixture.focus('item:1'); novaFixture.enter('item:1'); });
+    assert.ok((await folderPage.evaluate(() => fixtureActions)).some(action => action[0] === 'play' && action[1] === 1), mode + ' opens the original folder action'); checks++;
+    await folderPage.close();
+
+    const loadingPage = await fixture(mode, { loading: true });
+    assert.equal(await loadingPage.locator('.nova-loading:visible').count(), 1, mode + ' real loading renderer remains visible'); checks++;
+    await loadingPage.evaluate(() => novaFixture.finishLoading());
+    assert.equal(await loadingPage.locator('.nova-loading').count(), 0, mode + ' loading state clears'); checks++;
+    assert.equal(await loadingPage.locator('.nova-card').count(), 12, mode + ' results return after loading'); checks++;
+    await loadingPage.close();
+  }
   for (const mode of ['poster', 'filmstrip', 'credits', 'credits_plus']) {
     const page = await fixture(mode, { art: false, film: true, count: 2 }, 580);
     assert.equal(await page.locator('.nova-card:visible').count(), 2, mode + ' narrow film without artwork'); checks++;
+    assert.equal(await page.locator('.nova-skin-root').evaluate(node => getComputedStyle(node).display), 'block', mode + ' narrow flow overrides fixed columns'); checks++;
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > innerWidth + 2);
     assert.equal(overflow, false, mode + ' narrow overflow'); checks++;
     await page.screenshot({ path: join(output, mode + '-narrow.png') });

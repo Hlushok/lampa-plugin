@@ -67,6 +67,10 @@ function installNovaAppearance(css) {
       return $(this).is(':visible') && !$(this).closest('.nova-layout__drawer--closed').length;
     }) : $();
   }
+  function listMember(element) {
+    var node = $(element)[0];
+    return !!(node && ui.list && ui.list.length && $.contains(ui.list[0], node));
+  }
   function listTarget() {
     var wanted = state.lastList ? seek(state.lastList) : null;
     if (wanted && wanted.length && wanted.is(':visible')) return wanted;
@@ -78,6 +82,9 @@ function installNovaAppearance(css) {
     var wanted = state.lastControl ? seek(state.lastControl) : null;
     if (wanted && wanted.length && wanted.is(':visible')) return wanted;
     return focusable(ui.rows).first();
+  }
+  function heroTarget() {
+    return ui.play && ui.play.is(':visible') ? ui.play : focusable(ui.hero_box).first();
   }
   function focus(target) {
     if (!target || !target.length) return true;
@@ -280,7 +287,8 @@ function installNovaAppearance(css) {
     if (!fixed() || !ui.root || ui.root.hasClass('nova-layout--narrow')) return false;
     var node = element instanceof jQuery ? element[0] : element;
     if (!node || !$.contains(ui.root[0], node)) return false;
-    var panel = $(node).closest('.nova-layout__drawer,.nova-layout__aside,.nova__list,.nova__rows');
+    // In column layouts rows grow inside the scrolling aside/drawer.
+    var panel = $(node).closest(columns() ? '.nova-layout__drawer,.nova-layout__aside,.nova__list' : '.nova__list,.nova__rows');
     if (!panel.length) return true;
     var target = node.getBoundingClientRect();
     var seat = panel[0].getBoundingClientRect();
@@ -313,7 +321,7 @@ function installNovaAppearance(css) {
     if (state.details) return true;
     var box = $(last);
     var mode = current();
-    var card = box.closest('.nova-card').length > 0;
+    var listItem = listMember(last);
     var inRows = $.contains(ui.rows[0], last);
     if (mode === 'credits_plus' && state.drawer) {
       if (direction === 'left') return drawer(false);
@@ -321,11 +329,11 @@ function installNovaAppearance(css) {
       return true;
     }
     if (mode === 'credits' || mode === 'credits_plus') {
-      if (card) {
+      if (listItem) {
         state.lastList = ui_focus;
         if (direction === 'up' || direction === 'down') return step(focusable(ui.list), direction === 'up' ? -1 : 1);
         if (direction === 'right' && mode === 'credits_plus') return drawer(true);
-        return focus(mode === 'credits' ? (controlTarget().length ? controlTarget() : ui.play) : ui.play);
+        return focus(mode === 'credits' ? (controlTarget().length ? controlTarget() : heroTarget()) : heroTarget());
       }
       if (direction === 'right') {
         if (box.is('[data-nova-focus="appearance:settings"]')) return drawer(true);
@@ -336,10 +344,10 @@ function installNovaAppearance(css) {
       return step(focusable(mode === 'credits' ? ui.appearanceAside : ui.hero_box), direction === 'up' ? -1 : 1);
     }
     if (mode === 'filmstrip') {
-      if (card) {
+      if (listItem) {
         state.lastList = ui_focus;
         if (direction === 'left' || direction === 'right') return step(focusable(ui.list), direction === 'left' ? -1 : 1);
-        return direction === 'up' ? focus(controlTarget().length ? controlTarget() : ui.play) : true;
+        return direction === 'up' ? focus(controlTarget().length ? controlTarget() : heroTarget()) : true;
       }
       if (direction === 'left' || direction === 'right') {
         return step(focusable(box.closest('.nova-drop').length ? box.closest('.nova-drop') : (inRows ? ui.rows.find('.nova-toolbar') : ui.hero_box)), direction === 'left' ? -1 : 1);
@@ -351,7 +359,7 @@ function installNovaAppearance(css) {
         }
         return focus(controlTarget().length ? controlTarget() : listTarget());
       }
-      if (direction === 'up' && inRows) return focus(ui.play && ui.play.length ? ui.play : focusable(ui.hero_box).first());
+      if (direction === 'up' && inRows) return focus(heroTarget());
     }
     return false;
   }
@@ -366,7 +374,7 @@ function installNovaAppearance(css) {
       buildRows();
       return focus(seek(key));
     }
-    if (columns() && last && $(last).closest('.nova-card').length && ui.play && ui.play.length) return focus(ui.play);
+    if (columns() && listMember(last) && heroTarget().length) return focus(heroTarget());
     return false;
   }
 
@@ -391,7 +399,7 @@ function installNovaAppearance(css) {
     var result = originalFocus.apply(this, arguments);
     if (custom() && target && result) {
       var node = $(target);
-      if (node.closest('.nova-card').length) state.lastList = ui_focus;
+      if (listMember(node)) state.lastList = ui_focus;
       else if (node.closest('.nova-toolbar').length) state.lastControl = ui_focus;
     }
     return result;

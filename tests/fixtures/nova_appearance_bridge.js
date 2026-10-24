@@ -25,6 +25,10 @@ window.novaFixture = {
       season: { stype: 'season', title: 'Сезон', subtitle: '1 із 6', items: [{ title: '1', selected: true }, { title: '2' }] },
       voice: { stype: 'voice', title: 'Озвучення', subtitle: 'Українська', items: [{ title: 'Українська', selected: true }, { title: 'Original' }] }
     };
+    if (options.seasons) {
+      groups.season.items = [];
+      for (var season = 0; season < options.seasons; season++) groups.season.items.push({ title: String(season + 1), selected: season === 0 });
+    }
     filter = { onSelect: function (type, choice, value) {
       window.fixtureActions.push(['filter', type]);
       if (type === 'sort') groups.sort.forEach(function (entry) { entry.selected = entry === choice; });
@@ -70,6 +74,8 @@ window.novaFixture = {
       back: function () { window.fixtureActions.push(['back']); }, toggle: function () {}
     });
     this.render();
+    if (options.error) this.showError();
+    if (options.loading) this.showLoading();
   },
   render: function () {
     items = collect();
@@ -88,6 +94,24 @@ window.novaFixture = {
     ui_page_focus = -1;
     restoreFocus(wanted || ui.play || ui.list.children().first());
   },
+  showError: function () {
+    save('nova_skin_auto_switch', false);
+    items = [];
+    ui_focus = '';
+    var search = $('<div class="filter--search selector"></div>').appendTo(root);
+    search.on('hover:enter', function () { window.fixtureActions.push(['clarify']); });
+    var native = $('<div class="online-empty"><div class="online-empty__title">Нічого не знайдено</div><div class="online-empty__time">Спробуйте інше джерело</div></div>');
+    $('.native-results').empty().append(native);
+    notePanel({ node: native });
+  },
+  showLoading: function () {
+    items = [];
+    ui_focus = '';
+    ui.hero_box.empty();
+    ui.hero = null;
+    loadingPanel();
+  },
+  finishLoading: function () { loadingStop(); this.render(); },
   focus: function (key) { return focusNode(seek(key), true); },
   key: function (direction) { return window.fixtureControllers.content[direction](); },
   enter: function (key, long) { var node = seek(key); if (node) node.trigger(long ? 'hover:long' : 'hover:enter'); },
