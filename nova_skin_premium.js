@@ -4891,7 +4891,7 @@
       ru: { title: 'Оформление', description: 'Вид карточки и списка серий', names: ['Родной', 'Нова', 'Афиша', 'Плёнка', 'Титры', 'Титры+'], settings: 'Настройки', close: 'Закрыть', details: 'Подробнее', creators: 'Создатели', cast: 'В ролях', studio: 'Студия', network: 'Канал', settingsHint: 'Вправо — настройки' },
       en: { title: 'Appearance', description: 'Movie details and episode layout', names: ['Native', 'Nova', 'Poster', 'Filmstrip', 'Credits', 'Credits+'], settings: 'Settings', close: 'Close', details: 'More details', creators: 'Creators', cast: 'Cast', studio: 'Studio', network: 'Network', settingsHint: 'Right — settings' }
     };
-  
+
     function valid(value) { return ORDER.indexOf(value) !== -1; }
     function current() {
       var value = get(KEY, '');
@@ -4920,11 +4920,11 @@
         }
       };
     }
-  
+
     enabled = function () {
       return window.nova_skin_lampac_access === true && current() !== 'native';
     };
-  
+
     var originalSettings = settings;
     settings = function () {
       var api = Lampa.SettingsApi;
@@ -4939,12 +4939,12 @@
       try { return originalSettings.apply(this, arguments); }
       finally { api.addParam = addParam; }
     };
-  
+
     var state = { root: null, drawer: false, details: false, lastList: '', lastControl: '', returnList: false };
     function custom() { return enabled() && current() !== 'nova'; }
     function columns() { return current() === 'credits' || current() === 'credits_plus'; }
     function fixed() { return custom() && current() !== 'poster'; }
-  
+
     function focusable(box) {
       return box && box.length ? box.find('.selector').filter(function () {
         return $(this).is(':visible') && !$(this).closest('.nova-layout__drawer--closed').length;
@@ -4992,7 +4992,7 @@
       if (restore !== false) focus(listTarget());
       return true;
     }
-  
+
     function size() {
       if (!custom() || !ui.root) return;
       var narrow = (ui.root[0].clientWidth || window.innerWidth) < 760;
@@ -5002,7 +5002,7 @@
       var top = Math.max(0, ui.root[0].getBoundingClientRect().top);
       ui.root.css('height', Math.max(340, height - top - 16) + 'px');
     }
-  
+
     function frame() {
       if (!custom() || !ui.root) return;
       var mode = current();
@@ -5044,7 +5044,7 @@
       }
       size();
     }
-  
+
     function creditsInfo() {
       var box = $('<div class="nova-layout__credits"></div>');
       var add = function (title, entries, limit) {
@@ -5062,7 +5062,7 @@
       add(words().network, movie.networks, 2);
       return box;
     }
-  
+
     function details(show) {
       state.details = show;
       if (!show) {
@@ -5083,7 +5083,7 @@
       refreshCollection();
       return focus(close);
     }
-  
+
     function hero() {
       if (!custom() || !ui.hero || !movie) return;
       frame();
@@ -5119,7 +5119,7 @@
       }
       size();
     }
-  
+
     function rows() {
       if (!custom() || !ui.rows) return;
       frame();
@@ -5143,7 +5143,7 @@
       }
       size();
     }
-  
+
     function textCard(item) {
       var card = $('<div class="nova-card nova-card--credits selector"><div class="nova-card__num"><span></span></div><div class="nova-card__body"><div class="nova-card__title"></div><div class="nova-card__meta"></div><div class="nova-card__line nova-card__line--body"></div></div><div class="nova-card__side"><div class="nova-card__quality"></div><div class="nova-card__time"></div></div></div>');
       card.attr('data-nova-focus', 'item:' + item.index);
@@ -5158,7 +5158,7 @@
       item.card = card;
       return card;
     }
-  
+
     function scroll(element) {
       if (!fixed() || !ui.root || ui.root.hasClass('nova-layout--narrow')) return false;
       var node = element instanceof jQuery ? element[0] : element;
@@ -5176,7 +5176,7 @@
       }
       return true;
     }
-  
+
     function step(nodes, delta) {
       var at = -1;
       nodes.each(function (index) { if (this === last) at = index; });
@@ -5190,7 +5190,7 @@
       }
       return true;
     }
-  
+
     function navigate(direction) {
       if (!custom() || current() === 'poster' || !inSkin() || !last) return false;
       if (state.details) return true;
@@ -5238,7 +5238,7 @@
       }
       return false;
     }
-  
+
     function back() {
       if (!custom() || !inSkin()) return false;
       if (state.details) return details(false);
@@ -5252,7 +5252,7 @@
       if (columns() && last && $(last).closest('.nova-card').length && ui.play && ui.play.length) return focus(ui.play);
       return false;
     }
-  
+
     var originalFrame = uiFrame;
     uiFrame = function () { var result = originalFrame.apply(this, arguments); frame(); return result; };
     var originalHero = buildHero;
@@ -5308,7 +5308,7 @@
     novaDown = function () { return navigate('down') || originalDown.apply(this, arguments); };
     novaLeft = function () { return navigate('left') || originalLeft.apply(this, arguments); };
     novaRight = function () { return navigate('right') || originalRight.apply(this, arguments); };
-  
+
     var originalHook = hookController;
     hookController = function () {
       originalHook.apply(this, arguments);
@@ -5325,7 +5325,7 @@
         return add.apply(this, arguments);
       };
     };
-  
+
     if (css && !document.getElementById('nova-appearance-css')) {
       var style = document.createElement('style');
       style.id = 'nova-appearance-css';
@@ -5342,7 +5342,7 @@
       };
     }
     try { window.addEventListener('resize', size, false); } catch (ignore) {}
-  
+
     installNovaAppearance.api = { current: current, setting: setting };
     return installNovaAppearance.api;
   }
