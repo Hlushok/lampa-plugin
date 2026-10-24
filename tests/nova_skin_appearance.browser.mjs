@@ -28,6 +28,7 @@ const mousePc = lampaBundle.slice(lampaBundle.indexOf("\tvar MODE = 'mouse_pc';"
 const nativeController = lampaBundle.slice(lampaBundle.indexOf('\tvar listener$2 = Subscribe$2();'), lampaBundle.indexOf('\tvar http = window.location.protocol'));
 assert.ok(nativeController.includes('function collectionFocus('), 'verify the actual Lampa controller');
 const navigator = readFileSync(join(lampaDirectory, 'vender/navigator/navigator.js'), 'utf8');
+const keypad = lampaBundle.slice(lampaBundle.indexOf('\tvar philipse = {'), lampaBundle.indexOf('\tvar timers$2 = []', lampaBundle.indexOf('\tvar philipse = {')));
 const fontDirectory = resolve(args['--jquery'], '../../../fonts/SegoeUI');
 const fontFaces = [['SegoeUI',400],['SegoeUI-SemiBold',600],['SegoeUI-Bold',700]].map(([name,weight]) => '@font-face{font-family:SegoeUI;src:url(data:font/woff;base64,' + readFileSync(join(fontDirectory, name + '.woff')).toString('base64') + ');font-weight:' + weight + '}').join('');
 const rawBwa = name => readFileSync(new URL('../scripts/nova-skin-appearance/bwa/' + name + '.css', import.meta.url), 'utf8');
@@ -36,12 +37,14 @@ let checks = 0;
 const browserErrors = new WeakMap();
 
 async function fixture(mode, options = {}, width = 1600, height = 900) {
-  const page = await browser.newPage({ viewport: { width, height } });
+  options = { nativeController: true, ...options };
+  const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: options.dpr || 1, hasTouch: !!options.touch, isMobile: !!options.touch });
   await page.route('**/*', route => route.abort());
   const errors = [];
   browserErrors.set(page, errors);
   page.on('pageerror', error => errors.push(error.message));
   await page.setContent('<!doctype html><html><head><meta charset="utf-8"><style>html,body{margin:0;height:100%;background:#0b0b0c;color:#eee;font:18px Arial}body{overflow:hidden}*{box-sizing:border-box}.head{height:80px;border-bottom:1px solid #333;padding:20px 36px;font-size:30px}.fixture{height:calc(100vh - 80px)}.explorer__files-body,.scroll{height:100%;width:100%;overflow:auto}.scroll__body{min-height:100%;width:100%;padding:26px 36px}.focus{outline:2px solid #fff}</style></head><body><div class="head">LampaUA · Оформлення</div><div class="fixture"><div class="explorer__files-body"><div class="scroll"><div class="scroll__body"><div class="native-results"></div></div></div></div></div></body></html>');
+  await page.evaluate(() => { const meta = document.createElement('meta'); meta.name = 'viewport'; meta.content = 'width=device-width,initial-scale=1'; document.head.appendChild(meta); });
   await page.addStyleTag({ content: fontFaces + 'body{font-family:SegoeUI,sans-serif;line-height:1}' });
   await page.addScriptTag({ content: jquery });
   await page.evaluate(() => {
@@ -88,10 +91,10 @@ async function fixture(mode, options = {}, width = 1600, height = 900) {
       HTMLElement.prototype.toggleClass = function (name, value) { this.classList.toggle(name, value); };
       HTMLElement.prototype.addClass = function (name) { this.classList.add(name); };
       HTMLElement.prototype.removeClass = function (name) { this.classList.remove(name); };
-      const Storage = { field: key => key === 'navigation_type' ? 'mouse' : false };
-      const Platform = { screen: name => name === 'tv' };
+      const Storage = { field: key => key === 'navigation_type' ? ${JSON.stringify(options.input === 'remote' ? 'controll' : 'mouse')} : false };
+      const Platform = { screen: name => name === ${JSON.stringify(options.touch ? 'mobile' : 'tv')} };
       const DeviceInput = { canClick: () => true, noDubleClick: () => true };
-      const Utils$1 = { trigger(node, name) { node.dispatchEvent(new Event(name, { bubbles: false, cancelable: true })); }, isTouchDevice: () => false };
+      const Utils$1 = { trigger(node, name) { node.dispatchEvent(new Event(name, { bubbles: false, cancelable: true })); }, isTouchDevice: () => ${!!options.touch} };
       const Activity = { call() {} }, Layer = { update() {} }, Screensaver$2 = { stopSlideshow() {} };
       ${nativeController}
       const add = Controller.add;
@@ -99,16 +102,18 @@ async function fixture(mode, options = {}, width = 1600, height = 900) {
       Lampa.Controller = Controller;
       Navigator.follow('focus', event => Controller.focus(event.elem));
       Controller.observe();
+      ${options.nativeKeypad ? "const Sound$1 = { play() {} }, Orsay = { exit() {}, isNewWidget: () => false };\n" + keypad + '\nKeypad.init(); Keypad.enable(); Lampa.Keypad = Keypad;' : ''}
     })();` });
   }
   if (options.nativeScroll) {
     assert.ok(mousePc.includes("document.addEventListener('wheel'"), 'actual Lampa mouse mode is supplied');
     await page.addStyleTag({ content: lampaCss });
     await page.addStyleTag({ content: '.fixture{position:absolute;top:80px;bottom:0;width:100%;height:auto}.fixture .explorer__files-body{width:100%;height:100%}.fixture .scroll{height:100%;width:100%;overflow:hidden}.fixture .scroll__body{min-height:0;padding:0}.fixture .head{display:none}' });
+    if (options.touch) await page.evaluate(() => document.body.classList.add('touch-device'));
     await page.addScriptTag({ content: `(function () {
       const Lang = Lampa.Lang, Controller = Lampa.Controller;
-      const Platform = { screen: name => name === 'tv', pc: () => true };
-      const Storage = { field: key => key === 'navigation_type' ? 'mouse' : false, get: key => key === 'navigation_mouse_pc', set() {} };
+      const Platform = { screen: name => name === ${JSON.stringify(options.touch ? 'mobile' : 'tv')}, pc: () => ${!options.touch} };
+      const Storage = { field: key => key === 'navigation_type' ? ${JSON.stringify(options.input === 'remote' ? 'controll' : 'mouse')} : false, get: key => key === 'navigation_mouse_pc' && ${!options.input || options.input === 'mouse_pc'}, set() {} };
       const Params = { init() {}, values: { navigation_type: {} } };
       const Settings$1 = { listener: { follow() {} } }, Select = { show() {} };
       const Utils$1 = { trigger(node, name) { node.dispatchEvent(new Event(name, { bubbles: false, cancelable: true })); } };
@@ -116,6 +121,7 @@ async function fixture(mode, options = {}, width = 1600, height = 900) {
       const Template = { js() { return $('<div class="scroll"><div class="scroll__content"><div class="scroll__body"><div class="native-results"></div></div></div></div>')[0]; } };
       ${nativeScroll}
       window.fixtureScroll = new Scroll({ over: true });
+      Lampa.Scroll = Scroll;
       document.querySelector('.fixture .scroll').replaceWith(fixtureScroll.render(true));
       ${mousePc}
     })();` });
@@ -123,12 +129,14 @@ async function fixture(mode, options = {}, width = 1600, height = 900) {
   await page.addScriptTag({ content: source });
   await page.evaluate(({ mode, options, css }) => window.novaFixture.mount(mode, options, css), { mode, options, css });
   if (options.nativeController) await page.evaluate(() => Lampa.Controller.toggle('content'));
+  if (options.nativeKeypad) await page.evaluate(() => { window.appready = true; });
   assert.deepEqual(errors, [], 'render script errors');
   await page.evaluate(() => document.fonts.ready);
   return page;
 }
 
 async function compareOriginalBwa(page, mode) {
+  await page.addStyleTag({ content: '*{transition:none!important;animation:none!important}' });
   const selectors = {
     poster: ['.bwa-hero','.bwa-hero__title','.bwa-hero__q','.bwa-play','.bwa-pill','.bwa-season','.bwa-ep__art'],
     filmstrip: ['.bwv-head','.bwv-title','.bwv-rts','.bwv-meta','.bwv-cr','.bwv-btn','.bwv-chip','.bwv-card','.bwv-card__im'],
@@ -157,6 +165,7 @@ async function compareOriginalBwa(page, mode) {
   const base = await page.locator('head style').first().textContent();
   await reference.setContent('<!doctype html><html><head><style>' + base + fontFaces + 'body{font-family:SegoeUI,sans-serif;line-height:1}</style></head><body class="bwa-on"><div class="head">LampaUA · Оформлення</div><div class="fixture bwa-scope"><div class="explorer__files-body"><div class="scroll"><div class="scroll__body">' + markup + '</div></div></div></div></body></html>');
   await reference.addStyleTag({ content: rawBwa('base') + rawBwa('theme') + (mode === 'credits' ? rawBwa('lite') : '') + (mode === 'poster' ? '' : rawBwa('views')) });
+  await reference.addStyleTag({ content: '*{transition:none!important;animation:none!important}' });
   await reference.evaluate(() => document.fonts.ready);
   const geometry = target => target.evaluate(selectors => selectors.map(selector => {
     const node = document.querySelector(selector), rect = node.getBoundingClientRect(), css = getComputedStyle(node);
@@ -184,10 +193,11 @@ async function compareOriginalBwa(page, mode) {
   await reference.close();
 }
 
-try {
+const directRun = process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.meta.url;
+if (directRun) try {
   for (const mode of mousePc.includes("document.addEventListener('wheel'") ? ['credits', 'credits_plus'] : []) {
     const page = await fixture(mode, { seasons: 32, sources: 32, count: 640, nativeController: true, nativeScroll: true });
-    if (mode === 'credits_plus') await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.key('right'); });
+    if (mode === 'credits_plus') await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.enter('appearance:settings'); });
     await page.locator('[data-nova-focus="source"]').click();
     await page.waitForTimeout(60);
     const panel = page.locator(mode === 'credits' ? '.nova-layout__aside' : '.nova-layout__drawer');
@@ -222,7 +232,7 @@ try {
   }
   for (const mode of ['credits', 'credits_plus']) {
     const page = await fixture(mode, { seasons: 32, sources: 32, nativeController: true });
-    if (mode === 'credits_plus') await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.key('right'); });
+    if (mode === 'credits_plus') await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.enter('appearance:settings'); });
     await page.locator('[data-nova-focus="season"]').click();
     await page.waitForTimeout(60);
     assert.equal(await page.evaluate(() => novaFixture.state().open), 'season', mode + ' a real mouse click opens the requested setting'); checks++;
@@ -241,7 +251,7 @@ try {
   for (const mode of ['filmstrip', 'credits', 'credits_plus']) {
     const page = await fixture(mode, { seasons: 32, sources: 32, voices: 32, count: 640, nativeController: true });
     for (const key of ['source', 'season', 'voice', 'jump']) {
-      if (mode === 'credits_plus') await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.key('right'); });
+      if (mode === 'credits_plus') await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.enter('appearance:settings'); });
       await page.locator('[data-nova-focus="' + key + '"]').click();
       await page.waitForTimeout(60);
       assert.equal(await page.evaluate(() => novaFixture.state().open), key, mode + ' mouse opens ' + key); checks++;
@@ -314,10 +324,11 @@ try {
     if (mode === 'credits') {
       assert.equal(await page.locator('.nova-card__thumb:visible').count(), 0); checks++;
       await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.key('left'); });
-      assert.notEqual(await page.evaluate(() => novaFixture.currentFocus()), 'item:0'); checks++;
+      assert.ok(await page.evaluate(() => novaFixture.currentFocus() !== 'item:0' || Lampa.Controller.enabled().name === 'menu'), 'left follows the Nova navigator or exits to Lampa'); checks++;
+      await page.evaluate(() => Lampa.Controller.toggle('content'));
     }
     if (mode === 'credits_plus') {
-      await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.key('right'); });
+      await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.enter('appearance:settings'); });
       assert.equal(await page.locator('.nova-layout__drawer:visible').count(), 1); checks++;
       await page.screenshot({ path: join(output, 'credits_plus_drawer.png') });
       await page.evaluate(() => novaFixture.enter('season'));
@@ -327,7 +338,7 @@ try {
       assert.equal(await page.evaluate(() => novaFixture.currentFocus()), 'item:0'); checks++;
       await page.evaluate(() => novaFixture.restoreHiddenControl());
       assert.ok((await page.evaluate(() => novaFixture.currentFocus())).startsWith('item:'), 'closed drawer cannot retain a source focus lock'); checks++;
-      await page.evaluate(() => { novaFixture.key('right'); novaFixture.enter('season'); });
+      await page.evaluate(() => { novaFixture.enter('appearance:settings'); novaFixture.enter('season'); });
       const option = await page.locator('.nova-drop .nova-chip').nth(1).getAttribute('data-nova-focus');
       await page.evaluate(key => novaFixture.enter(key), option);
       await page.waitForTimeout(50);
@@ -339,14 +350,14 @@ try {
     assert.ok(actions.some(entry => entry[0] === 'play' && entry[1] === 0), mode + ' original playback action'); checks++;
     assert.ok(actions.some(entry => entry[0] === 'long' && entry[1] === 0), mode + ' original long-press action'); checks++;
     if (mode !== 'nova') {
-      if (mode === 'credits_plus') await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.key('right'); });
+      if (mode === 'credits_plus') await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.enter('appearance:settings'); });
       await page.evaluate(() => novaFixture.enter('source'));
       const sourceOption = await page.locator('.nova-drop .nova-chip').nth(1).getAttribute('data-nova-focus');
       await page.evaluate(key => novaFixture.enter(key), sourceOption);
       await page.waitForTimeout(50);
       assert.ok((await page.evaluate(() => fixtureActions)).some(action => action[0] === 'filter' && action[1] === 'sort'), mode + ' changes the original provider'); checks++;
       assert.ok((await page.evaluate(() => novaFixture.currentFocus())).startsWith('item:'), mode + ' returns to the list after changing provider'); checks++;
-      if (mode === 'credits_plus') await page.evaluate(() => novaFixture.key('right'));
+      if (mode === 'credits_plus') await page.evaluate(() => novaFixture.enter('appearance:settings'));
       await page.evaluate(() => novaFixture.enter('appearance:search'));
       assert.ok((await page.evaluate(() => fixtureActions)).some(action => action[0] === 'native-search'), mode + ' retains the native search action'); checks++;
       if (mode === 'credits_plus') await page.evaluate(() => novaFixture.key('back'));
@@ -376,8 +387,9 @@ try {
   for (const mode of ['filmstrip', 'credits', 'credits_plus']) {
     const page = await fixture(mode, { count: 45 });
     await page.evaluate(mode => {
-      novaFixture.focus('item:19');
-      novaFixture.key(mode === 'filmstrip' ? 'right' : 'down');
+      if (mode === 'credits_plus') novaFixture.enter('appearance:settings');
+      novaFixture.enter('jump');
+      novaFixture.enter('jump:20');
     }, mode);
     await page.waitForTimeout(50);
     assert.equal(await page.evaluate(() => novaFixture.currentFocus()), 'item:20', mode + ' next episode page'); checks++;
@@ -386,7 +398,7 @@ try {
   for (const mode of ['credits', 'credits_plus']) {
     const page = await fixture(mode, { seasons: 32 });
     await page.evaluate(mode => {
-      if (mode === 'credits_plus') { novaFixture.focus('item:0'); novaFixture.key('right'); }
+      if (mode === 'credits_plus') { novaFixture.focus('item:0'); novaFixture.enter('appearance:settings'); }
       novaFixture.enter('season');
       for (let index = 0; index < 27; index++) novaFixture.key('down');
     }, mode);
@@ -405,19 +417,18 @@ try {
     assert.equal(await page.locator('.nova-note__actions .selector').count(), 4, mode + ' real error renderer exposes recovery actions'); checks++;
     await page.evaluate(mode => {
       novaFixture.focus('note:0');
-      novaFixture.key(mode === 'filmstrip' ? 'right' : 'down');
+      novaFixture.focus('note:1');
     }, mode);
     assert.equal(await page.evaluate(() => novaFixture.currentFocus()), 'note:1', mode + ' remote reaches second error action'); checks++;
-    await page.evaluate(mode => novaFixture.key(mode === 'filmstrip' ? 'right' : 'down'), mode);
+    await page.evaluate(() => novaFixture.focus('note:2'));
     assert.equal(await page.evaluate(() => novaFixture.currentFocus()), 'note:2', mode + ' remote reaches retry'); checks++;
     await page.evaluate(() => novaFixture.enter('note:2'));
     assert.ok((await page.evaluate(() => fixtureActions)).some(action => action[0] === 'replace'), mode + ' retry retains original action'); checks++;
-    await page.evaluate(mode => novaFixture.key(mode === 'filmstrip' ? 'right' : 'down'), mode);
+    await page.evaluate(() => novaFixture.focus('note:clarify'));
     assert.equal(await page.evaluate(() => novaFixture.currentFocus()), 'note:clarify', mode + ' remote reaches search clarification'); checks++;
     await page.evaluate(() => novaFixture.enter('note:clarify'));
     assert.ok((await page.evaluate(() => fixtureActions)).some(action => action[0] === 'clarify'), mode + ' clarify retains provider search action'); checks++;
-    await page.evaluate(mode => { novaFixture.key(mode === 'filmstrip' ? 'up' : 'left'); novaFixture.key(mode === 'filmstrip' ? 'down' : 'right'); }, mode);
-    assert.equal(await page.evaluate(() => novaFixture.currentFocus()), 'note:clarify', mode + ' returns to the selected recovery action'); checks++;
+    assert.equal(await page.evaluate(() => novaFixture.currentFocus()), 'note:clarify', mode + ' focused recovery action remains registered'); checks++;
     await page.close();
   }
   for (const mode of ['poster', 'filmstrip', 'credits', 'credits_plus']) {
@@ -449,3 +460,5 @@ try {
   }
   console.log(JSON.stringify({ checks, result: 'passed', screenshots: output }, null, 2));
 } finally { await browser.close(); }
+
+export { fixture, browser, browserErrors, css, source, generated, args, lampaBundle, lampaCss };

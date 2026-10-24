@@ -2,6 +2,7 @@
 window.novaFixture = {
   mount: function (mode, options, css) {
     options = options || {};
+    this.options = options;
     save('nova_skin_appearance', mode);
     save('nova_skin_enabled', true);
     save('nova_skin_logo', false);
@@ -14,6 +15,7 @@ window.novaFixture = {
     }
     save('nova_skin_probe', false);
     save('nova_skin_hero_art', options.art !== false);
+    if (options.language) save('language', options.language);
     root = $('.fixture').addClass('explorer');
     var activityRoot = root;
     host = root.find('.scroll__body')[0];
@@ -29,6 +31,12 @@ window.novaFixture = {
       production_companies: [{ name: 'Universal Television' }],
       created_by: [{ name: 'David Greenwalt' }, { name: 'Джим Коуф' }]
     };
+    if (options.longText) {
+      movie.name = movie.name && 'Дуже довга назва серіалу: незвичайні пригоди та історії загадкового міста';
+      movie.title = movie.title && 'Дуже довга назва фільму: незвичайні пригоди та історії загадкового міста';
+      movie.overview = Array(8).join(movie.overview + ' ');
+    }
+    if (options.people) movie.credits.cast = Array.from({ length: options.people }, function (_, index) { return { id: index + 1, name: 'Актор ' + (index + 1), character: 'Персонаж ' + (index + 1) }; });
     if (options.metadata) {
       delete movie.credits;
       Lampa.Api = { sources: { tmdb: { get: function (url, params, done) {
@@ -70,6 +78,7 @@ window.novaFixture = {
     filter.nova_sets = { sort: groups.sort, filter: [groups.season, groups.voice] };
     filter.render = function () { return activityRoot.find('.native-results'); };
     filters.unshift(filter);
+    if (window.fixtureScroll && scrolls.indexOf(window.fixtureScroll) < 0) scrolls.unshift(window.fixtureScroll);
     extras = [];
     ui = {};
     ui_open = '';
@@ -102,15 +111,22 @@ window.novaFixture = {
     addCSS();
     hookController();
     Lampa.Controller.add('content', {
-      name: 'content', up: function () {}, down: function () {}, left: function () {}, right: function () {},
+      name: 'content',
+      up: function () { if (window.Navigator && Navigator.canmove('up')) Navigator.move('up'); else if (Lampa.Controller.toggle) Lampa.Controller.toggle('head'); },
+      down: function () { if (window.Navigator && Navigator.canmove('down')) Navigator.move('down'); },
+      left: function () { if (window.Navigator && Navigator.canmove('left')) Navigator.move('left'); else if (Lampa.Controller.toggle) Lampa.Controller.toggle('menu'); },
+      right: function () { if (window.Navigator && Navigator.canmove('right')) Navigator.move('right'); },
       back: function () { window.fixtureActions.push(['back']); }, toggle: function () {}
     });
-    this.render();
+    ['head','menu'].forEach(function (name) { Lampa.Controller.add(name, { name:name, toggle:function () { window.fixtureActions.push(['controller',name]); }, back:function () { Lampa.Controller.toggle('content'); } }); });
+    if (enabled()) this.render();
+    else refreshCollection();
     if (options.error) this.showError();
     if (options.loading) this.showLoading();
     if (options.lifecycle) this.listen();
   },
   render: function () {
+    if (!enabled()) return;
     items = collect();
     root.addClass('nova-skin-scope nova-skin-chips');
     uiFrame();
@@ -165,6 +181,7 @@ window.novaFixture = {
   currentFocus: function () { return ui_focus; },
   current: function () { return installNovaAppearance.api.current(); },
   choose: function (mode) { installNovaAppearance.api.setting().onChange(mode); },
+  apply: function (mode) { this.choose(mode); if (enabled()) this.render(); else refreshCollection(); },
   refreshProgress: function (index, percent) { window.fixtureProgress[index] = percent; refreshMarks(); },
   restoreHiddenControl: function () { lockFocus('source', 1000); ui_focus = 'source'; restoreFocus(ui.play); },
   state: function () { return { mode: this.current(), focus: ui_focus, open: ui_open }; }

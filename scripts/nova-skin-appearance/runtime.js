@@ -4,9 +4,9 @@ function installNovaAppearance(css) {
   var KEY = 'nova_skin_appearance';
   var ORDER = ['native', 'nova', 'poster', 'filmstrip', 'credits', 'credits_plus'];
   var TEXT = {
-    uk: { title: 'Оформлення', description: 'Вигляд картки та списку серій', names: ['Рідний', 'Нова', 'Афіша', 'Плівка', 'Титри', 'Титри+'], settings: 'Налаштування', close: 'Закрити', details: 'Докладніше', creators: 'Творці', cast: 'У ролях', studio: 'Студія', network: 'Канал', settingsHint: 'Праворуч — налаштування' },
-    ru: { title: 'Оформление', description: 'Вид карточки и списка серий', names: ['Родной', 'Нова', 'Афиша', 'Плёнка', 'Титры', 'Титры+'], settings: 'Настройки', close: 'Закрыть', details: 'Подробнее', creators: 'Создатели', cast: 'В ролях', studio: 'Студия', network: 'Канал', settingsHint: 'Вправо — настройки' },
-    en: { title: 'Appearance', description: 'Movie details and episode layout', names: ['Native', 'Nova', 'Poster', 'Filmstrip', 'Credits', 'Credits+'], settings: 'Settings', close: 'Close', details: 'More details', creators: 'Creators', cast: 'Cast', studio: 'Studio', network: 'Network', settingsHint: 'Right — settings' }
+    uk: { title: 'Оформлення', description: 'Вигляд картки та списку серій', names: ['Рідний', 'Нова', 'Афіша', 'Плівка', 'Титри', 'Титри+'], settings: 'Налаштування', close: 'Закрити', details: 'Докладніше', creators: 'Творці', cast: 'У ролях', studio: 'Студія', network: 'Канал', settingsHint: 'Оберіть рядок налаштувань і натисніть OK' },
+    ru: { title: 'Оформление', description: 'Вид карточки и списка серий', names: ['Родной', 'Нова', 'Афиша', 'Плёнка', 'Титры', 'Титры+'], settings: 'Настройки', close: 'Закрыть', details: 'Подробнее', creators: 'Создатели', cast: 'В ролях', studio: 'Студия', network: 'Канал', settingsHint: 'Выберите строку настроек и нажмите OK' },
+    en: { title: 'Appearance', description: 'Movie details and episode layout', names: ['Native', 'Nova', 'Poster', 'Filmstrip', 'Credits', 'Credits+'], settings: 'Settings', close: 'Close', details: 'More details', creators: 'Creators', cast: 'Cast', studio: 'Studio', network: 'Network', settingsHint: 'Select the settings row and press OK' }
   };
 
   function valid(value) { return ORDER.indexOf(value) !== -1; }
@@ -60,6 +60,20 @@ function installNovaAppearance(css) {
   var state = { root: null, drawer: false, details: false, lastList: '', lastControl: '', returnList: false };
   var metadata = {};
   var noGap = null;
+  var originalCollection = refreshCollection;
+  refreshCollection = function () {
+    var panel = state.details ? ui.appearanceDetails : state.drawer ? ui.appearanceDrawer : null;
+    if (custom() && panel && panel.length) {
+      try { return Lampa.Controller.collectionSet(panel, false, true); } catch (ignore) {}
+    }
+    return originalCollection.apply(this, arguments);
+  };
+  var originalToolbarFocused = toolbarFocused;
+  toolbarFocused = function () {
+    // The original Nova toolbar shortcut assumes a horizontal row. Columns
+    // keep Nova's handlers but use Navigator's vertical geometry instead.
+    return !columns() && originalToolbarFocused.apply(this, arguments);
+  };
   function custom() { return enabled() && current() !== 'nova'; }
   function columns() { return current() === 'credits' || current() === 'credits_plus'; }
   function fixed() { return custom() && current() !== 'poster'; }
@@ -75,14 +89,14 @@ function installNovaAppearance(css) {
   }
   function listTarget() {
     var wanted = state.lastList ? seek(state.lastList) : null;
-    if (wanted && wanted.length && wanted.is(':visible')) return wanted;
+    if (wanted && wanted.length && wanted.is(':visible') && listMember(wanted)) return wanted;
     var target = pickResume(items);
     if (target && target.card && target.card.is(':visible')) return target.card;
     return focusable(ui.list).first();
   }
   function controlTarget() {
     var wanted = state.lastControl ? seek(state.lastControl) : null;
-    if (wanted && wanted.length && wanted.is(':visible')) return wanted;
+    if (wanted && wanted.length && wanted.is(':visible') && ui.rows && $.contains(ui.rows[0], wanted[0])) return wanted;
     return focusable(ui.rows).first();
   }
   function heroTarget() {
@@ -123,16 +137,30 @@ function installNovaAppearance(css) {
   function size() {
     if (!custom() || !ui.root) return;
     var width = window.innerWidth || ui.root[0].clientWidth;
-    var narrow = width < 760 || width < window.innerHeight;
+    var wasNarrow = ui.root.hasClass('nova-layout--narrow');
+    var scroll = ui.root.closest('.scroll')[0];
+    var available = Math.round(scroll ? scroll.getBoundingClientRect().height : window.innerHeight * 0.88);
+    var narrow = width < 760 || width < window.innerHeight || available < 564;
     ui.root.toggleClass('nova-layout--narrow bwv--m', narrow && fixed());
     if (!fixed() || narrow) {
       ui.root.css('height', '');
       if (fixed()) ui.root.css('font-size', Math.max(13, Math.min(17, Math.round((window.innerWidth || 400) / 26))) + 'px');
+      placeDetails();
+      sizeFocus(wasNarrow, narrow, scroll);
       return;
     }
-    var scroll = ui.root.closest('.scroll')[0];
-    var height = Math.max(320, Math.round(scroll ? scroll.getBoundingClientRect().height : window.innerHeight * 0.88));
+    var height = Math.max(320, available);
     ui.root.css({ height: height + 'px', fontSize: (Math.round(height / 47 * 10) / 10) + 'px' });
+    placeDetails();
+    sizeFocus(wasNarrow, narrow, scroll);
+  }
+  function sizeFocus(wasNarrow, narrow, scroll) {
+    if (wasNarrow === narrow) return;
+    if (!narrow && scroll) {
+      if (scroll.Scroll && scroll.Scroll.reset) scroll.Scroll.reset();
+      else { scroll.scrollTop = 0; $(scroll).find('.scroll__body').first().css('transform', ''); }
+    }
+    if (last && ui.root && $.contains(ui.root[0], last)) focusNode(last, true);
   }
 
   function frame() {
@@ -187,31 +215,24 @@ function installNovaAppearance(css) {
         ui.appearanceList = $('<div class="bwa-vlist"></div>').addClass(mode === 'credits' ? 'bwv-list' : 'bwv-plist').append(ui.list.addClass('bwa-vlist__track'));
         ui.appearanceMain.append(ui.appearanceList);
       }
-      if (columns()) ui.root.on('wheel.novaAppearance', function (event) {
-        if (!custom() || !columns() || $(this).hasClass('nova-layout--narrow')) return;
-        var panel = $(event.target).closest('.nova-layout__aside,.nova-layout__drawer,.bwv-list,.bwv-plist,.nova-layout__details')[0];
+      ui.root.on('wheel.novaAppearance', function (event) {
+        if (!custom()) return;
+        var target = $(event.target);
+        var panel = target.closest('.bwv-info__p')[0];
+        if (!panel && current() === 'filmstrip') panel = target.closest('.bwv-rail,.bwv-chips--opts')[0];
+        var horizontal = !!panel;
+        if (!panel && columns() && !$(this).hasClass('nova-layout--narrow')) panel = target.closest('.nova-layout__aside,.nova-layout__drawer,.bwv-list,.bwv-plist,.nova-layout__details')[0];
         if (!panel || !$.contains(this, panel)) return;
         var wheel = event.originalEvent || event;
-        var delta = wheel.deltaY || 0;
+        var delta = horizontal && Math.abs(wheel.deltaX || 0) > Math.abs(wheel.deltaY || 0) ? wheel.deltaX : (wheel.deltaY || 0);
         if (!delta) return;
         if (wheel.deltaMode === 1) delta *= 40;
-        else if (wheel.deltaMode === 2) delta *= panel.clientHeight;
-        panel.scrollTop += delta;
+        else if (wheel.deltaMode === 2) delta *= horizontal ? panel.clientWidth : panel.clientHeight;
+        panel[horizontal ? 'scrollLeft' : 'scrollTop'] += delta;
         // Lampa Mouse PC cancels the browser default below the core Scroll.
         // Claim this event before that handler and leave the outer page still.
         event.preventDefault();
         event.stopPropagation();
-      });
-      ui.list.add(ui.rows).on('wheel.novaAppearance', function (event) {
-        if (current() !== 'filmstrip') return;
-        // Activity stacks retain old DOM while the shared ui object is reset.
-        var rail = $(this).closest('.bwv-rail,.bwv-chips--opts')[0];
-        if (!rail) return;
-        var wheel = event.originalEvent || event;
-        if (Math.abs(wheel.deltaY || 0) > Math.abs(wheel.deltaX || 0)) {
-          rail.scrollLeft += wheel.deltaY;
-          event.preventDefault();
-        }
       });
     }
     size();
@@ -257,6 +278,11 @@ function installNovaAppearance(css) {
     return box;
   }
 
+  function placeDetails() {
+    if (!ui.appearanceDetails || !ui.root || !ui.hero) return;
+    if (ui.root.hasClass('bwv--m')) ui.appearanceDetails.insertAfter(ui.hero.find('.bwv-btns'));
+    else ui.appearanceDetails.appendTo(ui.root);
+  }
   function details(show) {
     state.details = show;
     if (!show) {
@@ -291,9 +317,8 @@ function installNovaAppearance(css) {
       bind(close, function () { details(false); });
       panel.append(close);
     }
-    if (ui.root.hasClass('bwv--m')) panel.insertAfter(ui.hero.find('.bwv-btns'));
-    else panel.appendTo(ui.root);
     ui.appearanceDetails = panel;
+    placeDetails();
     refreshCollection();
     return focus(focusable(panel).first());
   }
@@ -347,6 +372,7 @@ function installNovaAppearance(css) {
     var started = target && target.percent > 0 && target.percent < SEEN_PERCENT;
     var label = started ? text('nova_continue', 'nova_skin_continue') : text('nova_watch', 'nova_skin_watch');
     var voice = groups.voice && groups.voice.subtitle || '';
+    if (ui.appearanceDetails) ui.appearanceDetails.detach();
     ui.hero_box.empty();
     ui.next = null;
     if (current() === 'poster') {
@@ -520,87 +546,23 @@ function installNovaAppearance(css) {
   }
 
   function scroll(element) {
-    if (!fixed() || !ui.root || ui.root.hasClass('nova-layout--narrow')) return false;
+    if (!fixed() || !ui.root) return false;
+    var narrow = ui.root.hasClass('nova-layout--narrow');
     var node = element instanceof jQuery ? element[0] : element;
     if (!node || !$.contains(ui.root[0], node)) return false;
     // In column layouts rows grow inside the scrolling aside/drawer.
     var panel = $(node).closest(columns() ? '.bwv-info__p,.nova-layout__drawer,.nova-layout__aside,.bwv-list,.bwv-plist' : '.bwv-info__p,.bwv-rail,.nova__rows');
-    if (!panel.length) return true;
+    if (!panel.length) return !narrow;
     var target = node.getBoundingClientRect();
     var seat = panel[0].getBoundingClientRect();
     if ((current() === 'filmstrip' && panel.is('.bwv-rail,.bwv-chips')) || panel.is('.bwv-info__p')) {
       if (target.left < seat.left + 8) panel[0].scrollLeft -= seat.left - target.left + 12;
       if (target.right > seat.right - 8) panel[0].scrollLeft += target.right - seat.right + 12;
-    } else {
+    } else if (!narrow) {
       if (target.top < seat.top + 8) panel[0].scrollTop -= seat.top - target.top + 12;
       if (target.bottom > seat.bottom - 8) panel[0].scrollTop += target.bottom - seat.bottom + 12;
     }
-    return true;
-  }
-
-  function step(nodes, delta) {
-    var at = -1;
-    nodes.each(function (index) { if (this === last) at = index; });
-    if (at < 0) return focus(nodes.first());
-    var next = at + delta;
-    if (next >= 0 && next < nodes.length) return focus(nodes.eq(next));
-    if ($(last).hasClass('nova-card')) {
-      var index = keyIndex(ui_focus);
-      var wanted = index + delta;
-      if (wanted >= 0 && wanted < items.length && preselectPage('item:' + wanted)) return true;
-    }
-    return true;
-  }
-
-  function navigate(direction) {
-    if (!custom() || current() === 'poster' || !inSkin() || !last) return false;
-    if (state.details) {
-      if (direction === 'left' || direction === 'right') return step(focusable(ui.appearanceDetails), direction === 'left' ? -1 : 1);
-      return true;
-    }
-    var box = $(last);
-    var mode = current();
-    var listItem = listMember(last);
-    var inRows = $.contains(ui.rows[0], last);
-    if (mode === 'credits_plus' && state.drawer) {
-      if (direction === 'left') return drawer(false);
-      if (direction === 'up' || direction === 'down') return step(focusable(ui.appearanceDrawer), direction === 'up' ? -1 : 1);
-      return true;
-    }
-    if (mode === 'credits' || mode === 'credits_plus') {
-      if (listItem) {
-        state.lastList = ui_focus;
-        if (direction === 'up' || direction === 'down') return step(focusable(ui.list), direction === 'up' ? -1 : 1);
-        if (direction === 'right' && mode === 'credits_plus') return drawer(true);
-        return focus(mode === 'credits' ? (controlTarget().length ? controlTarget() : heroTarget()) : heroTarget());
-      }
-      if (direction === 'right') {
-        if (box.is('[data-nova-focus="appearance:settings"]')) return drawer(true);
-        return focus(listTarget());
-      }
-      if (direction === 'left') return focus(listTarget());
-      if (direction === 'down' && box.is('[data-nova-focus="appearance:settings"]')) return focus(listTarget());
-      return step(focusable(mode === 'credits' ? ui.appearanceAside : ui.hero_box), direction === 'up' ? -1 : 1);
-    }
-    if (mode === 'filmstrip') {
-      if (listItem) {
-        state.lastList = ui_focus;
-        if (direction === 'left' || direction === 'right') return step(focusable(ui.list), direction === 'left' ? -1 : 1);
-        return direction === 'up' ? focus(controlTarget().length ? controlTarget() : heroTarget()) : true;
-      }
-      if (direction === 'left' || direction === 'right') {
-        return step(focusable(box.closest('.nova-drop').length ? box.closest('.nova-drop') : (inRows ? ui.rows.find('.nova-toolbar') : ui.hero_box)), direction === 'left' ? -1 : 1);
-      }
-      if (direction === 'down') {
-        if (inRows) {
-          if (ui_open && !box.closest('.nova-drop').length) return focus(focusable(ui.rows.find('.nova-drop')).first());
-          return focus(listTarget());
-        }
-        return focus(controlTarget().length ? controlTarget() : listTarget());
-      }
-      if (direction === 'up' && inRows) return focus(heroTarget());
-    }
-    return false;
+    return !narrow;
   }
 
   function back() {
@@ -611,9 +573,9 @@ function installNovaAppearance(css) {
       var key = ui_open;
       ui_open = '';
       buildRows();
+      refreshCollection();
       return focus(seek(key));
     }
-    if (columns() && listMember(last) && heroTarget().length) return focus(heroTarget());
     return false;
   }
 
@@ -635,6 +597,8 @@ function installNovaAppearance(css) {
   scrollTo = function (element) { if (!scroll(element)) return originalScroll.apply(this, arguments); };
   var originalFocus = focusNode;
   focusNode = function (target) {
+    var panel = state.details ? ui.appearanceDetails : state.drawer ? ui.appearanceDrawer : null;
+    if (custom() && panel && panel.length && target && !$.contains(panel[0], $(target)[0])) return false;
     var result = originalFocus.apply(this, arguments);
     if (custom() && target && result) {
       var node = $(target);
@@ -695,11 +659,8 @@ function installNovaAppearance(css) {
   searchRecover = function () { clearScope(); return originalRecover.apply(this, arguments); };
   var originalForget = forget;
   forget = function () { if (!pendingLive()) clearScope(); return originalForget.apply(this, arguments); };
-  var originalUp = novaUp, originalDown = novaDown, originalLeft = novaLeft, originalRight = novaRight;
-  novaUp = function () { return navigate('up') || originalUp.apply(this, arguments); };
-  novaDown = function () { return navigate('down') || originalDown.apply(this, arguments); };
-  novaLeft = function () { return navigate('left') || originalLeft.apply(this, arguments); };
-  novaRight = function () { return navigate('right') || originalRight.apply(this, arguments); };
+  // Keep Nova's own directional handlers. The adapter changes only where the
+  // focused element is scrolled, not which control a remote arrow selects.
 
   var originalHook = hookController;
   hookController = function () {

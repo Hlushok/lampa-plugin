@@ -16,7 +16,7 @@ export const appearanceFunctions = [
   'refreshCollection', 'inSkin', 'sourceTitle', 'shortQuality', 'isSeen',
   'play', 'longPress', 'keyIndex', 'preselectPage', 'probeStop', 'searchRecover',
   'forget', 'pendingLive', 'refreshMarks', 'tmdbId', 'tmdbKind', 'episodeRuntime',
-  'seasonNumber', 'heroArt', 'heroLogo', 'logoDraw', 'bindPlay', 'chooseOption', 'ownArt'
+  'seasonNumber', 'heroArt', 'heroLogo', 'logoDraw', 'bindPlay', 'chooseOption', 'ownArt', 'toolbarFocused'
 ];
 
 export function patchAppearance(source) {

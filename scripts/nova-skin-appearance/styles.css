@@ -31,4 +31,8 @@
 .nova-bwa-scope .nova-skin-root.bwv.bwv--plenka:not(.bwv--m){display:flex!important}
 .nova-bwa-scope .nova-skin-root.bwv.bwv--m{display:block!important}
 .nova-bwa-scope .nova-layout--poster .bwa-seasons{padding-top:.2em}
+/* Keep BWA's row pitch while closing gaps in the remote's focus rectangles. */
+.nova-bwa-scope.nova-bwa-scope .nova-skin-root .bwv-prow{margin-bottom:0;padding-bottom:.8em}
+.nova-bwa-scope.nova-bwa-scope .nova-skin-root .bwv-prow--track{padding-bottom:1.05em}
+.nova-bwa-scope .bwv--titry:not(.bwv--m) .nova-note,.nova-bwa-scope .bwv--plus:not(.bwv--m) .nova-note{min-height:22em}
 @media(prefers-reduced-motion:reduce){.nova-bwa-scope *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}

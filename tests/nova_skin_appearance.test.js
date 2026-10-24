@@ -46,15 +46,16 @@ function harness(initial = {}, access = true) {
     novaUp: noop, novaDown: noop, novaLeft: noop, novaRight: noop,
     hookController: noop, restoreFocus: noop, bind: noop, forget: noop,
     refreshMarks: noop, draw: noop, searchRecover: noop, lockRelease: noop,
-    refreshCollection: noop, inSkin: () => false, pendingLive: () => false
+    refreshCollection: noop, inSkin: () => false, pendingLive: () => false, toolbarFocused: () => false
   };
+  const navigation = { up: context.novaUp, down: context.novaDown, left: context.novaLeft, right: context.novaRight };
   vm.createContext(context);
   if (fs.existsSync(runtimePath)) {
     vm.runInContext(fs.readFileSync(runtimePath, 'utf8') + '\nthis.api = installNovaAppearance("");', context);
   }
   context.settings();
   return {
-    context, storage, added,
+    context, storage, added, navigation,
     setting: added.find(entry => entry.param.name === 'nova_skin_appearance'),
     replacements: () => replacements
   };
@@ -67,6 +68,15 @@ test('appearance menu replaces the boolean toggle with six ordered Ukrainian cho
   assert.deepEqual(Object.keys(state.setting.param.values), modes);
   assert.deepEqual(Object.values(state.setting.param.values), ['Рідний', 'Нова', 'Афіша', 'Плівка', 'Титри', 'Титри+']);
   assert.equal(state.added.some(entry => entry.param.name === 'nova_skin_enabled'), false);
+});
+
+test('all appearances retain the original Nova directional handlers', () => {
+  for (const mode of modes) {
+    const state = harness({ nova_skin_appearance: mode });
+    for (const [direction, original] of Object.entries(state.navigation)) {
+      assert.equal(state.context['nova' + direction[0].toUpperCase() + direction.slice(1)], original, mode + ' keeps Nova ' + direction);
+    }
+  }
 });
 
 for (const [name, initial, expected] of [
