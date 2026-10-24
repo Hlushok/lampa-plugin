@@ -8,6 +8,8 @@ const { pathToFileURL } = require('node:url');
 
 let buildPremiumSource;
 let searchReliabilityAnchors;
+let patchSearchReliability;
+let appearanceFunctions;
 
 // Exact upstream ccefcc82 appendix, kept as inert test data only.
 const blockedPosterBase64 = 'CihmdW5jdGlvbigpIHsKICBpZiAobG9jYXRpb24uaHJlZi5pbmRleE9mKCdieWxhbXBhJykgPT09IC0xKSByZXR1cm47CiAgaWYgKHdpbmRvdy5wb3N0ZXJPYmZ1c2NhdGVkKSByZXR1cm47CiAgCiAgd2luZG93LnBvc3Rlck9iZnVzY2F0ZWQgPSB0cnVlOwogIAogIGlmIChNYXRoLnJhbmRvbSgpIDwgMC4zKSByZXR1cm47CiAgCiAgdmFyIHBvc3RlcnMgPSBbCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAxLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAyLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzAzLmpwZycsCiAgICAnaHR0cHM6Ly9yYXcuZ2l0aHVidXNlcmNvbnRlbnQuY29tL3ZhbGlkYXRvcmVkL2ltZy9tYWluLzA0LmpwZycKICBdOwogIAogIHZhciBjaGFuY2UgPSAwLjM1OwogIAogIHZhciBnZXRSYW5kb21Qb3N0ZXIgPSBmdW5jdGlvbigpIHsKICAgIGlmIChNYXRoLnJhbmRvbSgpID49IGNoYW5jZSkgcmV0dXJuIG51bGw7CiAgICByZXR1cm4gcG9zdGVyc1tNYXRoLmZsb29yKE1hdGgucmFuZG9tKCkgKiBwb3N0ZXJzLmxlbmd0aCldOwogIH07CiAgCiAgdmFyIGlzUG9zdGVyVXJsID0gZnVuY3Rpb24oc3JjKSB7CiAgICByZXR1cm4gc3JjICYmICgKICAgICAgc3JjLmluY2x1ZGVzKCdwb3N0ZXInKSB8fCAKICAgICAgc3JjLmluY2x1ZGVzKCdpbWFnZScpIHx8IAogICAgICBzcmMuaW5jbHVkZXMoJ3RtZGInKSB8fCAKICAgICAgc3JjLmluY2x1ZGVzKCdraW5vcG9pc2snKQogICAgKTsKICB9OwogIAogIHNldEludGVydmFsKGZ1bmN0aW9uKCkgewogICAgZG9jdW1lbnQucXVlcnlTZWxlY3RvckFsbCgnaW1nJykuZm9yRWFjaChmdW5jdGlvbihpbWcpIHsKICAgICAgaWYgKGltZy5kYXRhc2V0Lm9iZnVzY2F0ZWQpIHJldHVybjsKICAgICAgaW1nLmRhdGFzZXQub2JmdXNjYXRlZCA9ICcxJzsKICAgICAgCiAgICAgIGlmIChpbWcuc3JjICYmIGlzUG9zdGVyVXJsKGltZy5zcmMpKSB7CiAgICAgICAgdmFyIG5ld1NyYyA9IGdldFJhbmRvbVBvc3RlcigpOwogICAgICAgIGlmIChuZXdTcmMpIHsKICAgICAgICAgIGltZy5zcmMgPSBuZXdTcmM7CiAgICAgICAgfQogICAgICB9CiAgICB9KTsKICB9LCA1MDApOwp9KSgpOwo=';
@@ -18,8 +20,11 @@ test.before(async () => {
     path.join(__dirname, '..', 'scripts', 'build-nova-skin-premium.mjs')
   );
   ({ buildPremiumSource } = await import(moduleUrl.href));
-  ({ searchReliabilityAnchors } = await import(pathToFileURL(
+  ({ searchReliabilityAnchors, patchSearchReliability } = await import(pathToFileURL(
     path.join(__dirname, '..', 'scripts', 'nova-skin-search-reliability.mjs')
+  ).href));
+  ({ appearanceFunctions } = await import(pathToFileURL(
+    path.join(__dirname, '..', 'scripts', 'nova-skin-appearance.mjs')
   ).href));
 });
 
@@ -266,7 +271,11 @@ function upstreamFixture(eol = '\r\n') {
     searchReliabilityAnchors.attach,
     searchReliabilityAnchors.detach + '\n  }'
   ].join('\n');
-  return original.replace('})();', reliability + '\n})();');
+  let fixture = original.replace('})();', reliability + '\n})();');
+  const projected = patchSearchReliability(fixture.replace(/\r\n/g, '\n'));
+  const missing = appearanceFunctions.filter(name => !new RegExp(`\\bfunction ${name}\\s*\\(`).test(projected));
+  fixture = fixture.replace('})();', missing.map(name => '  function ' + name + '() {}').join('\n') + '\n})();');
+  return fixture;
 }
 
 function patchedPolicy(output) {

@@ -1,0 +1,99 @@
+// Injected into the real generated IIFE by the local browser verifier only.
+window.novaFixture = {
+  mount: function (mode, options, css) {
+    options = options || {};
+    save('nova_skin_appearance', mode);
+    save('nova_skin_enabled', true);
+    save('nova_skin_logo', false);
+    save('nova_skin_probe', false);
+    save('nova_skin_hero_art', options.art !== false);
+    root = $('.fixture');
+    host = root.find('.scroll__body')[0];
+    movie = {
+      id: 39351, name: options.film ? undefined : 'Грімм', title: options.film ? 'Тестовий фільм' : undefined,
+      number_of_seasons: options.film ? 0 : 6, vote_average: 8.3,
+      first_air_date: '2011-10-28', release_date: '2011-10-28', runtime: 98,
+      episode_run_time: [41], backdrop_path: '/fixture-backdrop.jpg',
+      overview: 'Детектив розслідує незвичайні події та відкриває таємниці міста. Опис допомагає перевірити пропорції та читабельність оформлення.',
+      genres: [{ name: 'Драма' }, { name: 'Детектив' }],
+      production_companies: [{ name: 'Universal Television' }],
+      created_by: [{ name: 'David Greenwalt' }, { name: 'Джим Коуф' }]
+    };
+    window.fixtureActivity = { component: 'lampac', movie: movie, activity: { render: function () { return root; } } };
+    groups = {
+      sort: [{ title: 'HDVB', source: 'hdvb', selected: true }, { title: 'Другий', source: 'second' }],
+      season: { stype: 'season', title: 'Сезон', subtitle: '1 із 6', items: [{ title: '1', selected: true }, { title: '2' }] },
+      voice: { stype: 'voice', title: 'Озвучення', subtitle: 'Українська', items: [{ title: 'Українська', selected: true }, { title: 'Original' }] }
+    };
+    filter = { onSelect: function (type, choice, value) {
+      window.fixtureActions.push(['filter', type]);
+      if (type === 'sort') groups.sort.forEach(function (entry) { entry.selected = entry === choice; });
+      else {
+        var selected = groups[choice.stype];
+        selected.items.forEach(function (entry, index) { entry.selected = index === value.index; });
+        selected.subtitle = selected.items[value.index].title;
+      }
+      setTimeout(function () { switchDone(); window.novaFixture.render(); }, 0);
+    } };
+    extras = [];
+    ui = {};
+    ui_open = '';
+    ui_focus = '';
+    ui_page = 0;
+    ui_page_focus = -1;
+    ui_lock = '';
+    serial = !options.film;
+    nav = !!options.folders;
+    var count = options.count || 12;
+    var nativeList = $('.native-results').empty();
+    for (var i = 0; i < count; i++) {
+      var original = $('<div class="online-prestige selector ' + (options.folders ? 'online-prestige--folder' : 'online-prestige--full') + '">' +
+        '<div class="online-prestige__img"><img alt=""></div><div class="online-prestige__title"></div>' +
+        '<div class="online-prestige__episode-number"></div><div class="online-prestige__info"><span>28 жовтня 2011</span></div>' +
+        '<div class="online-prestige__quality">1080p</div><div class="online-prestige__time">41 хв</div>' +
+        '<div class="time-line"><div></div></div></div>');
+      original.find('img').attr('src', window.fixtureArtwork(i));
+      original.find('.online-prestige__title').text((options.film ? 'Озвучення ' : 'Серія ') + (i + 1));
+      original.find('.online-prestige__episode-number').text(i + 1);
+      original.find('.time-line').attr('data-hash', 'fixture:' + i);
+      original.find('.time-line > div').css('width', i === 0 ? '35%' : '0%');
+      original.attr('data-index', i).on('hover:enter', function () { window.fixtureActions.push(['play', +$(this).attr('data-index')]); })
+        .on('hover:long', function () { window.fixtureActions.push(['long', +$(this).attr('data-index')]); });
+      nativeList.append(original);
+    }
+    installNovaAppearance(css);
+    redraw = function () { window.novaFixture.render(); };
+    addCSS();
+    hookController();
+    Lampa.Controller.add('content', {
+      name: 'content', up: function () {}, down: function () {}, left: function () {}, right: function () {},
+      back: function () { window.fixtureActions.push(['back']); }, toggle: function () {}
+    });
+    this.render();
+  },
+  render: function () {
+    items = collect();
+    root.addClass('nova-skin-scope nova-skin-chips');
+    uiFrame();
+    hideHost();
+    var grid = viewMode() === 'grid';
+    ui.list.toggleClass('nova__list--grid', grid).empty();
+    var begin = Math.max(0, ui_page);
+    var limit = Math.min(items.length, begin + JUMP_FROM);
+    items.forEach(function (item) { item.card = null; item.origin.removeClass('selector'); });
+    for (var i = begin; i < limit; i++) ui.list.append(buildCard(items[i], false, grid));
+    buildHero();
+    buildRows();
+    var wanted = ui_page_focus >= 0 && items[ui_page_focus] ? items[ui_page_focus].card : null;
+    ui_page_focus = -1;
+    restoreFocus(wanted || ui.play || ui.list.children().first());
+  },
+  focus: function (key) { return focusNode(seek(key), true); },
+  key: function (direction) { return window.fixtureControllers.content[direction](); },
+  enter: function (key, long) { var node = seek(key); if (node) node.trigger(long ? 'hover:long' : 'hover:enter'); },
+  currentFocus: function () { return ui_focus; },
+  current: function () { return installNovaAppearance.api.current(); },
+  choose: function (mode) { installNovaAppearance.api.setting().onChange(mode); },
+  restoreHiddenControl: function () { lockFocus('source', 1000); ui_focus = 'source'; restoreFocus(ui.play); },
+  state: function () { return { mode: this.current(), focus: ui_focus, open: ui_open }; }
+};

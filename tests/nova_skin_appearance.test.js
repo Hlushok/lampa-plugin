@@ -27,11 +27,13 @@ function harness(initial = {}, access = true) {
     save: (key, value) => { storage[key] = value; },
     enabled: () => context.window.nova_skin_lampac_access === true && storage.nova_skin_enabled !== false,
     settings() {
-      context.Lampa.SettingsApi.addParam({
-        component: 'nova_skin',
-        param: { name: 'nova_skin_enabled', type: 'trigger', default: true },
-        field: { name: 'Увімкнути Nova Skin' }, onChange: noop
-      });
+      try {
+        context.Lampa.SettingsApi.addParam({
+          component: 'nova_skin',
+          param: { name: 'nova_skin_enabled', type: 'trigger', default: true },
+          field: { name: 'Увімкнути Nova Skin' }, onChange: noop
+        });
+      } catch (ignore) {}
     },
     Lampa: {
       Storage: { get: (key, fallback) => context.get(key, fallback), set: (key, value) => context.save(key, value) },
@@ -112,13 +114,27 @@ test('revoking Premium access disables every saved appearance', () => {
   }
 });
 
+test('missing SettingsApi retains the original settings error handling', () => {
+  const state = harness();
+  state.context.Lampa.SettingsApi = null;
+  assert.doesNotThrow(() => state.context.settings());
+});
+
 test('the generator fails closed on missing or duplicated appearance integration anchors', async () => {
   const patch = fs.existsSync(patchPath)
     ? (await import(pathToFileURL(patchPath).href)).patchAppearance
     : value => value;
-  const pristine = source.replace(/\r\n/g, '\n');
+  let pristine = source.replace(/\r\n/g, '\n');
+  const runtimeStart = pristine.indexOf('  // LampaUA appearance adapters.');
+  if (runtimeStart !== -1) {
+    const startup = pristine.indexOf('  function start() {', runtimeStart);
+    pristine = pristine.slice(0, runtimeStart) + pristine.slice(startup);
+    pristine = pristine.replace(/^    installNovaAppearance\(.*\);\n/m, '');
+  }
   assert.throws(() => patch(pristine.replace('  function start() {', '  function renamedStart() {')), /appearance|Appearance/);
   assert.throws(() => patch(pristine + '\n  function start() {}'), /appearance|Appearance/);
+  assert.throws(() => patch(pristine.replace('  function buildCard(', '  function renamedCard(')), /appearance|Appearance/);
+  assert.throws(() => patch(patch(pristine)), /already installed/);
 });
 
 module.exports = { harness };
