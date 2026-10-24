@@ -5070,6 +5070,21 @@
           ui.appearanceList = $('<div class="bwa-vlist"></div>').addClass(mode === 'credits' ? 'bwv-list' : 'bwv-plist').append(ui.list.addClass('bwa-vlist__track'));
           ui.appearanceMain.append(ui.appearanceList);
         }
+        if (columns()) ui.root.on('wheel.novaAppearance', function (event) {
+          if (!custom() || !columns() || $(this).hasClass('nova-layout--narrow')) return;
+          var panel = $(event.target).closest('.nova-layout__aside,.nova-layout__drawer,.bwv-list,.bwv-plist,.nova-layout__details')[0];
+          if (!panel || !$.contains(this, panel)) return;
+          var wheel = event.originalEvent || event;
+          var delta = wheel.deltaY || 0;
+          if (!delta) return;
+          if (wheel.deltaMode === 1) delta *= 40;
+          else if (wheel.deltaMode === 2) delta *= panel.clientHeight;
+          panel.scrollTop += delta;
+          // Lampa Mouse PC cancels the browser default below the core Scroll.
+          // Claim this event before that handler and leave the outer page still.
+          event.preventDefault();
+          event.stopPropagation();
+        });
         ui.list.add(ui.rows).on('wheel.novaAppearance', function (event) {
           if (current() !== 'filmstrip') return;
           // Activity stacks retain old DOM while the shared ui object is reset.

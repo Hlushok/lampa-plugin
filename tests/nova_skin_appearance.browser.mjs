@@ -21,7 +21,10 @@ assert.ok(activityListener.includes("e.type === 'destroy'"), 'verify the product
 const source = generated.replace('  if (window.appready) start();', bridge + '\nwindow.novaFixture.listen = function () {\n' + activityListener + '\n};\n  if (window.appready) start();');
 const jquery = readFileSync(resolve(args['--jquery']), 'utf8');
 const lampaDirectory = resolve(args['--jquery'], '../../..');
-const lampaBundle = readFileSync(join(lampaDirectory, 'app.min.js'), 'utf8');
+const lampaBundle = readFileSync(args['--lampa'] || join(lampaDirectory, 'app.min.js'), 'utf8');
+const lampaCss = readFileSync(args['--lampa-css'] || join(lampaDirectory, 'css/app.css'), 'utf8');
+const nativeScroll = lampaBundle.slice(lampaBundle.indexOf('\tfunction Scroll() {'), lampaBundle.indexOf('\tvar html$b,', lampaBundle.indexOf('\tfunction Scroll() {')));
+const mousePc = lampaBundle.slice(lampaBundle.indexOf("\tvar MODE = 'mouse_pc';"), lampaBundle.indexOf('\tAdManager.init = function'));
 const nativeController = lampaBundle.slice(lampaBundle.indexOf('\tvar listener$2 = Subscribe$2();'), lampaBundle.indexOf('\tvar http = window.location.protocol'));
 assert.ok(nativeController.includes('function collectionFocus('), 'verify the actual Lampa controller');
 const navigator = readFileSync(join(lampaDirectory, 'vender/navigator/navigator.js'), 'utf8');
@@ -98,6 +101,25 @@ async function fixture(mode, options = {}, width = 1600, height = 900) {
       Controller.observe();
     })();` });
   }
+  if (options.nativeScroll) {
+    assert.ok(mousePc.includes("document.addEventListener('wheel'"), 'actual Lampa mouse mode is supplied');
+    await page.addStyleTag({ content: lampaCss });
+    await page.addStyleTag({ content: '.fixture{position:absolute;top:80px;bottom:0;width:100%;height:auto}.fixture .explorer__files-body{width:100%;height:100%}.fixture .scroll{height:100%;width:100%;overflow:hidden}.fixture .scroll__body{min-height:0;padding:0}.fixture .head{display:none}' });
+    await page.addScriptTag({ content: `(function () {
+      const Lang = Lampa.Lang, Controller = Lampa.Controller;
+      const Platform = { screen: name => name === 'tv', pc: () => true };
+      const Storage = { field: key => key === 'navigation_type' ? 'mouse' : false, get: key => key === 'navigation_mouse_pc', set() {} };
+      const Params = { init() {}, values: { navigation_type: {} } };
+      const Settings$1 = { listener: { follow() {} } }, Select = { show() {} };
+      const Utils$1 = { trigger(node, name) { node.dispatchEvent(new Event(name, { bubbles: false, cancelable: true })); } };
+      const Layer = { visible() {} };
+      const Template = { js() { return $('<div class="scroll"><div class="scroll__content"><div class="scroll__body"><div class="native-results"></div></div></div></div>')[0]; } };
+      ${nativeScroll}
+      window.fixtureScroll = new Scroll({ over: true });
+      document.querySelector('.fixture .scroll').replaceWith(fixtureScroll.render(true));
+      ${mousePc}
+    })();` });
+  }
   await page.addScriptTag({ content: source });
   await page.evaluate(({ mode, options, css }) => window.novaFixture.mount(mode, options, css), { mode, options, css });
   if (options.nativeController) await page.evaluate(() => Lampa.Controller.toggle('content'));
@@ -163,6 +185,29 @@ async function compareOriginalBwa(page, mode) {
 }
 
 try {
+  for (const mode of mousePc.includes("document.addEventListener('wheel'") ? ['credits', 'credits_plus'] : []) {
+    const page = await fixture(mode, { seasons: 32, sources: 32, count: 640, nativeController: true, nativeScroll: true });
+    if (mode === 'credits_plus') await page.evaluate(() => { novaFixture.focus('item:0'); novaFixture.key('right'); });
+    await page.locator('[data-nova-focus="source"]').click();
+    await page.waitForTimeout(60);
+    const panel = page.locator(mode === 'credits' ? '.nova-layout__aside' : '.nova-layout__drawer');
+    await panel.hover();
+    await page.mouse.wheel(0, 2400);
+    await page.waitForTimeout(150);
+    assert.ok(await panel.evaluate(node => node.scrollTop > 0), mode + ' settings scroll with the actual Lampa Mouse PC wheel interceptor'); checks++;
+    const viewport = await panel.boundingBox();
+    const lastOption = await page.locator('.nova-drop .nova-chip').last().boundingBox();
+    assert.ok(lastOption.y >= viewport.y && lastOption.y + lastOption.height <= viewport.y + viewport.height, mode + ' real Lampa allows the final source to be selected'); checks++;
+    await page.locator('.nova-drop .nova-chip').last().click();
+    await page.waitForTimeout(80);
+    const episodes = page.locator(mode === 'credits' ? '.bwv-list' : '.bwv-plist');
+    await episodes.hover();
+    await page.mouse.wheel(0, 1600);
+    await page.waitForTimeout(150);
+    assert.ok(await episodes.evaluate(node => node.scrollTop > 0), mode + ' episodes scroll with the actual Lampa mouse handler'); checks++;
+    assert.deepEqual(browserErrors.get(page), [], mode + ' native scroll integration errors'); checks++;
+    await page.close();
+  }
   for (const mode of ['filmstrip', 'credits', 'credits_plus']) {
     const page = await fixture(mode, { lifecycle: true });
     await page.evaluate(() => { novaFixture.enter('appearance:details'); novaFixture.enter('appearance:person:0'); novaFixture.actorRoundTrip(); });
