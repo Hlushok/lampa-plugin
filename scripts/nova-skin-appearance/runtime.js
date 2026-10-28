@@ -508,7 +508,9 @@ function installNovaAppearance(css) {
     ui.rows.find('.nova-drop').addClass(columns() ? 'bwv-opts' : 'bwa-strip__track');
     ui.rows.find('.nova-drop>.nova-chip').each(function () {
       var chip = $(this), value = chip.find('.nova-chip__label').text();
+      var status = chip.find('.nova-chip__dot').detach();
       chip.empty().addClass('bwv-opt').toggleClass('is-cur', chip.hasClass('nova-chip--active')).append($('<span class="bwv-opt__v"></span>').text(value));
+      if (chip.attr('data-nova-src')) chip.append(status);
     });
     if (current() === 'filmstrip') {
       ui.rows.toggleClass('bwv-chips--opts', !!ui_open);

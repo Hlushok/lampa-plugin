@@ -4,6 +4,9 @@
 .nova-bwa-scope .nova-layout *{box-sizing:border-box;outline:none}
 .nova-bwa-scope .nova-card,.nova-bwa-scope .nova-chip,.nova-bwa-scope .nova-btn,.nova-bwa-scope .nova-toolbar,.nova-bwa-scope .nova-drop,.nova-bwa-scope .nova-hero__title{all:unset;display:block;box-sizing:border-box}
 .nova-bwa-scope .nova-toolbar{display:block}
+.nova-bwa-scope .bwv-opt.nova-chip--empty{opacity:.32}
+.nova-bwa-scope .bwv-opt.nova-chip--checking{opacity:.6}
+.nova-bwa-scope .bwv-opt .nova-chip__dot{display:inline-block;margin-left:.5em;vertical-align:middle}
 .nova-bwa-scope .bwv>.nova__hero,.nova-bwa-scope .bwv .nova-bwa-hero,.nova-bwa-scope .bwv .nova-toolbar,.nova-bwa-scope .bwv-col .nova__hero,.nova-bwa-scope .bwv-col .nova__rows,.nova-bwa-scope .bwv--titry .nova-hero__actions{display:contents}
 .nova-bwa-scope .nova-layout__drawer--closed{display:none!important}
 .nova-bwa-scope .nova-layout__disabled-selector{pointer-events:none}

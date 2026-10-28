@@ -62,6 +62,10 @@ window.novaFixture = {
       groups.sort = [];
       for (var source = 0; source < options.sources; source++) groups.sort.push({ title: 'Джерело ' + source, source: 'source' + source, selected: source === 0 });
     }
+    if (options.sourceStates) {
+      groups.sort = options.sourceStates;
+      window.nova_skin_probe_mode = function () { return 'external'; };
+    }
     if (options.voices) {
       groups.voice.items = [];
       for (var voice = 0; voice < options.voices; voice++) groups.voice.items.push({ title: 'Доріжка ' + voice, selected: voice === 0 });
