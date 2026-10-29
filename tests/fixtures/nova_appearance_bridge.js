@@ -66,11 +66,36 @@ window.novaFixture = {
       groups.sort = options.sourceStates;
       window.nova_skin_probe_mode = function () { return 'external'; };
     }
+    if (options.sourceCache) {
+      var sourceCache = {};
+      sourceCache[movie.id] = { time: Date.now(), list: options.sourceCache };
+      save('nova_probe', sourceCache);
+    }
     if (options.voices) {
       groups.voice.items = [];
       for (var voice = 0; voice < options.voices; voice++) groups.voice.items.push({ title: 'Доріжка ' + voice, selected: voice === 0 });
     }
-    filter = { onSelect: function (type, choice, value) {
+    if (options.nativeFilter) {
+      // Exercise the production wrapper. Lampac owns the source list and setter.
+      window.fixtureNetworkRequests = [];
+      Lampa.Reguest = function () {
+        window.fixtureNetworkRequests.push(['construct']);
+        this.timeout = function () {};
+        this.clear = function () {};
+        this['native'] = this.silent = function (url) { window.fixtureNetworkRequests.push(['request', url]); };
+      };
+      save('nova_skin_probe', true);
+      probe_url = 'https://fixture.invalid/lite/found?id=39351';
+      Lampa.Filter = function () {
+        this.native_sets = {};
+        this.set = function (type, list) { this.native_sets[type] = list; };
+      };
+      hookFilter();
+      filter = new Lampa.Filter({});
+      filter.set('sort', groups.sort);
+      filter.set('filter', [groups.season, groups.voice]);
+    } else filter = {};
+    filter.onSelect = function (type, choice, value) {
       window.fixtureActions.push(['filter', type]);
       if (type === 'sort') groups.sort.forEach(function (entry) { entry.selected = entry === choice; });
       else {
@@ -79,10 +104,10 @@ window.novaFixture = {
         selected.subtitle = selected.items[value.index].title;
       }
       setTimeout(function () { switchDone(); window.novaFixture.render(); }, 0);
-    } };
-    filter.nova_sets = { sort: groups.sort, filter: [groups.season, groups.voice] };
+    };
+    if (!options.nativeFilter) filter.nova_sets = { sort: groups.sort, filter: [groups.season, groups.voice] };
     filter.render = function () { return activityRoot.find('.native-results'); };
-    filters.unshift(filter);
+    if (!options.nativeFilter) filters.unshift(filter);
     if (window.fixtureScroll && scrolls.indexOf(window.fixtureScroll) < 0) scrolls.unshift(window.fixtureScroll);
     extras = [];
     ui = {};
@@ -193,3 +218,8 @@ window.novaFixture = {
   restoreHiddenControl: function () { lockFocus('source', 1000); ui_focus = 'source'; restoreFocus(ui.play); },
   state: function () { return { mode: this.current(), focus: ui_focus, open: ui_open }; }
 };
+window.novaFixture.updateSources = function (list) { filter.set('sort', list); };
+window.novaFixture.nativeSources = function () { return filter.native_sets.sort; };
+window.novaFixture.resumeSources = function () { sourceResultsChanged(source_results_pending); };
+window.novaFixture.sourceSignature = function () { return { saved: signature, rendered: stamp() }; };
+window.novaFixture.sourceDraw = function () { draw(); };

@@ -274,7 +274,9 @@ function upstreamFixture(eol = '\r\n') {
     '  function cacheFixture() {\n' + searchReliabilityAnchors.cache + '\n  }',
     '  function sourceRank(item) {\n    var key = item.source;\n' + searchReliabilityAnchors.rank + '\n  }',
     searchReliabilityAnchors.active + '\n  }',
-    '  function sourceRow() {\n' + searchReliabilityAnchors.row + '\n  }',
+    '  function sourceRow() {\n' + searchReliabilityAnchors.row + '\n' + searchReliabilityAnchors.status + '\n' + searchReliabilityAnchors.more + '\n  }',
+    '  function filterFixture() {\n' + searchReliabilityAnchors.filter + '\n  }',
+    '  var sourceLabelFixture = {\n' + searchReliabilityAnchors.allLabel + '\n  };',
     searchReliabilityAnchors.attach,
     searchReliabilityAnchors.detach + '\n  }'
   ].join('\n');

@@ -14,6 +14,12 @@ export const searchReliabilityAnchors = {
     if (state === 'empty') return false;`,
   row: `    var probe = probeCache(movie.id).list || {};
     var life = lifeKnown();`,
+  filter: `        inst.nova_sets[type] = list;
+        return setter.apply(inst, arguments);`,
+  status: `      var state = probe[key] ? probe[key].s : (life ? (item.ghost ? 'empty' : 'ok') : '');`,
+  more: `text('nova_more_sources', 'nova_skin_more_sources')
+        .replace('{count}', hidden.length)`,
+  allLabel: `    nova_skin_all_sources: { ru: 'Все источники', uk: 'Всі джерела', en: 'All sources' },`,
   attach: `  function attach() {
     if (!window.MutationObserver || !enabled()) return;
     if (observer) observer.disconnect();
@@ -36,7 +42,37 @@ export const searchReliabilityAnchors = {
     if (observer) observer.disconnect();`
 };
 
-const searchRuntime = `  var search_watch_timer = null;
+const searchRuntime = `  function sourceStatusStamp(list) {
+    return JSON.stringify((list || []).map(function (item) {
+      return [item.source || '', item.title || '', item.ghost, !!item.selected];
+    }));
+  }
+
+  function sourceResultsChanged(inst) {
+    // Native Lampac has already checked these sources. Only repaint the shared
+    // controls; never restart the provider search or rebuild hero/episode nodes.
+    if (probeHook() !== 'external' || !enabled() || aside || inst !== filter || !inSkin()) return;
+    source_results_pending = inst;
+    if (busy) return;
+    try {
+      var controller = Lampa.Controller.enabled();
+      // Appearance adapters may refresh their own collection in buildRows.
+      // Keep settings/select/player controllers intact until content resumes.
+      if (!controller || controller.name !== 'content') return;
+      var ownFocus = rowsFocused();
+      groups = readGroups(inst);
+      buildRows();
+      // Native Filter.chosen may trigger the existing DOM observer next. The
+      // controls now match the current open/all flags; keep episode DOM cached.
+      signature = stamp();
+      source_results_pending = null;
+      refreshCollection();
+      if (ownFocus) restoreFocus(false);
+    } catch (error) { searchRecover(error); }
+  }
+
+  var source_results_pending = null;
+  var search_watch_timer = null;
   var search_watch_state = null;
   var search_watch_target = null;
 
@@ -45,6 +81,7 @@ const searchRuntime = `  var search_watch_timer = null;
     search_watch_timer = null;
     search_watch_state = null;
     search_watch_target = null;
+    source_results_pending = null;
   }
 
   function searchEmptyNote(native) {
@@ -97,6 +134,7 @@ const searchRuntime = `  var search_watch_timer = null;
     if (!enabled() || aside || activeNode() !== search_watch_target) return searchWatchStop();
     if (busy) return;
     try {
+      if (source_results_pending) sourceResultsChanged(source_results_pending);
       var found = scope();
       if (!found) return;
       var body = found.body[0];
@@ -151,13 +189,26 @@ const replacements = {
   cache: `    if (dead && movie && probeHook() !== 'external' && searchEmptyNote(native)) {
       probeSave(movie.id, dead, 'empty', 0);
     }`,
-  rank: `    var state = probeHook() === 'external' ? '' : sourceState(key);
+  rank: `    if (probeHook() === 'external' && lifeKnown()) return item.ghost === false ? 0 : 3;
+    var state = probeHook() === 'external' ? '' : sourceState(key);
     if (state === 'ok') return 0;`,
   active: `  function sourceActive(item, key, state, graded) {
-    if (probeHook() === 'external') return !!item.selected || !item.ghost;
+    if (probeHook() === 'external') return !lifeKnown() || item.ghost === false;
     if (state === 'empty') return false;`,
-  row: `    var probe = probeHook() === 'external' ? {} : (probeCache(movie.id).list || {});
+  row: `    var external = probeHook() === 'external';
+    var probe = external ? {} : (probeCache(movie.id).list || {});
     var life = lifeKnown();`,
+  filter: `        var status = type === 'sort' ? sourceStatusStamp(list) : '';
+        var changed = type === 'sort' && inst.nova_source_status !== status;
+        inst.nova_sets[type] = list;
+        var result = setter.apply(inst, arguments);
+        if (type === 'sort') inst.nova_source_status = status;
+        if (changed) sourceResultsChanged(inst);
+        return result;`,
+  status: `      var state = external ? (item.ghost === false ? 'ok' : item.ghost === true ? 'empty' : '')
+        : (probe[key] ? probe[key].s : (life ? (item.ghost ? 'empty' : 'ok') : ''));`,
+  more: `text('nova_all_sources', 'nova_skin_all_sources') + ' (' + hidden.length + ')'`,
+  allLabel: `    nova_skin_all_sources: { ru: 'Все источники', uk: 'Усі джерела', en: 'All sources' },`,
   attach: `  function attach() {
     searchWatchStop();
     if (!enabled() || aside) return;

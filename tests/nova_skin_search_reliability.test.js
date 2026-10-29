@@ -80,7 +80,7 @@ function renderContext() {
     enabled: () => true, aside: false, busy: false, activeNode: () => rootNode,
     scope: () => ({ root: new Selection([rootNode]), body: new Selection([body]), movie: { id: 11, title: 'Film' } }),
     $: input => input instanceof Selection ? input : new Selection([input]),
-    search_watch_timer: null, search_watch_state: null, search_watch_target: null,
+    search_watch_timer: null, search_watch_state: null, search_watch_target: null, source_results_pending: null,
     observer: null, observed: null, signature: '', note_sig: '', ui_open: '', ui_page: -1, ui_page_focus: -1,
     root: new Selection([rootNode]), host: body, movie: { id: 11 }, filter: null,
     ui: { root: new Selection([ownNode]), list: new Selection([node()]), hero: new Selection([heroNode]), rows: new Selection([node()]) },
@@ -237,6 +237,30 @@ test('repeated attach replaces rather than leaks watchdog timers; leaving activi
   assert.equal(state.timers.size, 0);
 });
 
+test('the existing watchdog flushes queued source controls after busy ends without a new timer', () => {
+  const state = renderContext();
+  const pending = {};
+  let refreshed = 0;
+  state.context.sourceResultsChanged = inst => {
+    assert.equal(inst, pending);
+    state.context.source_results_pending = null;
+    refreshed++;
+  };
+  state.context.attach();
+  state.context.source_results_pending = pending;
+  state.context.busy = true;
+  state.context.searchWatchTick();
+  assert.equal(refreshed, 0);
+  assert.equal(state.context.source_results_pending, pending);
+  state.context.busy = false;
+  state.context.searchWatchTick();
+  assert.equal(refreshed, 1);
+  assert.equal(state.timers.size, 1);
+  state.context.source_results_pending = pending;
+  state.context.searchWatchStop();
+  assert.equal(state.context.source_results_pending, null);
+});
+
 test('disabled Premium does not start a watchdog or transform native results', () => {
   const state = renderContext();
   state.context.enabled = () => false;
@@ -260,6 +284,81 @@ test('external mode ignores stale negative cache but still excludes unavailable 
   assert.equal(context.sourceActive(context.groups.sort[2], 'c', 'ok', false), false);
   context.probeHook = () => 'legacy';
   assert.equal(context.sourceRank(context.groups.sort[1]), 3);
+});
+
+test('external source confirmation requires native ghost false even for selected or cached sources', () => {
+  const context = load({
+    probeHook: () => 'external', sourceState: () => 'ok', knownQuality: () => '1080p',
+    groups: { sort: [{ source: 'a', selected: true, ghost: true }, { source: 'b', ghost: false }, { source: 'c' }] },
+    hop: { tried: {} }, QUALITY_RANK: {}, splitSourceName: title => ({ badge: '', name: title })
+  }, ['lifeKnown', 'sourceRank', 'sourceActive', 'nextSource']);
+  assert.equal(context.sourceActive(context.groups.sort[0], 'a', 'ok', true), false);
+  assert.equal(context.sourceActive(context.groups.sort[1], 'b', 'empty', true), true);
+  assert.equal(context.sourceActive(context.groups.sort[2], 'c', 'ok', true), false);
+  assert.equal(context.sourceRank(context.groups.sort[2]), 3);
+  assert.equal(context.nextSource().source, 'b');
+  context.groups.sort = [{ source: 'a', selected: true }, { source: 'b' }];
+  assert.equal(context.sourceActive(context.groups.sort[1], 'b', '', true), true, 'no native status contract retains the normal list');
+});
+
+test('the source results refresh preserves cards and ignores inactive filters or non-content focus', () => {
+  let rows = 0, collection = 0, focus = 0;
+  const native = { nova_sets: { sort: [{ source: 'a', ghost: false }], filter: [] } };
+  const cards = {}, hero = {};
+  const context = {
+    enabled: () => true, probeHook: () => 'external', aside: false, busy: false, filter: native,
+    ui: { rows: { 0: {} }, list: cards, hero }, last: {}, groups: {}, signature: 'before', stamp: () => 'current-controls',
+    inSkin: () => true, rowsFocused: () => true, readGroups: inst => ({ sort: inst.nova_sets.sort }),
+    buildRows: () => { rows++; }, refreshCollection: () => { collection++; }, restoreFocus: () => { focus++; },
+    Lampa: { Controller: { enabled: () => ({ name: 'content' }) } }
+  };
+  load(context, ['sourceResultsChanged']);
+  context.sourceResultsChanged({});
+  assert.equal(rows, 0);
+  context.sourceResultsChanged(native);
+  assert.equal(rows, 1); assert.equal(collection, 1); assert.equal(focus, 1);
+  assert.equal(context.signature, 'current-controls', 'native chosen observer cannot rebuild unchanged episode content');
+  assert.equal(context.ui.list, cards); assert.equal(context.ui.hero, hero);
+  context.rowsFocused = () => false;
+  context.sourceResultsChanged(native);
+  assert.equal(focus, 1, 'episode focus is not reassigned');
+  context.Lampa.Controller.enabled = () => ({ name: 'settings' });
+  context.sourceResultsChanged(native);
+  assert.equal(focus, 1); assert.equal(collection, 2, 'another controller keeps its collection');
+  assert.equal(rows, 2, 'appearance adapters must not rebuild controls while a modal is active');
+  assert.equal(context.source_results_pending, native);
+  context.Lampa.Controller.enabled = () => ({ name: 'content' });
+  context.sourceResultsChanged(context.source_results_pending);
+  assert.equal(context.source_results_pending, null);
+  assert.equal(rows, 3);
+  context.busy = true; context.sourceResultsChanged(native); assert.equal(rows, 3);
+  context.busy = false;
+  let recovered = 0;
+  context.searchRecover = () => { recovered++; };
+  context.buildRows = () => { throw new Error('unsupported view API'); };
+  assert.doesNotThrow(() => context.sourceResultsChanged(native), 'UI failure cannot interrupt Lampac native polling');
+  assert.equal(recovered, 1);
+});
+
+test('native Filter updates refresh only changed source statuses, including in-place updates', () => {
+  const changed = [];
+  const context = {
+    Lampa: { Filter: function () { this.set = function () { return this; }; } },
+    filters: [], sourceResultsChanged: inst => changed.push(inst)
+  };
+  load(context, ['sourceStatusStamp', 'hookFilter']);
+  context.hookFilter();
+  const filter = new context.Lampa.Filter();
+  const sources = [{ source: 'a', title: 'A', ghost: true }];
+  assert.equal(filter.set('sort', sources), filter);
+  filter.set('sort', sources);
+  assert.equal(changed.length, 1, 'duplicate status does not rebuild controls');
+  sources[0].ghost = false;
+  filter.set('sort', sources);
+  assert.equal(changed.length, 2);
+  filter.set('filter', []);
+  assert.equal(changed.length, 2, 'other native filter changes retain their original behavior');
+  assert.equal(filter.nova_sets.sort, sources);
 });
 
 test('notePanel caches only confirmed empty results in legacy mode, never external errors/results', () => {
