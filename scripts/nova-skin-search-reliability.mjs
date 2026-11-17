@@ -4,9 +4,19 @@ export const searchReliabilityAnchors = {
     if (!enabled() || busy) return;
 
     var found = scope();`,
+  nativeState: `  function nativeState() {
+    var empty = $(host).find('.online-empty').not('.nova-skin-root .online-empty').first();
+    if (!empty.length) return null;
+    if (empty.find('.broadcast__scan').length && !empty.find('.online-empty__title').length) {
+      return { kind: 'loading', node: empty };
+    }
+    return { kind: 'note', node: empty };
+  }`,
   note: `    var native = nativeState();
     if (native) {
       busy = true;`,
+  cards: `    var list = collect();
+    if (!list.length) {`,
   cache: `    if (dead && movie) probeSave(movie.id, dead, 'empty', 0);`,
   rank: `    var state = sourceState(key);
     if (state === 'ok') return 0;`,
@@ -139,22 +149,29 @@ const searchRuntime = `  function sourceStatusStamp(list) {
       if (!found) return;
       var body = found.body[0];
       var cards = $(body).find('.online-prestige--full,.online-prestige--folder');
-      var empty = $(body).find('.online-empty').first();
+      var native = nativeState(body);
+      var empty = native ? native.node : null;
       var state = {
         body: body, count: cards.length, first: cards[0], last: cards[cards.length - 1],
-        empty: empty[0], title: empty.find('.online-empty__title').text(),
+        empty: empty ? empty[0] : null, kind: native ? native.kind : '',
+        title: empty ? empty.find('.online-empty__title').text() : '',
         source: currentSourceKey()
       };
       var previous = search_watch_state;
       search_watch_state = state;
       var changed = !previous || previous.body !== state.body || previous.count !== state.count ||
         previous.first !== state.first || previous.last !== state.last ||
-        previous.empty !== state.empty || previous.title !== state.title || previous.source !== state.source;
+        previous.empty !== state.empty || previous.kind !== state.kind ||
+        previous.title !== state.title || previous.source !== state.source;
       if (previous && (previous.body !== state.body || previous.first !== state.first || previous.last !== state.last)) {
         signature = '';
       }
       // No redraw of an unchanged ready page, and no poster replacement.
       if (changed || (ui.load && cards.length)) draw();
+      // Give native Online its normal timeout and fallback window. A stuck
+      // skin must not hide its controls indefinitely or start another search.
+      if (!aside && host === body && ui.load && !cards.length && loading_started &&
+          Date.now() - loading_started >= 90000) searchRecover(null);
     } catch (e) { searchRecover(e); }
   }
 
@@ -179,13 +196,28 @@ const searchRuntime = `  function sourceStatusStamp(list) {
 
 const replacements = {
   draw: searchRuntime,
+  nativeState: `  function nativeState(body) {
+    var nodes = $(body || host).find('.online-empty').not('.nova-skin-root .online-empty');
+    var loading = null;
+    for (var i = 0; i < nodes.length; i++) {
+      var node = $(nodes[i]);
+      if (!node.find('.broadcast__scan').length || node.find('.online-empty__title').length) {
+        return { kind: 'note', node: node };
+      }
+      if (!loading) loading = { kind: 'loading', node: node };
+    }
+    return loading;
+  }`,
   note: `    var native = nativeState();
-    if (native) {
+    var ready = native && native.kind === 'loading' ? collect() : null;
+    if (native && (!ready || !ready.length)) {
       if (native.kind !== 'loading' && probeHook() === 'external' && !searchEmptyNote(native)) {
         searchRecover(null);
         return;
       }
       busy = true;`,
+  cards: `    var list = ready || collect();
+    if (!list.length) {`,
   cache: `    if (dead && movie && probeHook() !== 'external' && searchEmptyNote(native)) {
       probeSave(movie.id, dead, 'empty', 0);
     }`,

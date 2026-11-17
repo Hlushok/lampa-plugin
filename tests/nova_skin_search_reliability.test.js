@@ -35,11 +35,13 @@ function load(context, functions) {
 class Selection {
   constructor(nodes = []) { this.nodes = nodes; this.length = nodes.length; nodes.forEach((node, index) => { this[index] = node; }); }
   first() { return new Selection(this.nodes.slice(0, 1)); }
+  not() { return this; }
   find(selector) {
     const node = this.nodes[0];
     if (!node) return new Selection();
     if (selector === '.online-prestige--full,.online-prestige--folder') return new Selection(node.cards || []);
-    if (selector === '.online-empty') return new Selection(node.empty ? [node.empty] : []);
+    if (selector === '.online-empty') return new Selection(node.emptyNodes || (node.empty ? [node.empty] : []));
+    if (selector === '.broadcast__scan') return new Selection(node.scanning ? [node] : []);
     if (selector === '.nova-hidden') return new Selection(node.hidden || []);
     if (selector === '.online-empty__title') return new Selection(node.title ? [{ text: node.title }] : []);
     if (selector === '.online-empty__time') return new Selection(node.message ? [{ text: node.message }] : []);
@@ -60,6 +62,7 @@ function node(classes = []) { return { classes: new Set(classes), children: [] }
 function renderContext() {
   const timers = new Map();
   let nextTimer = 0;
+  let now = 1000;
   const body = node();
   body.cards = [];
   const rootNode = node();
@@ -74,6 +77,7 @@ function renderContext() {
   const calls = { cards: 0, loading: 0, note: 0, nativeEnable: 0, preserve: null };
   const noop = () => {};
   const context = {
+    Date: { now: () => now }, loading_started: 0,
     window: { console: { warn: (...args) => logs.push(args) } },
     setInterval: callback => { const id = ++nextTimer; timers.set(id, callback); return id; },
     clearInterval: id => timers.delete(id), clearTimeout: noop, timer: null,
@@ -88,8 +92,12 @@ function renderContext() {
     readGroups: () => ({ sort: [] }), readExtras: () => [], nativeKind: 'loading',
     nativeState: () => context.nativeKind ? { kind: context.nativeKind, node: new Selection([body.empty || nativeLoading]) } : null,
     knownRemember: noop, pendingLive: () => false,
-    loadingPanel() { calls.loading++; context.ui.load = {}; },
-    loadingStop() { context.ui.load = null; }, hopStop: noop, probeStop: noop,
+    loadingPanel() {
+      calls.loading++;
+      if (!context.ui.load) context.loading_started = now;
+      context.ui.load = {};
+    },
+    loadingStop() { context.ui.load = null; context.loading_started = 0; }, hopStop: noop, probeStop: noop,
     inplaceStop: noop, lockRelease: noop, switchDone: noop, hopReset: noop,
     uiFrame: noop, hideHost: noop, listFree: noop,
     collect: () => body.cards.map((origin, index) => ({ index, folder: false, title: 'Found film', origin: new Selection([origin]) })),
@@ -103,7 +111,8 @@ function renderContext() {
       Controller: { collectionSet: noop, enable() { calls.nativeEnable++; } } }
   };
   load(context, ['searchWatchStop', 'searchEmptyNote', 'searchRecover', 'searchWatchTick', 'searchWatchStart', 'draw', 'drawFrame', 'attach']);
-  return { context, body, rootNode, ownNode, heroNode, heroImage, calls, timers, logs };
+  return { context, body, rootNode, ownNode, heroNode, heroImage, calls, timers, logs,
+    advance: ms => { now += ms; } };
 }
 
 test('late native results replace loading even without MutationObserver and retain the same poster', () => {
@@ -137,6 +146,50 @@ test('replacement native nodes with identical titles refresh click origins rathe
   state.context.searchWatchTick();
   assert.equal(state.calls.cards, 2);
   assert.equal(state.context.ui.list[0].children[0], replacement);
+});
+
+test('ready cards take precedence over a leftover native loading placeholder', () => {
+  const state = renderContext();
+  state.context.attach();
+  state.context.draw();
+  state.context.searchWatchTick();
+  state.body.cards = [node(['selector'])];
+  // The TV may still have .online-empty with a scan indicator under the result body.
+  state.context.searchWatchTick();
+  assert.equal(state.calls.cards, 1);
+  assert.equal(state.context.ui.load, null);
+  assert.equal(state.calls.preserve, true);
+  state.context.searchWatchTick();
+  assert.equal(state.calls.cards, 1);
+  assert.equal(state.calls.nativeEnable, 0);
+});
+
+test('an unresolved Nova loading screen hands back to native Online after 90 seconds', () => {
+  const state = renderContext();
+  state.context.attach();
+  state.context.draw();
+  state.advance(89999);
+  state.context.searchWatchTick();
+  assert.equal(state.context.aside, false);
+  state.advance(1);
+  state.context.searchWatchTick();
+  assert.equal(state.context.aside, true);
+  assert.equal(state.calls.nativeEnable, 1);
+  assert.equal(state.ownNode.removed, true);
+  assert.equal(state.timers.size, 0);
+  state.context.searchWatchTick();
+  assert.equal(state.calls.nativeEnable, 1);
+});
+
+test('cards arriving at the timeout are rendered instead of handing back to native', () => {
+  const state = renderContext();
+  state.context.attach();
+  state.context.draw();
+  state.advance(90000);
+  state.body.cards = [node(['selector'])];
+  state.context.searchWatchTick();
+  assert.equal(state.calls.cards, 1);
+  assert.equal(state.calls.nativeEnable, 0);
 });
 
 test('render exception releases busy, reveals native results and restores native focus selectors', () => {
@@ -181,6 +234,17 @@ test('genuine native empty-result messages still use the Nova note UI', () => {
   state.context.draw();
   assert.equal(state.calls.note, 1);
   assert.equal(state.context.aside, false);
+});
+
+test('a terminal native note is used even if a loading placeholder precedes it', () => {
+  const state = renderContext();
+  const loading = { ...node(), scanning: true };
+  const terminal = { ...node(), title: 'Source timed out', message: 'Trying the next source' };
+  state.body.emptyNodes = [loading, terminal];
+  load(state.context, ['nativeState']);
+  assert.equal(state.context.nativeState().node[0], terminal);
+  state.context.draw();
+  assert.equal(state.context.aside, true, 'let native Online handle its timeout');
 });
 
 test('a watchdog also survives a failing observer constructor', () => {

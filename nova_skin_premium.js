@@ -3760,13 +3760,17 @@
     return false;
   }
 
-  function nativeState() {
-    var empty = $(host).find('.online-empty').not('.nova-skin-root .online-empty').first();
-    if (!empty.length) return null;
-    if (empty.find('.broadcast__scan').length && !empty.find('.online-empty__title').length) {
-      return { kind: 'loading', node: empty };
+  function nativeState(body) {
+    var nodes = $(body || host).find('.online-empty').not('.nova-skin-root .online-empty');
+    var loading = null;
+    for (var i = 0; i < nodes.length; i++) {
+      var node = $(nodes[i]);
+      if (!node.find('.broadcast__scan').length || node.find('.online-empty__title').length) {
+        return { kind: 'note', node: node };
+      }
+      if (!loading) loading = { kind: 'loading', node: node };
     }
-    return { kind: 'note', node: empty };
+    return loading;
   }
 
   var KNOWN_KEY = 'nova_skin_components';
@@ -3920,6 +3924,9 @@
 
     nav = false;
     serial = !!(movie.name || movie.number_of_seasons);
+    // Custom layouts rebuild their action slot. Detach before that happens so
+    // jQuery doesn't discard the native Online button's event handlers.
+    if (ui.load) ui.load.detach();
     buildHero();
 
     if (!ui.hero || !ui.hero.parent().length) return false;
@@ -3955,14 +3962,44 @@
     return true;
   }
 
+  function loadingNativeAction(place) {
+    if (!ui.load_native) {
+      var action = $('<div class="nova-btn nova-loading__native selector" role="button" tabindex="0" data-nova-focus="loading:native"></div>');
+      var lang = get('language', 'en');
+      action.text(lang === 'uk' || lang === 'ua' ? 'Відкрити рідний онлайн' :
+        lang === 'ru' ? 'Открыть родной онлайн' : 'Open native Online');
+      action.css({ marginTop: '.65em', marginBottom: '.4em' });
+      var open = function () {
+        if (!aside && inSkin()) searchRecover(null);
+      };
+      bind(action, open);
+      action.on('click keydown', function (e) {
+        if (e.type === 'keydown' && e.keyCode !== 13 && e.keyCode !== 32) return;
+        e.preventDefault();
+        e.stopPropagation();
+        open();
+      });
+      ui.load_native = action;
+    }
+    if (ui.load_native.parent()[0] !== place[0]) place.append(ui.load_native);
+    refreshCollection();
+    try {
+      var controller = Lampa.Controller.enabled();
+      if (controller && controller.name === 'content' &&
+          (ui_focus === 'loading:native' || !last || !shown(last))) focusNode(ui.load_native, true);
+    } catch (e) {}
+  }
+
   function loadingPanel() {
     uiFrame();
     note_sig = '';
 
     if (ui.hero && ui.hero.parent().length && !ui.hero.hasClass('nova-hero--loading')) {
-      loadingStop();
-      listHold().empty().append(skeleton(4));
-      refreshCollection();
+      if (ui.load_native) ui.load_native.detach();
+      loadingStop(true);
+      var loading_list = listHold().empty();
+      loading_list.append(skeleton(4));
+      loadingNativeAction(loading_list);
       var keep = (lockActive() && seek(ui_lock)) || seek(ui_focus);
       if (keep) focusNode(keep, true);
       return;
@@ -3972,7 +4009,7 @@
 
     if (loadingHeroPanel()) {
       listHold().empty().append(skeleton(3));
-      refreshCollection();
+      loadingNativeAction(ui.load);
       loadingText();
 
       clearInterval(loading_timer);
@@ -3994,7 +4031,10 @@
       ui.load.find('.nova-loading__title').text(text('nova_loading_title', 'nova_skin_loading_title'));
     }
 
+    // Keep the existing action and its handlers across transient redraws.
+    ui.load.detach();
     listHold().empty().append(ui.load).append(skeleton(3));
+    loadingNativeAction(ui.load);
     loadingText();
 
     clearInterval(loading_timer);
@@ -4011,11 +4051,15 @@
     ui.load.find('.nova-loading__bar>div').css('width', Math.min(90, seconds * 7) + '%');
   }
 
-  function loadingStop() {
+  function loadingStop(keep_action) {
     clearInterval(loading_timer);
     loading_timer = null;
     loading_started = 0;
 
+    if (!keep_action && ui.load_native) {
+      ui.load_native.remove();
+      ui.load_native = null;
+    }
     if (ui.load && ui.load.parent().length) ui.load.remove();
     ui.load = null;
     loadingMarkRestore();
@@ -4289,22 +4333,29 @@
       if (!found) return;
       var body = found.body[0];
       var cards = $(body).find('.online-prestige--full,.online-prestige--folder');
-      var empty = $(body).find('.online-empty').first();
+      var native = nativeState(body);
+      var empty = native ? native.node : null;
       var state = {
         body: body, count: cards.length, first: cards[0], last: cards[cards.length - 1],
-        empty: empty[0], title: empty.find('.online-empty__title').text(),
+        empty: empty ? empty[0] : null, kind: native ? native.kind : '',
+        title: empty ? empty.find('.online-empty__title').text() : '',
         source: currentSourceKey()
       };
       var previous = search_watch_state;
       search_watch_state = state;
       var changed = !previous || previous.body !== state.body || previous.count !== state.count ||
         previous.first !== state.first || previous.last !== state.last ||
-        previous.empty !== state.empty || previous.title !== state.title || previous.source !== state.source;
+        previous.empty !== state.empty || previous.kind !== state.kind ||
+        previous.title !== state.title || previous.source !== state.source;
       if (previous && (previous.body !== state.body || previous.first !== state.first || previous.last !== state.last)) {
         signature = '';
       }
       // No redraw of an unchanged ready page, and no poster replacement.
       if (changed || (ui.load && cards.length)) draw();
+      // Give native Online its normal timeout and fallback window. A stuck
+      // skin must not hide its controls indefinitely or start another search.
+      if (!aside && host === body && ui.load && !cards.length && loading_started &&
+          Date.now() - loading_started >= 90000) searchRecover(null);
     } catch (e) { searchRecover(e); }
   }
 
@@ -4337,7 +4388,8 @@
     extras = readExtras();
 
     var native = nativeState();
-    if (native) {
+    var ready = native && native.kind === 'loading' ? collect() : null;
+    if (native && (!ready || !ready.length)) {
       if (native.kind !== 'loading' && probeHook() === 'external' && !searchEmptyNote(native)) {
         searchRecover(null);
         return;
@@ -4359,7 +4411,7 @@
       return;
     }
 
-    var list = collect();
+    var list = ready || collect();
     if (!list.length) {
       if (blank()) {
         busy = true;

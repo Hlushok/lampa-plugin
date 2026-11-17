@@ -270,7 +270,9 @@ function upstreamFixture(eol = '\r\n') {
   // separately execute the real generated search functions, not these stubs.
   const reliability = [
     searchReliabilityAnchors.draw + '\n  }',
+    searchReliabilityAnchors.nativeState,
     '  function noteFixture() {\n' + searchReliabilityAnchors.note + '\n    }\n  }',
+    '  function cardsFixture() {\n' + searchReliabilityAnchors.cards + '\n    }\n  }',
     '  function cacheFixture() {\n' + searchReliabilityAnchors.cache + '\n  }',
     '  function sourceRank(item) {\n    var key = item.source;\n' + searchReliabilityAnchors.rank + '\n  }',
     searchReliabilityAnchors.active + '\n  }',
@@ -537,7 +539,9 @@ test('renders the initial source search inside the final hero shell', () => {
   assert.ok(output.includes("!ui.hero.hasClass('nova-hero--loading')"));
   assert.ok(output.includes("ui.hero.removeClass('nova-hero--loading')"));
   assert.ok(output.includes('ui.load.remove();'));
-  assert.ok(output.includes('listHold().empty().append(skeleton(4));'));
+  assert.ok(output.includes('loading_list.append(skeleton(4));'));
+  assert.ok(output.includes('loadingNativeAction(loading_list);'));
+  assert.ok(output.includes('Відкрити рідний онлайн'));
   assert.ok(output.includes('listHold().empty().append(skeleton(3));'));
   assert.ok(output.includes('listHold().empty().append(ui.load).append(skeleton(3));'));
   assert.ok(output.includes('focusNode(keep, true);'));
