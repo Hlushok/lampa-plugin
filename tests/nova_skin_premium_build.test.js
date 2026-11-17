@@ -540,8 +540,9 @@ test('renders the initial source search inside the final hero shell', () => {
   assert.ok(output.includes("ui.hero.removeClass('nova-hero--loading')"));
   assert.ok(output.includes('ui.load.remove();'));
   assert.ok(output.includes('loading_list.append(skeleton(4));'));
-  assert.ok(output.includes('loadingNativeAction(loading_list);'));
-  assert.ok(output.includes('Відкрити рідний онлайн'));
+  assert.ok(output.includes('loadingSourceAction(loading_list);'));
+  assert.ok(output.includes('Наступне джерело'));
+  assert.ok(!output.includes('Відкрити рідний онлайн'));
   assert.ok(output.includes('listHold().empty().append(skeleton(3));'));
   assert.ok(output.includes('listHold().empty().append(ui.load).append(skeleton(3));'));
   assert.ok(output.includes('focusNode(keep, true);'));

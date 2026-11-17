@@ -72,6 +72,9 @@ const searchRuntime = `  function sourceStatusStamp(list) {
       var ownFocus = rowsFocused();
       groups = readGroups(inst);
       buildRows();
+      if (ui.loading_source_place && ui.root && $.contains(ui.root[0], ui.loading_source_place[0])) {
+        loadingSourceAction(ui.loading_source_place);
+      }
       // Native Filter.chosen may trigger the existing DOM observer next. The
       // controls now match the current open/all flags; keep episode DOM cached.
       signature = stamp();

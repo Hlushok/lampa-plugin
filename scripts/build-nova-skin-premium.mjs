@@ -342,7 +342,11 @@ const heroLoadingReplacement = `  var loading_started = 0;
     '.nova-skin-root .nova-hero__title--loading>.nova-loading-mark__shine{position:absolute!important;top:0;left:0;right:auto;bottom:auto;opacity:1;pointer-events:none;-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 42%,#000 58%,transparent 100%);mask-image:linear-gradient(90deg,transparent 0,#000 42%,#000 58%,transparent 100%);-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-size:42% 100%;mask-size:42% 100%;-webkit-animation:novaLoadingMarkSweep 1.8s linear infinite;animation:novaLoadingMarkSweep 1.8s linear infinite}',
     '@-webkit-keyframes novaLoadingMarkSweep{0%{-webkit-mask-position:-60% 0}100%{-webkit-mask-position:160% 0}}',
     '@keyframes novaLoadingMarkSweep{0%{-webkit-mask-position:-60% 0;mask-position:-60% 0}100%{-webkit-mask-position:160% 0;mask-position:160% 0}}',
-    '@media screen and (prefers-reduced-motion:reduce){.nova-skin-root .nova-hero__title--loading>.nova-loading-mark__shine{display:none!important;-webkit-animation:none!important;animation:none!important}.nova-skin-root .nova-hero__title--loading>.nova-loading-mark__base{opacity:.72}}'
+    '@media screen and (prefers-reduced-motion:reduce){.nova-skin-root .nova-hero__title--loading>.nova-loading-mark__shine{display:none!important;-webkit-animation:none!important;animation:none!important}.nova-skin-root .nova-hero__title--loading>.nova-loading-mark__base{opacity:.72}}',
+    '.nova-skin-root .nova-loading__next{display:-webkit-inline-flex!important;display:inline-flex!important;-webkit-align-items:center;align-items:center;-webkit-flex:0 0 auto;flex:0 0 auto;box-sizing:border-box;width:auto!important;max-width:100%;min-height:2.5em;margin:.55em .45em .15em 0;padding:.42em .75em;border:1px solid rgba(255,255,255,.38);border-radius:.8em;background:rgba(17,20,26,.78);color:#f4f5f8;font-size:.86em;line-height:1.3;font-weight:600;text-decoration:none!important;cursor:pointer}',
+    '.nova-skin-root .nova-loading__next .nova-loading__arrow{margin-left:.55em;font-size:1.2em;line-height:1}',
+    '.nova-skin-root .nova-loading__next.focus,.nova-skin-root .nova-loading__next:focus{outline:none!important;box-shadow:inset 0 0 0 1px #fff;border-color:#fff;background:#f4f5f8;color:#161821}',
+    '.nova-skin-root .nova-loading__next:active{background:#d5d8e4;color:#161821}'
   ].join('');
 
   function loadingMarkStyles() {
@@ -440,7 +444,7 @@ const heroLoadingReplacement = `  var loading_started = 0;
     nav = false;
     serial = !!(movie.name || movie.number_of_seasons);
     // Custom layouts rebuild their action slot. Detach before that happens so
-    // jQuery doesn't discard the native Online button's event handlers.
+    // jQuery doesn't discard the loading button's event handlers.
     if (ui.load) ui.load.detach();
     buildHero();
 
@@ -477,15 +481,57 @@ const heroLoadingReplacement = `  var loading_started = 0;
     return true;
   }
 
-  function loadingNativeAction(place) {
-    if (!ui.load_native) {
-      var action = $('<div class="nova-btn nova-loading__native selector" role="button" tabindex="0" data-nova-focus="loading:native"></div>');
+  function loadingSourceChoice() {
+    if (probeHook() !== 'external' || !movie || !filter || typeof filter.onSelect !== 'function') return null;
+    var list = readGroups(filter).sort || [];
+    var selected = -1;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i] && list[i].selected) {
+        if (selected !== -1) return null;
+        selected = i;
+      }
+    }
+    if (selected < 0 || !list[selected].source || ui.loading_skip_from === list[selected].source) return null;
+    var tried = hop.id === movie.id ? hop.tried : {};
+    for (var step = 1; step < list.length; step++) {
+      var next = list[(selected + step) % list.length];
+      if (next && next.source && next.source !== list[selected].source && next.ghost === false &&
+          !next.locked && !Object.prototype.hasOwnProperty.call(tried, next.source)) {
+        return { current: list[selected].source, next: next };
+      }
+    }
+    return null;
+  }
+
+  function loadingSourceAction(place) {
+    ui.loading_source_place = place;
+    if (!loadingSourceChoice()) {
+      if (ui.load_next && ui.load_next.parent().length) {
+        ui.load_next.detach();
+        refreshCollection();
+      }
+      return;
+    }
+    if (!ui.load_next) {
+      loadingMarkStyles();
+      var action = $('<div class="nova-loading__next selector" role="button" tabindex="0" data-nova-focus="loading:next"></div>');
       var lang = get('language', 'en');
-      action.text(lang === 'uk' || lang === 'ua' ? 'Відкрити рідний онлайн' :
-        lang === 'ru' ? 'Открыть родной онлайн' : 'Open native Online');
-      action.css({ marginTop: '.65em', marginBottom: '.4em' });
+      action.text(lang === 'uk' || lang === 'ua' ? 'Наступне джерело' :
+        lang === 'ru' ? 'Следующий источник' : 'Next source');
+      action.append($('<span aria-hidden="true" class="nova-loading__arrow"></span>').text('\\u203a'));
       var open = function () {
-        if (!aside && inSkin()) searchRecover(null);
+        if (aside || busy || !inSkin() || !ui.load_next || !ui.load_next.parent().length) return;
+        var native = nativeState();
+        if ((native && native.kind !== 'loading') || collect().length) return;
+        var pick = loadingSourceChoice();
+        if (!pick) return;
+        // A click and a remote event may both fire. Do not delegate another
+        // switch until native Online confirms a different selected source.
+        ui.loading_skip_from = pick.current;
+        hopReset();
+        hop.tried[pick.current] = true;
+        ui.load_next.detach();
+        chooseSource(pick.next);
       };
       bind(action, open);
       action.on('click keydown', function (e) {
@@ -494,14 +540,15 @@ const heroLoadingReplacement = `  var loading_started = 0;
         e.stopPropagation();
         open();
       });
-      ui.load_native = action;
+      ui.load_next = action;
     }
-    if (ui.load_native.parent()[0] !== place[0]) place.append(ui.load_native);
+    if (ui.load_next.parent()[0] === place[0]) return;
+    place.append(ui.load_next);
     refreshCollection();
     try {
       var controller = Lampa.Controller.enabled();
       if (controller && controller.name === 'content' &&
-          (ui_focus === 'loading:native' || !last || !shown(last))) focusNode(ui.load_native, true);
+          (ui_focus === 'loading:next' || !last || !shown(last))) focusNode(ui.load_next, true);
     } catch (e) {}
   }
 
@@ -510,11 +557,11 @@ const heroLoadingReplacement = `  var loading_started = 0;
     note_sig = '';
 
     if (ui.hero && ui.hero.parent().length && !ui.hero.hasClass('nova-hero--loading')) {
-      if (ui.load_native) ui.load_native.detach();
+      if (ui.load_next) ui.load_next.detach();
       loadingStop(true);
       var loading_list = listHold().empty();
       loading_list.append(skeleton(4));
-      loadingNativeAction(loading_list);
+      loadingSourceAction(loading_list);
       var keep = (lockActive() && seek(ui_lock)) || seek(ui_focus);
       if (keep) focusNode(keep, true);
       return;
@@ -524,7 +571,7 @@ const heroLoadingReplacement = `  var loading_started = 0;
 
     if (loadingHeroPanel()) {
       listHold().empty().append(skeleton(3));
-      loadingNativeAction(ui.load);
+      loadingSourceAction(ui.load);
       loadingText();
 
       clearInterval(loading_timer);
@@ -549,7 +596,7 @@ const heroLoadingReplacement = `  var loading_started = 0;
     // Keep the existing action and its handlers across transient redraws.
     ui.load.detach();
     listHold().empty().append(ui.load).append(skeleton(3));
-    loadingNativeAction(ui.load);
+    loadingSourceAction(ui.load);
     loadingText();
 
     clearInterval(loading_timer);
@@ -571,9 +618,11 @@ const heroLoadingReplacement = `  var loading_started = 0;
     loading_timer = null;
     loading_started = 0;
 
-    if (!keep_action && ui.load_native) {
-      ui.load_native.remove();
-      ui.load_native = null;
+    if (!keep_action) {
+      if (ui.load_next) ui.load_next.remove();
+      ui.load_next = null;
+      ui.loading_source_place = null;
+      ui.loading_skip_from = null;
     }
     if (ui.load && ui.load.parent().length) ui.load.remove();
     ui.load = null;

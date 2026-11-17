@@ -365,6 +365,34 @@ test('external source confirmation requires native ghost false even for selected
   assert.equal(context.sourceActive(context.groups.sort[1], 'b', '', true), true, 'no native status contract retains the normal list');
 });
 
+test('loading skip uses only the next confirmed untried source in native order', () => {
+  const current = { source: 'current', selected: true, ghost: true };
+  const confirmed = { source: 'confirmed', ghost: false };
+  const earlier = { source: 'earlier', ghost: false };
+  const unknown = { source: 'unknown' };
+  const locked = { source: 'locked', ghost: false, locked: true };
+  let list = [earlier, current, unknown, locked, confirmed];
+  const c = load({
+    probeHook: () => 'external', movie: { id: 1 }, filter: { onSelect() {} },
+    ui: {}, hop: { id: 1, tried: {} }, readGroups: () => ({ sort: list })
+  }, ['loadingSourceChoice']);
+  assert.equal(c.loadingSourceChoice().next, confirmed);
+  c.hop.tried.confirmed = true;
+  assert.equal(c.loadingSourceChoice().next, earlier);
+  c.ui.loading_skip_from = 'current';
+  assert.equal(c.loadingSourceChoice(), null, 'waits for native selection to move');
+  c.ui.loading_skip_from = '';
+  list = [current, unknown, locked];
+  assert.equal(c.loadingSourceChoice(), null);
+  list = [confirmed, earlier];
+  assert.equal(c.loadingSourceChoice(), null, 'cannot skip a source if its identity is unknown');
+  list = [current, { ...confirmed, selected: true }, earlier];
+  assert.equal(c.loadingSourceChoice(), null, 'cannot skip with ambiguous native selection');
+  list = [current, confirmed];
+  c.hop.id = 2;
+  assert.equal(c.loadingSourceChoice().next, confirmed, 'a different title does not inherit tried sources');
+});
+
 test('the source results refresh preserves cards and ignores inactive filters or non-content focus', () => {
   let rows = 0, collection = 0, focus = 0;
   const native = { nova_sets: { sort: [{ source: 'a', ghost: false }], filter: [] } };
